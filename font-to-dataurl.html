@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Font to Data URL</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    #out { word-break: break-all; white-space: pre-wrap; font-size: 10px; max-height: 80vh; overflow: auto; border: 1px solid #ccc; padding: 8px; }
+  </style>
+</head>
+<body>
+  <input type="file" id="f">
+  <p id="status">选择字体文件…</p>
+  <pre id="out"></pre>
+  <script>
+    const input = document.getElementById('f');
+    const out = document.getElementById('out');
+    const status = document.getElementById('status');
+    input.addEventListener('change', () => {
+      const file = input.files[0];
+      if (!file) return;
+      status.textContent = '读取中…';
+      const reader = new FileReader();
+      reader.onload = () => {
+        out.textContent = reader.result;
+        status.textContent = '完成：' + file.name;
+      };
+      reader.readAsDataURL(file);
+    });
+  </script>
+</body>
+</html>
