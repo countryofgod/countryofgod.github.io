@@ -26,8 +26,8 @@ function articleItem({ article }) {
   let out = '';
   out += `      <article class="article-item">
         <span class="article-logo">
-          <img class="logo-base" src="/img/logo.png" alt="上帝之国">
-          <img class="logo-inv" src="/img/logo.png" alt="" aria-hidden="true">
+          <img class="logo-base" src="/img/logo.webp" alt="上帝之国">
+          <img class="logo-inv" src="/img/logo.webp" alt="" aria-hidden="true">
         </span>
         <h3 class="article-title" style="font-size: 25px;">`;
   out += esc(article.title);
@@ -134,7 +134,7 @@ function renderHome({ articles, archive, notes, submitMail }) {
   <!-- Hero -->
   <section class="hero">
     <div class="hero-crop">
-      <img class="hero-image" src="/img/795.jpg" alt="墙上装框画作，画中写着 La Vie est ailleurs">
+      <img class="hero-image" src="/img/795.webp" alt="墙上装框画作，画中写着 La Vie est ailleurs">
       <div class="hero-blur" aria-hidden="true"></div>
     </div>
     <div class="hero-inner">
@@ -270,7 +270,7 @@ function renderHome({ articles, archive, notes, submitMail }) {
              原字面「© 2026 · 上帝之国」退到 alt：读屏、SEO、归档都还拿得到这句话，
              但页面上不再有可拆字的文本节点。class 里保留 footer-credit，
              是为了与 CSS / JS 里那份抖动选择器清单继续对齐（图片无字，自然不抖）。 -->
-        <img class="footer-credit footer-bottom-img" src="/img/bottom-inv.png" alt="© 2026 上帝之国">
+        <img class="footer-credit footer-bottom-img" src="/img/bottom-inv.webp" alt="© 2026 上帝之国">
       </div>
     </div>
   </footer>
