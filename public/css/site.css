@@ -208,10 +208,28 @@ body {
    纯 50% 圆心会略偏上，补一点点才落在字的视觉重心上；再用 translate(-50%,-50%) 抵消自身尺寸。
    z-index: -1 让它在文字之下；上一层 .hero-inner 自带堆叠上下文（z-index: 2），
    所以这个负层级不会漏到首图下面，只会待在首屏之内、文字底下 */
+/* 刊名里的「之」：红字 + 身后一枚圆形反色取景窗。它同时是管理台的入口（见 index.ejs），
+   所以下面这三条是给「链接」加的，不是给「字」加的。 */
 .hero-cn-hl {
   position: relative;
   display: inline-block;
+  /* 去掉默认下划线。这一条不能省：全局 reset 里只有 margin/padding/box-sizing，
+     没有 a 的 text-decoration */
+  text-decoration: none;
+}
+
+/* 颜色要写成两条选择器。必须这样写的原因：a:visited 的优先级是 (0,1,1)，
+   高过 .hero-cn-hl 的 (0,1,0)——只写 .hero-cn-hl 的话，点过一次之后
+   「之」会被浏览器染成紫色 */
+.hero-cn-hl,
+.hero-cn-hl:visited {
   color: #660000;
+}
+
+/* 键盘 Tab 到它时给一个可见焦点框；鼠标点击时不出现（:focus-visible 的语义） */
+.hero-cn-hl:focus-visible {
+  outline: 2px solid #660000;
+  outline-offset: 6px;
 }
 
 .hero-cn-hl::before {
@@ -245,15 +263,16 @@ body {
    min(0px, …) 是窄窗口的兜底：那里首图高度就是 100vh（min-height 生效），
    算式为正，被 clamp 成 0——不上移、不重叠，文章自然接在首图之后。
    注意本式与 --hero-fade-len 是绑定的：动了那个变量，这里同步，文章才不会挪到图片还没淡没的地方。
-   末尾的 + 60px 是"创刊号往下让一让"的手动余量：图片刚好淡没的那条线太贴着首篇了，
-   让文章区从那条线再落 60px，上方多留一段纯白呼吸位。要调幅度就改这一个数字。
-   （此处注释曾误写成 120px，实际代码一直是 60px，以本行的算式为准）
+   末尾的 + 100px 是"创刊号往下让一让"的手动余量：图片刚好淡没的那条线太贴着首篇了，
+   让文章区从那条线再落 100px，上方多留一段纯白呼吸位。要调幅度就改这一个数字。
+   （2026-10-08：由 60px 调到 100px——换上子集字体后用户觉得创刊号仍贴着首图，要求再往下让一点。
+   历史注记：本注释曾误写成 120px、而代码当时一直是 60px，一切以本行的算式为准）
    padding-top: 40px 是既有约定"首篇文章与封面区间距 40px"，此处保留 */
 #latest {
   position: relative;
   z-index: 3;
   padding-top: 40px;
-  margin-top: min(0px, calc(100vh + var(--hero-fade-len) + 60px - 105.333%));
+  margin-top: min(0px, calc(100vh + var(--hero-fade-len) + 100px - 105.333%));
 }
 
 /* 版块标题：只放宽字距，保持左对齐——用户明确否掉了档案馆这一处的居中。
@@ -284,7 +303,7 @@ body {
      那串内联几何值（width/height/transform）是工具快照，不能留着——height 会把卡片钉死、
      展开长文时不长高；但它的"往下挪 16px"是用户已经看习惯的位置，所以改在这里用
      一条普通内边距把首张卡片推回原处：布局参与排布（不再是脱离文档流的浮动位移），
-     且不去动 #latest 那两处有名义的间距（padding-top 40px 的约定、margin-top 的 60px 余量） */
+     且不去动 #latest 那两处有名义的间距（padding-top 40px 的约定、margin-top 的 100px 余量） */
   padding-top: 16px;
 }
 

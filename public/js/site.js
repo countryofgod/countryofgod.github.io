@@ -262,7 +262,10 @@ articleItems.forEach((item) => {
 // 一旦把标题拆成多个 inline-block 的 span，每个 span 都会变成独立的 flex 项，
 // 被 justify-content: space-between 摊到整行上——标题散架、也不再像卡片里的标题。
 // 用户要求这一处"不要抖动、标题与前面的文章标题保持一致且左对齐"，故整体排除，不做拆字。
-document.querySelectorAll('a:not(.month-post), .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit').forEach((el) => {
+// a:not(.hero-cn-hl)：刊名里的「之」是管理台入口（一个 <a>），用户明确要求它不抖。
+// 抖动动画的选择器是 :is(a,…):hover .jitter-char——只要不把它拆成 .jitter-char，就抖不起来；
+// 而且它身上那枚反色取景窗是它的 ::before，拆字后视觉重心也会跟着变，索性整体放过。
+document.querySelectorAll('a:not(.month-post):not(.hero-cn-hl), .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit').forEach((el) => {
   const ls = parseFloat(getComputedStyle(el).letterSpacing) || 0;
   if (ls) el.style.letterSpacing = '0px';
 

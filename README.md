@@ -70,6 +70,7 @@ public/                 静态资源，两套运行时 + Workers [assets] 共用
 ├─ img/                 795.jpg / archive.jpg / logo.png
 └─ fonts/               三套被引用的字体
 
+tools/font-charset-cn.txt  中文字体子集化的用字集（见「字体子集」）
 wrangler.jsonc          Workers / D1 / R2 / 静态资源的绑定配置
 data/                   Node 版的 SQLite 库、口令与会话密钥（不入库）
 index.legacy.html       重构前的单文件页，留作回滚参照
@@ -171,9 +172,28 @@ npx wrangler secret put SESSION_SECRET     # 任意长随机串；不设则回�
 **4. 构建模板并部署**
 
 ```bash
-npm run templates     # EJS → worker/src/html.js，Workers 禁用 new Function，必须预编译
 npm run deploy
 ```
+
+`npm run deploy` 实际是三步，任何一步失败都会停住：
+
+```
+npm run preflight   # 自检：D1 id 是否填了、模板有没有过期、引用的资源在不在
+npm run templates   # EJS → worker/src/html.js（Workers 禁用 new Function，必须预编译）
+wrangler deploy
+```
+
+**模板必须预编译**，这一步最容易忘：忘了就会上线一份旧页面，而且不会报错。
+`preflight` 就是专门挡这个的——它重新编译一遍跟磁盘上的比对，不一致直接退出。
+想跳过自检（不推荐）用 `npm run deploy:skip-check`。
+
+**5. 验证**
+
+```bash
+curl https://<你的域名>/healthz     # → {"ok":true,"articles":1}
+```
+
+`/healthz` 会连一次库，库挂了返回 503，可以拿去做外部探活。
 
 首次访问会自动建表并导入《创刊号》（`worker/src/db.js` 的 `bootstrap`），不需要手工跑 SQL。
 部署完成后 `*.workers.dev` 域名即可访问，`/admin` 用上面的口令登录。
@@ -258,11 +278,45 @@ npm run deploy
 `mine` 走独立接口而不写进 SSR，是为了让首页与设备无关 —— 页面可缓存，也不会把一个人的
 昵称串给另一个人看。
 
+## 字体子集
+
+三套字体的分工：`LoveLetter`（101 字形 / 17.8 KB）承担西文；`KeBenSong` 与 `ShanHaiJi` 是两个中文字体，分别给标题与正文，**原始字形数 7544 / 7205，未子集化时合计 4.69 MB**。
+这正是「英文看着对、中文看着不对」的原因——`font-display: swap` 的语义是「先用兜底字体画、字体到了再换」，西文 17.8 KB 瞬间到位，汉字要等整个文件下完，期间显示系统宋体。
+
+两个中文字体现在按用字集子集化：
+
+| 字体 | 子集前 | 子集后 |
+|---|---|---|
+| KeBenSong（标题） | 3,120,076 B | 1,502,956 B |
+| ShanHaiJi（正文） | 1,565,528 B | 789,084 B |
+
+用字集是 `tools/font-charset-cn.txt`，共 3629 字 = **《现代汉语常用字表》3500 常用字**（开头与 gov.cn 官方《通用规范汉字表》一级字表交叉核对过）∪ **站点现有全部用字**（`國`、`「」`、箭头等繁体与符号）。
+留出法实测（拿 `lessons.md` 当「还没写出来的新文章」）：不同字覆盖 99.45%，按字数加权 99.92%。
+
+改动用字集后重新生成（两条命令各跑一遍；Windows 下用 PowerShell 请写成一行）：
+
+```bash
+python -m fontTools.subset AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2.ttf --text-file=tools/font-charset-cn.txt --flavor=woff2 --layout-features='*' --output-file=AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2.woff2
+python -m fontTools.subset ShanHaiJiGuSongKe-JianFan/ShanHaiJiGuSongKe-JianFan-2.ttf --text-file=tools/font-charset-cn.txt --flavor=woff2 --layout-features='*' --output-file=ShanHaiJiGuSongKe-JianFan/ShanHaiJiGuSongKe-JianFan-2.woff2
+```
+
+生成后把两个文件各复制一份到 `public/fonts/` 下的同名目录：仓库根目录那两份供 GitHub Pages 的相对路径引用，`public/fonts/` 那两份供 Node / Workers 版的 `/fonts/…` 引用。
+
+**什么时候要重跑**：新写的文章或留言里出现用字集之外的字时，那个字会显示成系统宋体（同句其余字仍是古宋）。把那个字追加进 `tools/font-charset-cn.txt` 重跑即可。原始 `.ttf` 一直留在仓库里，随时能从全量重新子集。
+
 ## 已知取舍
 
 - Node 版把留言图片以 BLOB 存进 SQLite，部署只需搬一个文件；Workers 版改存 R2，避免把 5 MB 的二进制塞进 D1 的行里。两边单张都封顶 5 MB，管理台可见图片占用总量。
-- 想把 Node 版已有的数据搬到 D1：先把 `data/gods-country.db` 导出成 `.sql`，再
-  `npx wrangler d1 execute gods-country --remote --file=dump.sql`（D1 与 SQLite 语法兼容，
-  注意 D1 版 guestbook 表存的是 `image_key` 而不是 `image` 列）。
+- 想把 Node 版已有的数据搬到 D1：
+
+  ```bash
+  npm run dump        # data/gods-country.db → data/dump-<日期>.sql
+  npx wrangler d1 execute gods-country --remote --file=data/dump-<日期>.sql
+  ```
+
+  有一处不兼容：Node 版把留言图片存成 BLOB，D1 版改存 R2 的 key，
+  所以导出的 `guestbook` 不带图片，需要另外上传进 R2。这是有意的——D1 不适合塞 5MB 的二进制。
+- Cookie 的 `Secure` 跟着请求协议走，不写死：Workers 上（`*.workers.dev` 或自定义域名）自动带上，
+  `wrangler dev` 的 http 下不带，否则本地登录不进去。
 - 文章正文是富 HTML，只有登录后才能写，属信任边界；留言等用户输入一律经 `textContent` 渲染。
 - 不做注册登录、留言审核与限流——单机小站，超出当前需要。

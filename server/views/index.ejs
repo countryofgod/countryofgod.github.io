@@ -22,7 +22,11 @@
           <span class="line"><span class="line-highlight">ist</span> keinmal.</span>
         </h1>
       </div>
-      <p class="hero-cn">上帝<span class="hero-cn-hl">之</span>國</p>
+      <!-- 刊名里的「之」同时是管理台入口：点它进 /admin 登录。
+           之所以选这个字——它是首屏唯一的红字、还带一枚反色取景窗，本来就是"这里不一样"的记号，
+           不需要再额外画一个入口；而站在刊名里它又完全不打扰读者
+           aria-label 是必需的：链接的可访问名称单看一个"之"字没有意义 -->
+      <p class="hero-cn">上帝<a class="hero-cn-hl" href="/admin" aria-label="进入管理台">之</a>國</p>
     </div>
   </section>
 

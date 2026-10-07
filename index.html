@@ -213,11 +213,29 @@
        垂直取行盒中心再下移 0.03em：行盒上下留白并不对称（字体下伸部小于上伸部），
        纯 50% 圆心会略偏上，补一点点才落在字的视觉重心上；再用 translate(-50%,-50%) 抵消自身尺寸。
        z-index: -1 让它在文字之下；上一层 .hero-inner 自带堆叠上下文（z-index: 2），
-       所以这个负层级不会漏到首图下面，只会待在首屏之内、文字底下 */
+       所以这个负层级不会漏到首图下面，只会待在首屏之内、文字底下。
+       另外它同时是管理台的入口（见正文里的 <a class="hero-cn-hl">），
+       所以下面这几条是给「链接」加的，不是给「字」加的。
+       注意：此页是 GitHub Pages 的静态版，没有后端，点它会 404——这是用户已知并接受的 */
     .hero-cn-hl {
       position: relative;
       display: inline-block;
+      /* 去掉默认下划线。全局 reset 只有 margin/padding/box-sizing，
+         没有 a 的 text-decoration，这一条不能省 */
+      text-decoration: none;
+    }
+
+    /* 颜色必须写成两条选择器：a:visited 优先级 (0,1,1) 高于 .hero-cn-hl (0,1,0)，
+       只写一条的话，点过一次之后「之」会被浏览器染成紫色 */
+    .hero-cn-hl,
+    .hero-cn-hl:visited {
       color: #660000;
+    }
+
+    /* 键盘 Tab 到它时给一个可见焦点框；鼠标点击时不出现（:focus-visible 的语义） */
+    .hero-cn-hl:focus-visible {
+      outline: 2px solid #660000;
+      outline-offset: 6px;
     }
 
     .hero-cn-hl::before {
@@ -251,15 +269,16 @@
        min(0px, …) 是窄窗口的兜底：那里首图高度就是 100vh（min-height 生效），
        算式为正，被 clamp 成 0——不上移、不重叠，文章自然接在首图之后。
        注意本式与 --hero-fade-len 是绑定的：动了那个变量，这里同步，文章才不会挪到图片还没淡没的地方。
-       末尾的 + 60px 是"创刊号往下让一让"的手动余量：图片刚好淡没的那条线太贴着首篇了，
-       让文章区从那条线再落 60px，上方多留一段纯白呼吸位。要调幅度就改这一个数字。
-       （此处注释曾误写成 120px，实际代码一直是 60px，以本行的算式为准）
+       末尾的 + 100px 是"创刊号往下让一让"的手动余量：图片刚好淡没的那条线太贴着首篇了，
+       让文章区从那条线再落 100px，上方多留一段纯白呼吸位。要调幅度就改这一个数字。
+       （2026-10-08：由 60px 调到 100px——换上子集字体后用户觉得创刊号仍贴着首图，要求再往下让一点。
+       历史注记：本注释曾误写成 120px、而代码当时一直是 60px，一切以本行的算式为准）
        padding-top: 40px 是既有约定"首篇文章与封面区间距 40px"，此处保留 */
     #latest {
       position: relative;
       z-index: 3;
       padding-top: 40px;
-      margin-top: min(0px, calc(100vh + var(--hero-fade-len) + 60px - 105.333%));
+      margin-top: min(0px, calc(100vh + var(--hero-fade-len) + 100px - 105.333%));
     }
 
     /* 版块标题：只放宽字距，保持左对齐——用户明确否掉了档案馆这一处的居中。
@@ -290,7 +309,7 @@
          那串内联几何值（width/height/transform）是工具快照，不能留着——height 会把卡片钉死、
          展开长文时不长高；但它的"往下挪 16px"是用户已经看习惯的位置，所以改在这里用
          一条普通内边距把首张卡片推回原处：布局参与排布（不再是脱离文档流的浮动位移），
-         且不去动 #latest 那两处有名义的间距（padding-top 40px 的约定、margin-top 的 60px 余量） */
+         且不去动 #latest 那两处有名义的间距（padding-top 40px 的约定、margin-top 的 100px 余量） */
       padding-top: 16px;
     }
 
@@ -1262,7 +1281,12 @@
           <span class="line"><span class="line-highlight">ist</span> keinmal.</span>
         </h1>
       </div>
-      <p class="hero-cn">上帝<span class="hero-cn-hl">之</span>國</p>
+      <!-- 刊名里的「之」同时是管理台入口：点它进 /admin 登录。
+           之所以选这个字——它是首屏唯一的红字、还带一枚反色取景窗，本来就是"这里不一样"的记号，
+           不需要再额外画一个入口；而站在刊名里它又完全不打扰读者。
+           aria-label 是必需的：链接的可访问名称单看一个"之"字没有意义。
+           本页是 GitHub Pages 静态版，没有后端，点它会 404——用户已知并接受 -->
+      <p class="hero-cn">上帝<a class="hero-cn-hl" href="/admin" aria-label="进入管理台">之</a>國</p>
     </div>
   </section>
 
@@ -1557,7 +1581,10 @@
     // 一旦把标题拆成多个 inline-block 的 span，每个 span 都会变成独立的 flex 项，
     // 被 justify-content: space-between 摊到整行上——标题散架、也不再像卡片里的标题。
     // 用户要求这一处"不要抖动、标题与前面的文章标题保持一致且左对齐"，故整体排除，不做拆字。
-    document.querySelectorAll('a:not(.month-post), .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit').forEach((el) => {
+    // a:not(.hero-cn-hl)：刊名里的「之」是管理台入口（一个 <a>），用户明确要求它不抖。
+    // 抖动动画的选择器是 :is(a,…):hover .jitter-char——只要不把它拆成 .jitter-char，就抖不起来；
+    // 而且它身上那枚反色取景窗是它的 ::before，拆字后视觉重心也会跟着变，索性整体放过。
+    document.querySelectorAll('a:not(.month-post):not(.hero-cn-hl), .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit').forEach((el) => {
       const ls = parseFloat(getComputedStyle(el).letterSpacing) || 0;
       if (ls) el.style.letterSpacing = '0px';
 
