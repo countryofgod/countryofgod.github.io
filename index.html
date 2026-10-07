@@ -45,6 +45,12 @@
       --gray-6: #333333;
       --font-title: 'LoveLetter', 'KeBenSong', serif;
       --font-body: 'LoveLetter', 'ShanHaiJi', serif;
+      /* 首屏"一屏高"所依据的视口高度。
+         桌面端浏览器没有可伸缩工具栏，svh / lvh / dvh 与 vh 完全相等，
+         所以默认值写 100vh——与改动前逐字等同，桌面端的计算结果一字节都不会变。
+         移动端那一份在下面的媒体查询里换成 100svh（理由见 .hero 处的说明），
+         首屏高度、标题居中、刊名位置、首图淡出起点四处一起跟着走 */
+      --vp-h: 100vh;
       /* 首图下沿"淡出为透明"走完所需的高度：以首屏线（100vh）为起点，
          往下这一段内把图片自身的不透明度从 1 降到 0，再往下图片完全不显示（露出页面底色）。
          文章区会相应地上移到"图片刚好淡没的那条线"（见 #latest 的负外边距）。
@@ -98,12 +104,12 @@
       filter: grayscale(100%) contrast(1.05);
       -webkit-mask-image: linear-gradient(to bottom,
           #000 0,
-          #000 100vh,
-          rgba(0, 0, 0, 0) calc(100vh + var(--hero-fade-len)));
+          #000 var(--vp-h),
+          rgba(0, 0, 0, 0) calc(var(--vp-h) + var(--hero-fade-len)));
       mask-image: linear-gradient(to bottom,
           #000 0,
-          #000 100vh,
-          rgba(0, 0, 0, 0) calc(100vh + var(--hero-fade-len)));
+          #000 var(--vp-h),
+          rgba(0, 0, 0, 0) calc(var(--vp-h) + var(--hero-fade-len)));
     }
 
     /* 首页那一屏保持清晰；越过首屏、需要下滑才看到的部分渐糊 */
@@ -143,7 +149,7 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 100vh;
+      height: var(--vp-h);
       z-index: 2;
       display: flex;
       align-items: center;
@@ -278,7 +284,7 @@
       position: relative;
       z-index: 3;
       padding-top: 40px;
-      margin-top: min(0px, calc(100vh + var(--hero-fade-len) + 100px - 105.333%));
+      margin-top: min(0px, calc(var(--vp-h) + var(--hero-fade-len) + 100px - 105.333%));
     }
 
     /* 版块标题：只放宽字距，保持左对齐——用户明确否掉了档案馆这一处的居中。
@@ -970,9 +976,10 @@
     }
 
     /* max-height 需要给"内容长到顶"留够余量：留言墙本身封顶 360px（见下），
-       所以表单+留言墙的总高有上界，1000px 足以覆盖，不会出现内容被裁掉 */
+       所以表单+留言墙的总高有上界；底部又多了一张 .guest-lamp（160px 高 + 28px 上间距），
+       1200px 足以覆盖，不会出现内容被裁掉 */
     .footer-guestbook.expanded .footer-guestbook-body {
-      max-height: 1000px;
+      max-height: 1200px;
     }
 
     /* 展开区宽度 ≈ 上面文章卡片的 60%：卡片在 800px 容器里两侧各退 48px 内边距 = 704px，
@@ -1082,6 +1089,19 @@
       text-align: center;
     }
 
+    /* 留言板最底部那张图（一盏台灯）。灰度交给 CSS，与 .hero-image 同一条算式；
+       尺寸只锁高度一个方向，宽度交给原比例（见 .footer-bottom-img 的注释） */
+    .guest-lamp {
+      display: block;
+      height: 160px;
+      width: auto;
+      max-width: 100%;
+      object-fit: contain;
+      margin: 28px auto 0;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      filter: grayscale(100%) contrast(1.05);
+    }
+
     .guest-note {
       border: 1px solid rgba(255, 255, 255, 0.25);
       padding: 16px;
@@ -1170,7 +1190,59 @@
     }
 
     /* ---------- Responsive ---------- */
+    /* 窄屏那一份（≤768px）。本块内的改动都不命中桌面端，桌面显示与性能零变化 */
     @media (max-width: 768px) {
+      /* iOS Safari / Android Chrome 的地址栏会随滚动伸缩，而 100vh 取的是
+         "工具栏收起之后"的大视口——比用户此刻真正看得见的那一屏要高。
+         拿它当首屏高度的后果有三条：首屏标题被推到可见区中心之下；右下角「上帝之國」
+         落到屏幕下沿之外（不往下滑根本看不见）；首图的淡出段被整段推出屏幕，
+         图片变成一条硬边——"淡出为透明"这件事在手机上等于没发生。
+         100svh 是"工具栏展开时"的稳定小视口：用户第一眼看到的那一屏有多大，首屏就有多大。
+         选 svh 而不是 dvh，是因为 dvh 会跟着工具栏实时伸缩，滚动时首屏高度反复重排、
+         标题上下跳；svh 是常量，没有这个代价。
+         @supports 是保底：不支持 svh 的老浏览器整块不生效，原样退回 100vh */
+      @supports (height: 100svh) {
+        :root {
+          --vp-h: 100svh;
+          /* 淡出段在手机上收短：手机屏本来就矮，240px 会让读者多滑近三分之一屏
+             才够到第一篇文章。它同时被 .hero-image 的 mask 与 #latest 的外边距引用，
+             改这一处两处同步——与桌面端是同一条约束 */
+          --hero-fade-len: 180px;
+        }
+
+        /* 首屏就等于"看得见的那一屏"，不再额外长出一段要下滑才看得完的淡出区 */
+        .hero {
+          min-height: var(--vp-h);
+        }
+
+        /* 淡出改锚在首图自己的下沿，而不是首屏线：手机上首屏线就是首图底边，
+           再往下已经没有图片了，锚在首屏线的淡出段会整段落在图外。
+           锚在下沿之后，"最后 180px 淡到透明"在首屏之内就走完了 */
+        .hero-image {
+          -webkit-mask-image: linear-gradient(to bottom,
+              #000 0,
+              #000 calc(100% - var(--hero-fade-len)),
+              rgba(0, 0, 0, 0) 100%);
+          mask-image: linear-gradient(to bottom,
+              #000 0,
+              #000 calc(100% - var(--hero-fade-len)),
+              rgba(0, 0, 0, 0) 100%);
+        }
+
+        /* 「越过首屏才渐糊」这一层在手机上没有落脚点：它的遮罩从 100vh 起，
+           而竖屏手机的首图只有 100svh 高，整段遮罩落在元素之外——
+           等于每帧都在算一块全屏的 backdrop-filter、却一个像素都不显示。
+           与其让它白烧 GPU，不如在窄屏直接不建这一层 */
+        .hero-blur {
+          display: none;
+        }
+      }
+
+      /* iOS 会在横屏下按自己的规则放大字号，显式压回 100% 才与竖屏一致 */
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+
       .hero-inner {
         padding: 0 24px;
       }
@@ -1187,6 +1259,11 @@
       .article-title {
         font-size: 18px;
       }
+      /* 卡片的 32/36 内边距是按桌面 704px 卡宽定的；手机屏宽只有三百多，
+         两边各让 36px 会把正文挤成很窄的一条，收到 20px 把宽度还给文字 */
+      .article-item {
+        padding: 24px 20px;
+      }
       .footer {
         padding: 60px 24px 40px;
       }
@@ -1201,7 +1278,21 @@
         width: 100%;
         max-width: none;
       }
+
+      /* 档案馆那三处 background-attachment: fixed —— 桌面端靠它把"年份行 / 月份框"
+         与身后那张照片锚进同一个取景坐标系（见 .archive-year 的注释，那是有意的对齐手法）。
+         但它在移动端浏览器上是公认的麻烦：iOS Safari 支持不完整、表现不可预期，
+         Android Chrome 虽支持却要在每一帧按视口尺寸重画整块背景，滚动时是纯粹的性能黑洞。
+         窄屏这里统一退回 scroll：照片随页面滚动（行为可预期、不重画），
+         年份行与月份框改成取"自己盒子"里的一段照片做底——仍然是"拿照片当色块"，
+         只是取景坐标系从视口换成了元素自身。反色层翻的是元素自己的背景，照常工作 */
+      .archive::before,
+      .archive-year,
+      .archive-months {
+        background-attachment: scroll;
+      }
     }
+
     /* ---------- 跟随鼠标的反色圆 ---------- */
     /* 用 backdrop-filter: invert(1) 实时翻转身后的页面内容；移动只改 transform，不触发布局。
        尺寸与「之」字后面那枚取景窗同源——同一条算式（1.05 × 刊名字号的 clamp(48px, 7vw, 96px)），
@@ -1263,6 +1354,75 @@
       25% { transform: translate(-1px, 1px); }
       50% { transform: translate(1px, -1px); }
       75% { transform: translate(-0.8px, -1px); }
+    }
+
+    /* ---------- 触屏：去掉"点了就赖着不走"的悬停态 ---------- */
+    /* 触屏浏览器没有真正的悬停：手指点下去会先触发一次 :hover，而这份 :hover
+       会一直挂着，直到用户去点别的地方——于是被点过的文章卡片整块反色不还原、
+       月份框一直亮着、刊名一直抖。下面把这些"只该由鼠标悬停触发"的状态
+       在触屏上复位回静态外观（卡片展开态不受影响，它走的是 .expanded）。
+       桌面端（hover: hover）不命中这一块，显示与性能零变化。
+       位置必须放在整份样式的最后：这里每一条都是对前面同名 :hover 规则的覆盖，
+       两者特异度相同、媒体查询不加权重，只能靠源码顺序决胜 */
+    @media (hover: none) {
+      .article-item:hover:not(.expanded) {
+        background: #ffffff;
+        border-color: var(--gray-3);
+      }
+      .article-item:hover:not(.expanded) .article-meta {
+        color: var(--gray-4);
+      }
+      .article-item:hover:not(.expanded) .article-author {
+        color: var(--gray-5);
+      }
+      .article-item:hover:not(.expanded) .article-title {
+        color: var(--black);
+      }
+      .article-item:hover:not(.expanded) .article-excerpt {
+        color: var(--gray-5);
+      }
+      .article-item:hover:not(.expanded) .article-toggle {
+        color: var(--gray-4);
+      }
+      /* 刊徽也跟着回到常态：底图那张回来、反相那张继续透明 */
+      .article-item:hover:not(.expanded) .article-logo .logo-base {
+        opacity: 1;
+      }
+      .article-item:hover:not(.expanded) .article-logo .logo-inv {
+        opacity: 0;
+      }
+      .archive-group:hover .archive-year {
+        color: var(--black);
+      }
+      .archive-group:hover .archive-year::before {
+        opacity: 1;
+      }
+      .archive-month:hover {
+        color: var(--black);
+      }
+      .archive-month:hover::before {
+        opacity: 0;
+      }
+      .month-post:hover .month-post-title {
+        border-bottom-color: rgba(255, 255, 255, 0);
+      }
+      .guest-submit:hover {
+        background: var(--white);
+        color: var(--black);
+      }
+      /* 社交标识常态是 62% 白，触屏上不因为点过就一直亮成纯白 */
+      .footer-social-item:hover {
+        color: rgba(255, 255, 255, 0.62);
+      }
+      /* 逐字抖动是"悬停才颤"的效果，触屏没有悬停这一说，别让它点一下就一直颤 */
+      :is(a, .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit):hover .jitter-char {
+        animation: none;
+      }
+      /* 跟随鼠标的反色圆在触屏上没有鼠标可跟；留着它只是一块固定定位的
+         backdrop-filter，纯开销。JS 那边同时不再注册 mousemove（见页内 <script>） */
+      .cursor-invert {
+        display: none;
+      }
     }
   </style>
 </head>
@@ -1416,6 +1576,8 @@
             <div class="guest-wall">
               <p class="guest-wall-empty">还没有留言</p>
             </div>
+
+            <img class="guest-lamp" src="lamp.webp" alt="一盏蒂芙尼台灯">
           </div>
         </div>
       </div>
@@ -1441,20 +1603,27 @@
     // 留言板的表单与留言墙排除在外：输入框要看清、要光标，让一个硕大的反色圆
     // 在光标旁把白底黑字反复翻转，是干扰而不是效果
     const INVERT_MUTE = '.footer-guestbook-inner';
-    document.addEventListener('mousemove', (e) => {
-      const dx = e.clientX;
-      const dy = e.clientY;
-      cursorInvert.style.transform = 'translate3d(' + dx + 'px,' + dy + 'px,0) translate(-50%,-50%)';
-      const t = e.target;
-      const overShow = !!(t && t.closest && t.closest(INVERT_SHOW) && !t.closest(INVERT_MUTE));
-      cursorInvert.classList.toggle('on', overShow);
-      // 系统光标与反色圆同进同退：同一个布尔值控制两者，不会出现"有圆无光标"或反之
-      document.body.classList.toggle('cursor-hidden', overShow);
-    });
-    document.addEventListener('mouseleave', () => {
-      cursorInvert.classList.remove('on');
-      document.body.classList.remove('cursor-hidden');
-    });
+    // 触屏设备没有鼠标可跟：手指点一下会合成一次 mousemove，若照旧监听，
+    // 反色圆会突然出现在手指位置，并且因为再也收不到"离开"事件而一直挂在屏幕上。
+    // 所以整套跟随逻辑只在"能悬停且指针精确"的设备上注册（CSS 里 .cursor-invert
+    // 也已在 (hover: none) 下 display: none，两层都收掉才不留下空转的滤镜层）
+    const HOVER_CAPABLE = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    if (HOVER_CAPABLE) {
+      document.addEventListener('mousemove', (e) => {
+        const dx = e.clientX;
+        const dy = e.clientY;
+        cursorInvert.style.transform = 'translate3d(' + dx + 'px,' + dy + 'px,0) translate(-50%,-50%)';
+        const t = e.target;
+        const overShow = !!(t && t.closest && t.closest(INVERT_SHOW) && !t.closest(INVERT_MUTE));
+        cursorInvert.classList.toggle('on', overShow);
+        // 系统光标与反色圆同进同退：同一个布尔值控制两者，不会出现"有圆无光标"或反之
+        document.body.classList.toggle('cursor-hidden', overShow);
+      });
+      document.addEventListener('mouseleave', () => {
+        cursorInvert.classList.remove('on');
+        document.body.classList.remove('cursor-hidden');
+      });
+    }
 
     // 页脚「关于」与「留言板」：两块互斥——展开其中一块时把另一块收起。
     // 收起就是删掉 .expanded，走的是同一条 max-height 过渡，所以"关掉"天然带 0.6s 动效
@@ -1633,25 +1802,45 @@
       let intentTimer = null;
       let openTimer = null;
 
-      group.addEventListener('mouseenter', () => {
-        clearTimeout(intentTimer);
-        clearTimeout(openTimer);
-        intentTimer = setTimeout(() => {
-          const others = Array.from(document.querySelectorAll('.archive-group.open')).filter(g => g !== group);
-          if (others.length === 0) {
-            group.classList.add('open');
-            return;
-          }
-          // 先让上一个年份收完，再展开本年——错开进行，避免两者同帧动画互相掩盖
-          others.forEach(closeArchiveGroup);
-          openTimer = setTimeout(() => group.classList.add('open'), ARCHIVE_COLLAPSE_MS);
-        }, ARCHIVE_HOVER_INTENT);
-      });
+      if (HOVER_CAPABLE) {
+        group.addEventListener('mouseenter', () => {
+          clearTimeout(intentTimer);
+          clearTimeout(openTimer);
+          intentTimer = setTimeout(() => {
+            const others = Array.from(document.querySelectorAll('.archive-group.open')).filter(g => g !== group);
+            if (others.length === 0) {
+              group.classList.add('open');
+              return;
+            }
+            // 先让上一个年份收完，再展开本年——错开进行，避免两者同帧动画互相掩盖
+            others.forEach(closeArchiveGroup);
+            openTimer = setTimeout(() => group.classList.add('open'), ARCHIVE_COLLAPSE_MS);
+          }, ARCHIVE_HOVER_INTENT);
+        });
 
-      // 只取消"还没下定决心"的悬停；一旦过了意图时长就视为已确认，让整套收起→展开走完
-      group.addEventListener('mouseleave', () => {
-        clearTimeout(intentTimer);
-      });
+        // 只取消"还没下定决心"的悬停；一旦过了意图时长就视为已确认，让整套收起→展开走完
+        group.addEventListener('mouseleave', () => {
+          clearTimeout(intentTimer);
+        });
+      } else {
+        // 触屏没有"悬停停留"这回事，改成点一下年份行立刻展开 / 收起。
+        // 若照旧走 mouseenter + 900ms 计时器，点一下要等将近一秒才有反应；
+        // 而且点第二下时，document 上那个"点外部收起"的守卫会把 .archive-year 放行掉，
+        // 等于点年份行关不掉——只剩点空白处才收得回去
+        const yearRow = group.querySelector('.archive-year');
+        if (yearRow) {
+          yearRow.addEventListener('click', () => {
+            const opening = !group.classList.contains('open');
+            // "同时最多展开一年"这条约束在触屏上照旧保留；
+            // 但不必等旧的收完再开新的——手指点按是明确指令，等 600ms 只会显得卡顿
+            document.querySelectorAll('.archive-group.open').forEach(g => {
+              if (g !== group) closeArchiveGroup(g);
+            });
+            if (opening) group.classList.add('open');
+            else closeArchiveGroup(group);
+          });
+        }
+      }
     });
 
     // 「最近的一年」默认展开：从 .archive-year 的文字里取年份数值（形如 "2026 +"），取最大的一年。

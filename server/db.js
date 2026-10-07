@@ -83,6 +83,11 @@ if (!articleCols.includes('locked_at')) {
   db.exec('ALTER TABLE articles ADD COLUMN locked_at TEXT');
 }
 
+// 图片改托管到图床后，库里只留一个 URL（原来是把整张图以 BLOB 塞进 image 列）
+if (!guestCols.includes('image_url')) {
+  db.exec('ALTER TABLE guestbook ADD COLUMN image_url TEXT');
+}
+
 db.exec(`
 CREATE TABLE IF NOT EXISTS echoes (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,

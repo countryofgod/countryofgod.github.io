@@ -67,10 +67,11 @@ public/                 静态资源，两套运行时 + Workers [assets] 共用
 ├─ css/admin.css        管理台样式（复用 site.css 的配色变量与字体族）
 ├─ js/site.js           旧 <script> 迁出 + 留言板接后端
 ├─ js/admin.js          管理台交互
-├─ img/                 795.jpg / archive.jpg / logo.png
+├─ img/                 795.jpg / archive.jpg / lamp.webp / logo.png
 └─ fonts/               三套被引用的字体
 
 tools/font-charset-cn.txt  中文字体子集化的用字集（见「字体子集」）
+tools/grayscale.py         图片黑白化脚本（灰度用 BT.709，与 CSS filter 同一套矩阵）
 wrangler.jsonc          Workers / D1 / R2 / 静态资源的绑定配置
 data/                   Node 版的 SQLite 库、口令与会话密钥（不入库）
 index.legacy.html       重构前的单文件页，留作回滚参照
@@ -197,6 +198,20 @@ curl https://<你的域名>/healthz     # → {"ok":true,"articles":1}
 
 首次访问会自动建表并导入《创刊号》（`worker/src/db.js` 的 `bootstrap`），不需要手工跑 SQL。
 部署完成后 `*.workers.dev` 域名即可访问，`/admin` 用上面的口令登录。
+
+当前线上：
+
+- 地址：https://gods-country.lyw2373314970.workers.dev
+- D1：`gods-country` / `dfedac7b-6c48-43a7-9881-c7bcc5258961`
+- 密钥：`ADMIN_PASSWORD`、`SESSION_SECRET` 已通过 `wrangler secret put` 写入
+
+> **R2 尚未开通。** 账号还没启用 R2（API 报 10042），而 `wrangler deploy` 会校验桶存在（10085），
+> 所以 `wrangler.jsonc` 里的 `r2_buckets` 暂时注释掉了。
+> 影响：**留言文字正常，带图留言会返回 503**，且整条留言回滚，不会留坏数据。
+> 开通后：面板 → R2 → 启用 → 解开 `wrangler.jsonc` 里那段注释 → `npm run deploy`。不需要改代码。
+
+在 Windows 上设密钥请用 `npm run secret -- ADMIN_PASSWORD 你的口令`——
+直接 `echo xxx | wrangler secret put` 会被 PowerShell 的编码弄坏，登录一直失败还查不出原因。
 
 **5. 连 GitHub 自动部署**
 

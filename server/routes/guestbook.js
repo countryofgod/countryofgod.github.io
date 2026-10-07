@@ -38,7 +38,7 @@ router.get('/api/guestbook', (req, res, next) => {
 
 /** POST /api/guestbook —— multipart: name / body / image */
 router.post('/api/guestbook', (req, res, next) => {
-  upload.single('image')(req, res, (err) => {
+  upload.single('image')(req, res, async (err) => {
     if (err) return next(err);
     try {
       if (!req.file && !req.is('multipart/form-data')) {
@@ -50,7 +50,7 @@ router.post('/api/guestbook', (req, res, next) => {
         image: req.file,
         maxImageBytes: config.maxImageBytes,
       });
-      res.status(201).json(insertGuestbook({ ...data, deviceId: req.deviceId ?? null }));
+      res.status(201).json(await insertGuestbook({ ...data, deviceId: req.deviceId ?? null }));
     } catch (e) {
       next(e);
     }

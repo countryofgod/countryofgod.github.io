@@ -1,39 +1,40 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "gods-country",
-  "main": "worker/src/index.js",
-  "compatibility_date": "2026-01-01",
-
-  // 静态资源：与 Node 版共用根目录的 public/
-  "assets": {
-    "directory": "./public"
-  },
-
-  "observability": {
-    "enabled": true
-  },
-
-  // D1：托管版 SQLite。database_id 用 `npx wrangler d1 create gods-country` 拿到后填回这里
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "gods-country",
-      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID"
-    }
-  ],
-
-  // R2：留言图片。bucket 用 `npx wrangler r2 bucket create gods-country-images` 建
-  "r2_buckets": [
-    {
-      "binding": "IMAGES",
-      "bucket_name": "gods-country-images"
-    }
-  ],
-
-  "vars": {
-    "SUBMIT_MAIL": "afterrainnn@outlook.com",
-    "SESSION_TTL_DAYS": "7"
-    // ADMIN_PASSWORD / SESSION_SECRET 走密钥，不写在这里：
-    //   npx wrangler secret put ADMIN_PASSWORD
-  }
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "gods-country",
+	"main": "worker/src/index.js",
+	"compatibility_date": "2026-01-01",
+	// 静态资源：与 Node 版共用根目录的 public/
+	"assets": {
+		"directory": "./public"
+	},
+	"observability": {
+		"enabled": true
+	},
+	// D1：托管版 SQLite
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "gods-country",
+			"database_id": "dfedac7b-6c48-43a7-9881-c7bcc5258961"
+		}
+	],
+	// R2：留言图片。
+	// !!! 暂时停用 !!! 本账号还没启用 R2 —— API 报
+	//   "Please enable R2 through the Cloudflare Dashboard" (10042)，
+	//   wrangler deploy 又会校验桶存在 (10085)，所以只能先摘掉这条绑定让站点上线。
+	// 开通步骤：面板 → R2 → 启用 → 回来把下面这段注释解开 → npm run deploy。
+	// 在 R2 开通之前：留言文字正常，带图留言会返回 503「图片暂时存不下来，先只留文字吧」，
+	// 且整条留言会回滚，不会留下"说了有图却看不到图"的坏数据。
+	// "r2_buckets": [
+	// 	{
+	// 		"binding": "IMAGES",
+	// 		"bucket_name": "gods-country-images"
+	// 	}
+	// ],
+	"vars": {
+		"SUBMIT_MAIL": "afterrainnn@outlook.com",
+		"SESSION_TTL_DAYS": "7"
+		// ADMIN_PASSWORD / SESSION_SECRET 走密钥，不写在这里：
+		//   npx wrangler secret put ADMIN_PASSWORD
+	}
 }

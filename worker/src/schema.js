@@ -42,7 +42,8 @@ export const SCHEMA = [
      id           INTEGER PRIMARY KEY AUTOINCREMENT,
      name         TEXT,
      body         TEXT,
-     image_key    TEXT,
+     image_key    TEXT,      -- R2 的 key（首选）
+     image_url    TEXT,      -- 图床返回的 URL（R2 不可用时的兜底）
      image_mime   TEXT,
      image_bytes  INTEGER,
      device_id    TEXT,

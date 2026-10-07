@@ -80,5 +80,10 @@ if (process.env.ADMIN_PASSWORD) ok('本机 ADMIN_PASSWORD 已设置');
 else if (existsSync(join(root, '.dev.vars'))) ok('.dev.vars 里有本地口令');
 warn('确认已执行过 npx wrangler secret put ADMIN_PASSWORD —— 否则线上进不了 /admin');
 
+/* 6. 图片存哪儿 —— 三种来源都没有就会变成"能留言不能发图" */
+if (process.env.IMGBB_API_KEY) ok('IMGBB_API_KEY 已设置，图片走图床');
+else if (!wranglerText.includes('// "r2_buckets"')) ok('R2 绑定已启用，图片存自己的桶');
+else warn('图片没有落点：带图留言会返回 503。去面板启用 R2，或配一个 IMGBB_API_KEY');
+
 console.log(fail ? `\n${fail} 项未通过，先修再部署。` : '\n全部通过，可以部署。');
 process.exit(fail ? 1 : 0);

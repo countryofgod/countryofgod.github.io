@@ -5,20 +5,27 @@ const INVERT_SHOW = '.hero, .footer';
 // 留言板的表单与留言墙排除在外：输入框要看清、要光标，让一个硕大的反色圆
 // 在光标旁把白底黑字反复翻转，是干扰而不是效果
 const INVERT_MUTE = '.footer-guestbook-inner';
-document.addEventListener('mousemove', (e) => {
-  const dx = e.clientX;
-  const dy = e.clientY;
-  cursorInvert.style.transform = 'translate3d(' + dx + 'px,' + dy + 'px,0) translate(-50%,-50%)';
-  const t = e.target;
-  const overShow = !!(t && t.closest && t.closest(INVERT_SHOW) && !t.closest(INVERT_MUTE));
-  cursorInvert.classList.toggle('on', overShow);
-  // 系统光标与反色圆同进同退：同一个布尔值控制两者，不会出现"有圆无光标"或反之
-  document.body.classList.toggle('cursor-hidden', overShow);
-});
-document.addEventListener('mouseleave', () => {
-  cursorInvert.classList.remove('on');
-  document.body.classList.remove('cursor-hidden');
-});
+// 触屏设备没有鼠标可跟：手指点一下会合成一次 mousemove，若照旧监听，
+// 反色圆会突然出现在手指位置，并且因为再也收不到"离开"事件而一直挂在屏幕上。
+// 所以整套跟随逻辑只在"能悬停且指针精确"的设备上注册（CSS 里 .cursor-invert
+// 也已在 (hover: none) 下 display: none，两层都收掉才不留下空转的滤镜层）
+const HOVER_CAPABLE = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+if (HOVER_CAPABLE) {
+  document.addEventListener('mousemove', (e) => {
+    const dx = e.clientX;
+    const dy = e.clientY;
+    cursorInvert.style.transform = 'translate3d(' + dx + 'px,' + dy + 'px,0) translate(-50%,-50%)';
+    const t = e.target;
+    const overShow = !!(t && t.closest && t.closest(INVERT_SHOW) && !t.closest(INVERT_MUTE));
+    cursorInvert.classList.toggle('on', overShow);
+    // 系统光标与反色圆同进同退：同一个布尔值控制两者，不会出现"有圆无光标"或反之
+    document.body.classList.toggle('cursor-hidden', overShow);
+  });
+  document.addEventListener('mouseleave', () => {
+    cursorInvert.classList.remove('on');
+    document.body.classList.remove('cursor-hidden');
+  });
+}
 
 // 页脚「关于」与「留言板」：两块互斥——展开其中一块时把另一块收起。
 // 收起就是删掉 .expanded，走的是同一条 max-height 过渡，所以"关掉"天然带 0.6s 动效
@@ -314,25 +321,45 @@ document.querySelectorAll('.archive-group').forEach(group => {
   let intentTimer = null;
   let openTimer = null;
 
-  group.addEventListener('mouseenter', () => {
-    clearTimeout(intentTimer);
-    clearTimeout(openTimer);
-    intentTimer = setTimeout(() => {
-      const others = Array.from(document.querySelectorAll('.archive-group.open')).filter(g => g !== group);
-      if (others.length === 0) {
-        group.classList.add('open');
-        return;
-      }
-      // 先让上一个年份收完，再展开本年——错开进行，避免两者同帧动画互相掩盖
-      others.forEach(closeArchiveGroup);
-      openTimer = setTimeout(() => group.classList.add('open'), ARCHIVE_COLLAPSE_MS);
-    }, ARCHIVE_HOVER_INTENT);
-  });
+  if (HOVER_CAPABLE) {
+    group.addEventListener('mouseenter', () => {
+      clearTimeout(intentTimer);
+      clearTimeout(openTimer);
+      intentTimer = setTimeout(() => {
+        const others = Array.from(document.querySelectorAll('.archive-group.open')).filter(g => g !== group);
+        if (others.length === 0) {
+          group.classList.add('open');
+          return;
+        }
+        // 先让上一个年份收完，再展开本年——错开进行，避免两者同帧动画互相掩盖
+        others.forEach(closeArchiveGroup);
+        openTimer = setTimeout(() => group.classList.add('open'), ARCHIVE_COLLAPSE_MS);
+      }, ARCHIVE_HOVER_INTENT);
+    });
 
-  // 只取消"还没下定决心"的悬停；一旦过了意图时长就视为已确认，让整套收起→展开走完
-  group.addEventListener('mouseleave', () => {
-    clearTimeout(intentTimer);
-  });
+    // 只取消"还没下定决心"的悬停；一旦过了意图时长就视为已确认，让整套收起→展开走完
+    group.addEventListener('mouseleave', () => {
+      clearTimeout(intentTimer);
+    });
+  } else {
+    // 触屏没有"悬停停留"这回事，改成点一下年份行立刻展开 / 收起。
+    // 若照旧走 mouseenter + 900ms 计时器，点一下要等将近一秒才有反应；
+    // 而且点第二下时，document 上那个"点外部收起"的守卫会把 .archive-year 放行掉，
+    // 等于点年份行关不掉——只剩点空白处才收得回去
+    const yearRow = group.querySelector('.archive-year');
+    if (yearRow) {
+      yearRow.addEventListener('click', () => {
+        const opening = !group.classList.contains('open');
+        // "同时最多展开一年"这条约束在触屏上照旧保留；
+        // 但不必等旧的收完再开新的——手指点按是明确指令，等 600ms 只会显得卡顿
+        document.querySelectorAll('.archive-group.open').forEach(g => {
+          if (g !== group) closeArchiveGroup(g);
+        });
+        if (opening) group.classList.add('open');
+        else closeArchiveGroup(group);
+      });
+    }
+  }
 });
 
 // 「最近的一年」默认展开：open 类由服务端直接渲染在 HTML 里，这里是首屏绘制内容的一部分，

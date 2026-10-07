@@ -39,6 +39,12 @@
   --gray-6: #333333;
   --font-title: 'LoveLetter', 'KeBenSong', serif;
   --font-body: 'LoveLetter', 'ShanHaiJi', serif;
+  /* 首屏"一屏高"所依据的视口高度。
+     桌面端浏览器没有可伸缩工具栏，svh / lvh / dvh 与 vh 完全相等，
+     所以默认值写 100vh——与改动前逐字等同，桌面端的计算结果一字节都不会变。
+     移动端那一份在下面的媒体查询里换成 100svh（理由见 .hero 处的说明），
+     首屏高度、标题居中、刊名位置、首图淡出起点四处一起跟着走 */
+  --vp-h: 100vh;
   /* 首图下沿"淡出为透明"走完所需的高度：以首屏线（100vh）为起点，
      往下这一段内把图片自身的不透明度从 1 降到 0，再往下图片完全不显示（露出页面底色）。
      文章区会相应地上移到"图片刚好淡没的那条线"（见 #latest 的负外边距）。
@@ -92,12 +98,12 @@ body {
   filter: grayscale(100%) contrast(1.05);
   -webkit-mask-image: linear-gradient(to bottom,
       #000 0,
-      #000 100vh,
-      rgba(0, 0, 0, 0) calc(100vh + var(--hero-fade-len)));
+      #000 var(--vp-h),
+      rgba(0, 0, 0, 0) calc(var(--vp-h) + var(--hero-fade-len)));
   mask-image: linear-gradient(to bottom,
       #000 0,
-      #000 100vh,
-      rgba(0, 0, 0, 0) calc(100vh + var(--hero-fade-len)));
+      #000 var(--vp-h),
+      rgba(0, 0, 0, 0) calc(var(--vp-h) + var(--hero-fade-len)));
 }
 
 /* 首页那一屏保持清晰；越过首屏、需要下滑才看到的部分渐糊 */
@@ -137,7 +143,7 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  height: 100vh;
+  height: var(--vp-h);
   z-index: 2;
   display: flex;
   align-items: center;
@@ -272,7 +278,7 @@ body {
   position: relative;
   z-index: 3;
   padding-top: 40px;
-  margin-top: min(0px, calc(100vh + var(--hero-fade-len) + 100px - 105.333%));
+  margin-top: min(0px, calc(var(--vp-h) + var(--hero-fade-len) + 100px - 105.333%));
 }
 
 /* 版块标题：只放宽字距，保持左对齐——用户明确否掉了档案馆这一处的居中。
@@ -983,9 +989,11 @@ body {
 }
 
 /* max-height 需要给"内容长到顶"留够余量：留言墙本身封顶 360px（见下），
-   所以表单+留言墙的总高有上界，1000px 足以覆盖，不会出现内容被裁掉 */
+   所以表单+留言墙的总高有上界；底部又多了一张 .guest-lamp（160px 高 + 28px 上间距）。
+   最坏情况是"选了图（预览 220px）+ 留言墙撑满 + 底部小图"同时发生，约 1135px，
+   故取 1200px 留一档余量，不会出现内容被裁掉 */
 .footer-guestbook.expanded .footer-guestbook-body {
-  max-height: 1000px;
+  max-height: 1200px;
 }
 
 /* 展开区宽度 ≈ 上面文章卡片的 60%：卡片在 800px 容器里两侧各退 48px 内边距 = 704px，
@@ -1168,6 +1176,25 @@ body {
   margin-bottom: 12px;
 }
 
+/* 留言板最底部那张图（一盏台灯）。
+   灰度交给 CSS，与 .hero-image 同一条算式（grayscale(100%) contrast(1.05)），
+   所以 public/img/ 里放彩色原图也行 —— 与首图、档案馆照片的做法一致。
+   尺寸只锁高度一个方向，宽度交给原比例（见 .footer-bottom-img 的注释）：
+   它是竖构图，写死宽度会把画面压扁。
+   max-width + object-fit 是兜底：万一将来换成更极端的比例，也不会撑破留言区。
+   要调大小只改 height 这一个数字：这张是竖构图（3:4），160px 高约合 120px 宽，
+   在 424px 的留言区里是一枚小照片的量级，不与首图争视线。 */
+.guest-lamp {
+  display: block;
+  height: 160px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  margin: 28px auto 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  filter: grayscale(100%) contrast(1.05);
+}
+
 /* 刊名与版权行由原来的左右分居改为纵向居中叠放：刊名在上、版权行在下。
    两者都居中，所以去掉 space-between，改 column + align-items: center */
 .footer-bottom {
@@ -1215,7 +1242,59 @@ body {
 }
 
 /* ---------- Responsive ---------- */
+/* 窄屏那一份（≤768px）。本块内的改动都不命中桌面端，桌面显示与性能零变化 */
 @media (max-width: 768px) {
+  /* iOS Safari / Android Chrome 的地址栏会随滚动伸缩，而 100vh 取的是
+     "工具栏收起之后"的大视口——比用户此刻真正看得见的那一屏要高。
+     拿它当首屏高度的后果有三条：首屏标题被推到可见区中心之下；右下角「上帝之國」
+     落到屏幕下沿之外（不往下滑根本看不见）；首图的淡出段被整段推出屏幕，
+     图片变成一条硬边——"淡出为透明"这件事在手机上等于没发生。
+     100svh 是"工具栏展开时"的稳定小视口：用户第一眼看到的那一屏有多大，首屏就有多大。
+     选 svh 而不是 dvh，是因为 dvh 会跟着工具栏实时伸缩，滚动时首屏高度反复重排、
+     标题上下跳；svh 是常量，没有这个代价。
+     @supports 是保底：不支持 svh 的老浏览器整块不生效，原样退回 100vh */
+  @supports (height: 100svh) {
+    :root {
+      --vp-h: 100svh;
+      /* 淡出段在手机上收短：手机屏本来就矮，240px 会让读者多滑近三分之一屏
+         才够到第一篇文章。它同时被 .hero-image 的 mask 与 #latest 的外边距引用，
+         改这一处两处同步——与桌面端是同一条约束 */
+      --hero-fade-len: 180px;
+    }
+
+    /* 首屏就等于"看得见的那一屏"，不再额外长出一段要下滑才看得完的淡出区 */
+    .hero {
+      min-height: var(--vp-h);
+    }
+
+    /* 淡出改锚在首图自己的下沿，而不是首屏线：手机上首屏线就是首图底边，
+       再往下已经没有图片了，锚在首屏线的淡出段会整段落在图外。
+       锚在下沿之后，"最后 180px 淡到透明"在首屏之内就走完了 */
+    .hero-image {
+      -webkit-mask-image: linear-gradient(to bottom,
+          #000 0,
+          #000 calc(100% - var(--hero-fade-len)),
+          rgba(0, 0, 0, 0) 100%);
+      mask-image: linear-gradient(to bottom,
+          #000 0,
+          #000 calc(100% - var(--hero-fade-len)),
+          rgba(0, 0, 0, 0) 100%);
+    }
+
+    /* 「越过首屏才渐糊」这一层在手机上没有落脚点：它的遮罩从 100vh 起，
+       而竖屏手机的首图只有 100svh 高，整段遮罩落在元素之外——
+       等于每帧都在算一块全屏的 backdrop-filter、却一个像素都不显示。
+       与其让它白烧 GPU，不如在窄屏直接不建这一层 */
+    .hero-blur {
+      display: none;
+    }
+  }
+
+  /* iOS 会在横屏下按自己的规则放大字号，显式压回 100% 才与竖屏一致 */
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
   .hero-inner {
     padding: 0 24px;
   }
@@ -1232,6 +1311,11 @@ body {
   .article-title {
     font-size: 18px;
   }
+  /* 卡片的 32/36 内边距是按桌面 704px 卡宽定的；手机屏宽只有三百多，
+     两边各让 36px 会把正文挤成很窄的一条，收到 20px 把宽度还给文字 */
+  .article-item {
+    padding: 24px 20px;
+  }
   .footer {
     padding: 60px 24px 40px;
   }
@@ -1246,7 +1330,21 @@ body {
     width: 100%;
     max-width: none;
   }
+
+  /* 档案馆那三处 background-attachment: fixed —— 桌面端靠它把"年份行 / 月份框"
+     与身后那张照片锚进同一个取景坐标系（见 .archive-year 的注释，那是有意的对齐手法）。
+     但它在移动端浏览器上是公认的麻烦：iOS Safari 支持不完整、表现不可预期，
+     Android Chrome 虽支持却要在每一帧按视口尺寸重画整块背景，滚动时是纯粹的性能黑洞。
+     窄屏这里统一退回 scroll：照片随页面滚动（行为可预期、不重画），
+     年份行与月份框改成取"自己盒子"里的一段照片做底——仍然是"拿照片当色块"，
+     只是取景坐标系从视口换成了元素自身。反色层翻的是元素自己的背景，照常工作 */
+  .archive::before,
+  .archive-year,
+  .archive-months {
+    background-attachment: scroll;
+  }
 }
+
 /* ---------- 跟随鼠标的反色圆 ---------- */
 /* 用 backdrop-filter: invert(1) 实时翻转身后的页面内容；移动只改 transform，不触发布局。
    尺寸与「之」字后面那枚取景窗同源——同一条算式（1.05 × 刊名字号的 clamp(48px, 7vw, 96px)），

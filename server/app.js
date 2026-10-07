@@ -87,7 +87,8 @@ app.use((err, req, res, _next) => {
     console.error('[error]', req.method, req.originalUrl, err);
   }
 
-  if (status >= 500) message = '服务器内部错误';
+  // 只有"没预料到的错误"才泛化；Unavailable 这类是专门写给用户的提示，原样传出
+  if (status === 500) message = '服务器内部错误';
   res.status(status).json({ error: message, field: err?.field ?? null });
 });
 

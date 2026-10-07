@@ -264,6 +264,8 @@ function renderHome({ articles, archive, notes, submitMail }) {
   }
   out += `
             </div>
+
+            <img class="guest-lamp" src="/img/lamp.webp" alt="一盏蒂芙尼台灯">
           </div>
         </div>
       </div>

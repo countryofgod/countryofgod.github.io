@@ -10,6 +10,7 @@
     "dump": "node server/dump.mjs",
 
     "templates": "node worker/build-templates.mjs",
+    "gray": "python tools/grayscale.py",
     "preflight": "node worker/preflight.mjs",
     "check": "node worker/dev-check.mjs",
 
@@ -19,7 +20,8 @@
     "tail": "wrangler tail",
 
     "d1:create": "wrangler d1 create gods-country",
-    "r2:create": "wrangler r2 bucket create gods-country-images"
+    "r2:create": "wrangler r2 bucket create gods-country-images",
+    "secret": "node worker/set-secret.mjs"
   },
   "engines": {
     "node": ">=22.9.0"

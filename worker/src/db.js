@@ -1,5 +1,7 @@
 import { SCHEMA } from './schema.js';
 import { seedArticle, seedArchive } from '../../server/seed-data.js';
+import { Unavailable } from '../../server/validators.js';
+import { uploadToImgbb } from '../../server/imgbb.js';
 
 /* ---------------- 日期 ---------------- */
 
@@ -27,6 +29,9 @@ export function bootstrap(env) {
       if (!cols.includes('device_id')) {
         await env.DB.prepare('ALTER TABLE guestbook ADD COLUMN device_id TEXT').run();
         await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_guestbook_device ON guestbook (device_id)').run();
+      }
+      if (!cols.includes('image_url')) {
+        await env.DB.prepare('ALTER TABLE guestbook ADD COLUMN image_url TEXT').run();
       }
       const articleCols = (await env.DB.prepare('PRAGMA table_info(articles)').all()).results.map((c) => c.name);
       if (!articleCols.includes('locked_at')) {
@@ -232,14 +237,15 @@ export async function deleteArchiveEntry(env, id) {
 
 /* ---------------- 留言板 ---------------- */
 
-const GUEST_COLS = 'id, name, body, image_key, image_mime, image_bytes, created_at';
+const GUEST_COLS = 'id, name, body, image_key, image_url, image_mime, image_bytes, created_at';
 
 const shapeNote = (r) => ({
   id: r.id,
   name: r.name || '匿名',
   body: r.body || '',
   date: displayDate(r.created_at),
-  imageUrl: r.image_key ? `/api/guestbook/${r.id}/image` : null,
+  // R2 里的走本站接口；托管在图床上的直接用外部 URL
+  imageUrl: r.image_key ? `/api/guestbook/${r.id}/image` : r.image_url || null,
   imageBytes: r.image_bytes ?? 0,
   createdAt: r.created_at,
 });
@@ -253,23 +259,49 @@ export async function listGuestbook(env, { limit = 50, before = null } = {}) {
   return results.map(shapeNote);
 }
 
+/**
+ * 留言入库。图片有三种去处，按优先级：
+ *   1. R2（有 IMAGES 绑定）—— 图在自己手里，首选
+ *   2. ImgBB（有 IMGBB_API_KEY）—— 图床托管，库里只留 URL
+ *   3. 都没有 —— 只能拒掉，且整条留言回滚，不留"说了有图却看不到图"的坏数据
+ */
 export async function insertGuestbook(env, { name, body, image, deviceId }) {
   const info = await env.DB.prepare(
-    `INSERT INTO guestbook (name, body, image_key, image_mime, image_bytes, device_id, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO guestbook (name, body, image_key, image_url, image_mime, image_bytes, device_id, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   )
-    .bind(name, body, null, null, null, deviceId ?? null, new Date().toISOString())
+    .bind(name, body, null, null, null, null, deviceId ?? null, new Date().toISOString())
     .run();
   const id = Number(info.meta.last_row_id);
   if (deviceId) await touchDevice(env, deviceId, name);
 
   if (image) {
-    const key = `guestbook/${id}`;
-    // image 是 validateGuestbook 的返回值：{ data, mime, bytes }
-    await env.IMAGES.put(key, image.data, { httpMetadata: { contentType: image.mime } });
-    await env.DB.prepare('UPDATE guestbook SET image_key = ?, image_mime = ?, image_bytes = ? WHERE id = ?')
-      .bind(key, image.mime, image.bytes, id)
-      .run();
+    try {
+      if (env.IMAGES) {
+        const key = `guestbook/${id}`;
+        await env.IMAGES.put(key, image.data, { httpMetadata: { contentType: image.mime } });
+        await env.DB.prepare('UPDATE guestbook SET image_key = ?, image_mime = ?, image_bytes = ? WHERE id = ?')
+          .bind(key, image.mime, image.bytes, id)
+          .run();
+      } else if (env.IMGBB_API_KEY) {
+        // image 是 validateGuestbook 的返回值：{ data, mime, bytes }
+        const up = await uploadToImgbb({
+          apiKey: env.IMGBB_API_KEY,
+          data: image.data,
+          mime: image.mime,
+          filename: name || `guestbook-${id}`,
+        });
+        await env.DB.prepare('UPDATE guestbook SET image_url = ?, image_mime = ?, image_bytes = ? WHERE id = ?')
+          .bind(up.url, image.mime, image.bytes, id)
+          .run();
+      } else {
+        throw new Unavailable('图片暂时存不下来，先只留文字吧', 'image');
+      }
+    } catch (err) {
+      await env.DB.prepare('DELETE FROM guestbook WHERE id = ?').bind(id).run();
+      if (err instanceof Unavailable) throw err;
+      throw new Unavailable('图片暂时存不下来，先只留文字吧', 'image');
+    }
   }
 
   const row = await env.DB.prepare(`SELECT ${GUEST_COLS} FROM guestbook WHERE id = ?`).bind(id).first();
@@ -284,7 +316,7 @@ export async function deleteGuestbookAs(env, id, { deviceId, isAdmin }) {
   const row = await env.DB.prepare('SELECT device_id, image_key FROM guestbook WHERE id = ?').bind(id).first();
   if (!row) return { ok: false, reason: 'not-found' };
   if (!isAdmin && (!deviceId || row.device_id !== deviceId)) return { ok: false, reason: 'forbidden' };
-  if (row.image_key) await env.IMAGES.delete(row.image_key);
+  if (row.image_key && env.IMAGES) await env.IMAGES.delete(row.image_key);
   const info = await env.DB.prepare('DELETE FROM guestbook WHERE id = ?').bind(id).run();
   return info.meta.changes > 0 ? { ok: true } : { ok: false, reason: 'not-found' };
 }

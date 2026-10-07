@@ -206,7 +206,7 @@ on('POST', '/api/guestbook', async (req, env, params, ctx) => {
 
 on('GET', '/api/guestbook/:id/image', async (req, env, params) => {
   const row = await db.getGuestbookRow(env, params.id);
-  if (!row?.image_key) return new Response('not found', { status: 404 });
+  if (!row?.image_key || !env.IMAGES) return new Response('not found', { status: 404 });
   const obj = await env.IMAGES.get(row.image_key);
   if (!obj) return new Response('not found', { status: 404 });
 
@@ -369,8 +369,10 @@ export default {
       } catch (err) {
         const status = err instanceof Invalid ? 400 : errorStatus(err);
         if (status >= 500) console.error('[error]', request.method, path, err);
+        // 只有"没预料到的错误"才泛化成一句笼统的话；
+        // Unavailable 这类是专门写给用户的提示（比如 R2 没开通），要原样传出去
         return withCookie(
-          json({ error: status >= 500 ? '服务器内部错误' : err.message, field: err.field ?? null }, status)
+          json({ error: status === 500 ? '服务器内部错误' : err.message, field: err.field ?? null }, status)
         );
       }
     }

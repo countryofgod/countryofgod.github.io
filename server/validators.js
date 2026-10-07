@@ -108,6 +108,15 @@ export function validateArchiveEntry(input) {
   return { year, month, articleId };
 }
 
+/** 依赖不可用：比如 R2 还没开通，图片存不进去 */
+class Unavailable extends Error {
+  constructor(message, field) {
+    super(message);
+    this.field = field;
+    this.status = 503;
+  }
+}
+
 /** 校验回声：一句话，不附图；昵称可空 */
 export function validateEcho(input) {
   const body = str(input.body).trim();
@@ -128,7 +137,7 @@ export function validateDraft(input) {
 /** 把校验/业务异常统一映射到 HTTP 状态码 */
 export function errorStatus(err) {
   const s = err?.status;
-  return s === 400 || s === 404 || s === 401 || s === 403 || s === 409 || s === 413 ? s : 500;
+  return s === 400 || s === 404 || s === 401 || s === 403 || s === 409 || s === 413 || s === 503 ? s : 500;
 }
 
-export { Invalid, Conflict };
+export { Invalid, Conflict, Unavailable };

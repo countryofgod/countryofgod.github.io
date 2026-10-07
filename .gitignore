@@ -4,6 +4,11 @@ node_modules/
 .env
 .dev.vars
 
+# 部署时临时交由本机脚本读取的凭据/代理地址：放这里是为了"万一忘了删也不会进仓库"
+.cloudflare-token
+.admin-passwd
+.proxyrc
+
 # wrangler 本地模拟数据与构建产物
 .wrangler/
 dist/

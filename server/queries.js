@@ -1,4 +1,5 @@
 import { db, tx } from './db.js';
+import { uploadToImgbb } from './imgbb.js';
 
 /* ---------------- 日期 ---------------- */
 
@@ -224,7 +225,7 @@ export function deviceCount() {
   return db.prepare('SELECT COUNT(*) AS n FROM devices').get().n;
 }
 
-const GUEST_COLS = 'id, name, body, image_mime, image_bytes, created_at, device_id';
+const GUEST_COLS = 'id, name, body, image_mime, image_bytes, image_url, created_at, device_id';
 
 function shapeNote(row) {
   return {
@@ -232,7 +233,8 @@ function shapeNote(row) {
     name: row.name || '匿名',
     body: row.body || '',
     date: displayDate(row.created_at),
-    imageUrl: row.image_mime ? `/api/guestbook/${row.id}/image` : null,
+    // 图床托管时直接用外部 URL；否则走本站的图片接口（库里的 BLOB）
+    imageUrl: row.image_url || (row.image_mime ? `/api/guestbook/${row.id}/image` : null),
     imageBytes: row.image_bytes ?? 0,
     createdAt: row.created_at,
   };
@@ -247,19 +249,32 @@ export function listGuestbook({ limit = 50, before = null } = {}) {
   return stmt.map(shapeNote);
 }
 
-export function insertGuestbook({ name, body, image, deviceId }) {
+export async function insertGuestbook({ name, body, image, deviceId }) {
+  // 配了图床就托管到图床、库里只留 URL；没配就退回把图存在本地库里
+  let imageUrl = null;
+  if (image && process.env.IMGBB_API_KEY) {
+    const up = await uploadToImgbb({
+      apiKey: process.env.IMGBB_API_KEY,
+      data: image.data,
+      mime: image.mime,
+      filename: name || 'guestbook',
+    });
+    imageUrl = up.url;
+  }
+
   return tx(() => {
     const info = db
       .prepare(
-        `INSERT INTO guestbook (name, body, image, image_mime, image_bytes, device_id, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO guestbook (name, body, image, image_mime, image_bytes, image_url, device_id, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         name,
         body,
-        image?.data ?? null,
+        image && !imageUrl ? image.data : null,
         image?.mime ?? null,
         image?.bytes ?? null,
+        imageUrl,
         deviceId ?? null,
         new Date().toISOString()
       );
