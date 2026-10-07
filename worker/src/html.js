@@ -250,7 +250,7 @@ function renderHome({ articles, archive, notes, submitMail }) {
 
               <textarea class="guest-field guest-textarea" placeholder="Mus es sein?" maxlength="500"></textarea>
 
-              <button class="guest-submit" type="submit">Es mus sein!</button>
+              <button class="guest-submit" type="submit">Mus es sein!</button>
             </form>
 
             <div class="guest-wall">
