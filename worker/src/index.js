@@ -50,6 +50,17 @@ function match(pattern, path) {
   return params;
 }
 
+/** GET /healthz —— 给外部探活用：连一次库，库挂了就 500 */
+on('GET', '/healthz', async (req, env) => {
+  try {
+    await db.bootstrap(env);
+    const row = await env.DB.prepare('SELECT COUNT(*) AS n FROM articles').first();
+    return json({ ok: true, articles: row?.n ?? 0 }, 200, { 'Cache-Control': 'no-store' });
+  } catch (err) {
+    return json({ ok: false, error: '数据库不可用' }, 503, { 'Cache-Control': 'no-store' });
+  }
+});
+
 /* ---------------- 页面 ---------------- */
 
 on('GET', '/', async (req, env) => {
@@ -118,19 +129,20 @@ on('POST', '/admin/login', async (req, env) => {
   const body = ct.includes('application/json')
     ? await req.json().catch(() => ({}))
     : Object.fromEntries(await req.formData());
+  const secure = new URL(req.url).protocol === 'https:';
 
   if (!(await verifyPassword(env, body.password))) {
     if (ct.includes('application/json')) return json({ error: '口令不正确' }, 401);
     return redirect('/admin?e=1');
   }
-  const cookie = await cookieHeader(env);
+  const cookie = await cookieHeader(env, { secure });
   if (ct.includes('application/json')) return json({ ok: true }, 200, { 'Set-Cookie': cookie });
   return redirect('/admin', { 'Set-Cookie': cookie });
 });
 
 on('POST', '/admin/logout', async (req, env) => {
   const ct = req.headers.get('content-type') || '';
-  const headers = { 'Set-Cookie': clearedCookieHeader() };
+  const headers = { 'Set-Cookie': clearedCookieHeader({ secure: new URL(req.url).protocol === 'https:' }) };
   if (ct.includes('application/json')) return json({ ok: true }, 200, headers);
   return redirect('/admin', headers);
 });

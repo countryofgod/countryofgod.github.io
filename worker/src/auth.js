@@ -25,17 +25,22 @@ export async function verifyPassword(env, input) {
   return hex(await digest(input)) === hex(await digest(env.ADMIN_PASSWORD));
 }
 
-export async function cookieHeader(env) {
+/**
+ * secure 由调用方按请求协议判断：Workers 无论 *.workers.dev 还是自定义域名都是 https，
+ * 但 wrangler dev 是 http —— 写死 Secure 会让本地登录不进去，所以跟着协议走。
+ */
+export async function cookieHeader(env, { secure = false } = {}) {
   const days = Number(env.SESSION_TTL_DAYS) || 7;
   const exp = Date.now() + days * 86400_000;
   const payload = String(exp);
   const value = `${payload}.${await sign(env, payload)}`;
   const parts = [`${COOKIE}=${value}`, 'HttpOnly', 'SameSite=Lax', 'Path=/', `Max-Age=${days * 86400}`];
-  if (env.COOKIE_SECURE === '1') parts.push('Secure');
+  if (secure) parts.push('Secure');
   return parts.join('; ');
 }
 
-export const clearedCookieHeader = () => `${COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`;
+export const clearedCookieHeader = ({ secure = false } = {}) =>
+  `${COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secure ? '; Secure' : ''}`;
 
 export async function isAdmin(env, req) {
   const raw = getCookie(req, COOKIE);
@@ -81,8 +86,15 @@ export async function ensureDevice(env, req) {
   const existing = await readDeviceId(env, req);
   if (existing) return { id: existing, setCookie: null };
   const id = randomId();
-  const parts = [`${DEVICE_COOKIE}=${await deviceToken(env, id)}`, 'HttpOnly', 'SameSite=Lax', 'Path=/', `Max-Age=${DEVICE_MAX_AGE}`];
-  if (env.COOKIE_SECURE === '1') parts.push('Secure');
+  const secure = env.COOKIE_SECURE === '1' || new URL(req.url).protocol === 'https:';
+  const parts = [
+    `${DEVICE_COOKIE}=${await deviceToken(env, id)}`,
+    'HttpOnly',
+    'SameSite=Lax',
+    'Path=/',
+    `Max-Age=${DEVICE_MAX_AGE}`,
+  ];
+  if (secure) parts.push('Secure');
   return { id, setCookie: parts.join('; ') };
 }
 

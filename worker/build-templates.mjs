@@ -9,7 +9,7 @@
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const views = join(root, 'server', 'views');
@@ -68,7 +68,9 @@ const parts = [
   ),
 ].join('\n');
 
-const out = `/* 自动生成，勿手改。
+/** 返回编译结果；不落盘。preflight 用它跟磁盘上的 html.js 比对，判断有没有过期 */
+export function buildTemplates() {
+  return `/* 自动生成，勿手改。
  * 来源：server/views/*.ejs —— 由 worker/build-templates.mjs 编译。
  * 原因：Cloudflare Workers 禁用 new Function，EJS 无法在运行时编译，
  *       所以在 Node 里先编译成普通函数。改模板请改 EJS 后重跑：
@@ -83,8 +85,13 @@ const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ESCAPES[c]);
 ${parts}
 export { renderHome, renderArticle, renderAdmin, esc };
 `;
+}
 
-const dest = join(root, 'worker', 'src', 'html.js');
-mkdirSync(dirname(dest), { recursive: true });
-writeFileSync(dest, out, 'utf8');
-console.log('已生成', dest, out.length, '字符');
+// 只有直接执行才落盘；被 preflight import 时不能产生副作用
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const dest = join(root, 'worker', 'src', 'html.js');
+  const out = buildTemplates();
+  mkdirSync(dirname(dest), { recursive: true });
+  writeFileSync(dest, out, 'utf8');
+  console.log('已生成', dest, out.length, '字符');
+}

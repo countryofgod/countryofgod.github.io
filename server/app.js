@@ -52,6 +52,16 @@ app.use(
   })
 );
 
+// 健康检查：给外部探活用，连一次库，库挂了就 503
+app.get('/healthz', (_req, res) => {
+  try {
+    const row = db.prepare('SELECT COUNT(*) AS n FROM articles').get();
+    res.set('Cache-Control', 'no-store').json({ ok: true, articles: row?.n ?? 0 });
+  } catch (err) {
+    res.set('Cache-Control', 'no-store').status(503).json({ ok: false, error: '数据库不可用' });
+  }
+});
+
 // 设备即账号：放在静态目录之后，免得给 css/js/图片也挂上 Cookie
 app.use(ensureDevice);
 

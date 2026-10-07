@@ -7,11 +7,16 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env server/app.js",
     "seed": "node --env-file-if-exists=.env server/seed.js",
+    "dump": "node server/dump.mjs",
+
+    "templates": "node worker/build-templates.mjs",
+    "preflight": "node worker/preflight.mjs",
+    "check": "node worker/dev-check.mjs",
 
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "npm run preflight && npm run templates && wrangler deploy",
+    "deploy:skip-check": "wrangler deploy",
     "tail": "wrangler tail",
-    "templates": "node worker/build-templates.mjs",
 
     "d1:create": "wrangler d1 create gods-country",
     "r2:create": "wrangler r2 bucket create gods-country-images"
