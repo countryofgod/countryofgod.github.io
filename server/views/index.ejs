@@ -12,7 +12,7 @@
   <!-- Hero -->
   <section class="hero">
     <div class="hero-crop">
-      <img class="hero-image" src="/img/795.webp" alt="墙上装框画作，画中写着 La Vie est ailleurs">
+      <img class="hero-image" src="/img/795.webp" alt="墙上装框画作，画中写着 La Vie est ailleurs" decoding="async" fetchpriority="high">
       <div class="hero-blur" aria-hidden="true"></div>
     </div>
     <div class="hero-inner">
@@ -127,7 +127,21 @@
 <% } %>
             </div>
 
-            <img class="guest-lamp" src="/img/lamp.webp" alt="一盏蒂芙尼台灯">
+            <!-- 照片流：向左缓慢滚动、悬停暂停、两端淡出到黑。
+                 每帧的 --aspect 是这张照片的宽高比（宽÷高），用来分配帧宽：
+                 同一高度下宽度与比例成正比，于是照片按原始比例铺满、彼此紧挨。
+                 加照片：在第一组末尾追加一帧并带上它的 --aspect，
+                 再把整组复制一遍（后面那组只作无缝循环的替身） -->
+            <div class="guest-film">
+              <div class="guest-film-track">
+                <figure class="guest-film-frame" style="--aspect: 1.3333"><img src="/img/lamp.webp" alt="一盏蒂芙尼台灯"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3241"><img src="/img/still-1.jpg" alt="黑白剧照：咖啡馆对谈"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.25"><img src="/img/still-2.jpg" alt="黑白剧照：病房相见"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3333" aria-hidden="true"><img src="/img/lamp.webp" alt=""></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3241" aria-hidden="true"><img src="/img/still-1.jpg" alt=""></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.25" aria-hidden="true"><img src="/img/still-2.jpg" alt=""></figure>
+              </div>
+            </div>
           </div>
         </div>
       </div>

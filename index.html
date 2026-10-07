@@ -328,7 +328,11 @@
       background: #ffffff;
       /* 把混合关在卡片里面：logo 只跟卡片自己的底色混合，不会穿出去跟页面、首图混 */
       isolation: isolate;
-      border: 1px solid var(--gray-3);
+      /* 常态透明，不是没有边框 —— 边框的宽度仍然占 1px，卡片盒子尺寸与原先完全一致，
+         所以"框消失"不会让文字位置挪动半像素；变的只有颜色：静止时看不见，
+         悬停/展开时才由 border-color 过渡把它染成黑。
+         若写成 border: none 或 0，盒子会比现在小 2px，展开前后会跳一下 */
+      border: 1px solid transparent;
       padding: 32px 36px;
       cursor: pointer;
     }
@@ -976,7 +980,7 @@
     }
 
     /* max-height 需要给"内容长到顶"留够余量：留言墙本身封顶 360px（见下），
-       所以表单+留言墙的总高有上界；底部又多了一张 .guest-lamp（160px 高 + 28px 上间距），
+       所以表单+留言墙的总高有上界；底部又多了一条 .guest-film（约 162px 高 + 28px 上间距），
        1200px 足以覆盖，不会出现内容被裁掉 */
     .footer-guestbook.expanded .footer-guestbook-body {
       max-height: 1200px;
@@ -1089,17 +1093,49 @@
       text-align: center;
     }
 
-    /* 留言板最底部那张图（一盏台灯）。灰度交给 CSS，与 .hero-image 同一条算式；
-       尺寸只锁高度一个方向，宽度交给原比例（见 .footer-bottom-img 的注释） */
-    .guest-lamp {
+    /* 留言板最底部：一条缓缓向左流动的照片带（原先只有一张台灯图）。
+       同屏三张。帧宽不写死：每帧按自己的宽高比（HTML 里的 --aspect）分配宽度，
+       同一高度下照片宽度 = 比例 × 高度，于是三帧拼起来恰好铺满留言区，
+       照片之间零间隙，既不裁切（用不到 object-fit，图片就是原始比例），
+       也不会出现两侧黑边（黑边往往来自「固定宽度的框 + contain」）。
+       灰度交给 CSS，与 .hero-image 同一条算式，原图放彩色即可。
+       左右两端用遮罩淡出到页脚的黑，让照片流看起来是从黑里出来的 */
+    .guest-film {
+      overflow: hidden;
+      /* 下间距给足，与再下面的 Einmal ist keinmal 刊名拉开距离 */
+      margin: 28px 0 48px;
+      -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
+      mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
+    }
+
+    /* 轨道宽 200%：同一组照片排两遍，translateX(-50%) 恰好转回起点，循环无缝 */
+    .guest-film-track {
+      display: flex;
+      width: 200%;
+      animation: guest-film-scroll 42s linear infinite;
+    }
+
+    /* flex-grow = 宽高比、flex-basis = 0：
+       剩余空间按各帧比例分配，宽度自然与「等高时的原比例宽度」一致 */
+    .guest-film-frame {
+      flex: var(--aspect, 1.33) 1 0;
+      min-width: 0;
+    }
+
+    .guest-film-frame img {
       display: block;
-      height: 160px;
-      width: auto;
-      max-width: 100%;
-      object-fit: contain;
-      margin: 28px auto 0;
-      border: 1px solid rgba(255, 255, 255, 0.25);
+      width: 100%;
+      height: auto;
       filter: grayscale(100%) contrast(1.05);
+    }
+
+    @keyframes guest-film-scroll {
+      to { transform: translateX(-50%); }
+    }
+
+    /* 系统偏好减少动效时保持静止（悬停不暂停：这条照片要一直流着） */
+    @media (prefers-reduced-motion: reduce) {
+      .guest-film-track { animation: none; }
     }
 
     .guest-note {
@@ -1431,7 +1467,9 @@
   <!-- Hero -->
   <section class="hero">
     <div class="hero-crop">
-      <img class="hero-image" src="795.webp" alt="墙上装框画作，画中写着 La Vie est ailleurs">
+      <!-- decoding / fetchpriority 只影响加载顺序与解码时机，不改变任何渲染结果：
+           首图是整页最大的一块内容（LCP），显式标 high 才不会被后面几张小图抢带宽 -->
+      <img class="hero-image" src="795.webp" alt="墙上装框画作，画中写着 La Vie est ailleurs" decoding="async" fetchpriority="high">
       <div class="hero-blur" aria-hidden="true"></div>
     </div>
     <div class="hero-inner">
@@ -1577,7 +1615,21 @@
               <p class="guest-wall-empty">还没有留言</p>
             </div>
 
-            <img class="guest-lamp" src="lamp.webp" alt="一盏蒂芙尼台灯">
+            <!-- 照片流：向左缓慢滚动、悬停暂停、两端淡出到黑。
+                 每帧的 --aspect 是这张照片的宽高比（宽÷高），用来分配帧宽：
+                 同一高度下宽度与比例成正比，于是照片按原始比例铺满、彼此紧挨。
+                 加照片：在第一组末尾追加一帧并带上它的 --aspect，
+                 再把整组复制一遍（后面那组只作无缝循环的替身） -->
+            <div class="guest-film">
+              <div class="guest-film-track">
+                <figure class="guest-film-frame" style="--aspect: 1.3333"><img src="lamp.webp" alt="一盏蒂芙尼台灯"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3241"><img src="still-1.jpg" alt="黑白剧照：咖啡馆对谈"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.25"><img src="still-2.jpg" alt="黑白剧照：病房相见"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3333" aria-hidden="true"><img src="lamp.webp" alt=""></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3241" aria-hidden="true"><img src="still-1.jpg" alt=""></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.25" aria-hidden="true"><img src="still-2.jpg" alt=""></figure>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1600,9 +1652,10 @@
     // 只在首屏（首页那张画）与页脚出现，其余内容区不打扰阅读；鼠标离开窗口也隐去
     const cursorInvert = document.querySelector('.cursor-invert');
     const INVERT_SHOW = '.hero, .footer';
-    // 留言板的表单与留言墙排除在外：输入框要看清、要光标，让一个硕大的反色圆
-    // 在光标旁把白底黑字反复翻转，是干扰而不是效果
-    const INVERT_MUTE = '.footer-guestbook-inner';
+    // 只把留言板的表单与留言墙排除在外：输入框要看清、要光标，让一个硕大的反色圆
+    // 在光标旁把白底黑字反复翻转，是干扰而不是效果。底部的照片流则保留反色圆——
+    // 在那块区域让光标变成反色圆、反相底色，刚好贴合"照片从黑里流出来"的感觉
+    const INVERT_MUTE = '.guest-form, .guest-wall';
     // 触屏设备没有鼠标可跟：手指点一下会合成一次 mousemove，若照旧监听，
     // 反色圆会突然出现在手指位置，并且因为再也收不到"离开"事件而一直挂在屏幕上。
     // 所以整套跟随逻辑只在"能悬停且指针精确"的设备上注册（CSS 里 .cursor-invert

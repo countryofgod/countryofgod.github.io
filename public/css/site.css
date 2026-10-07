@@ -322,7 +322,11 @@ body {
   background: #ffffff;
   /* 把混合关在卡片里面：logo 只跟卡片自己的底色混合，不会穿出去跟页面、首图混 */
   isolation: isolate;
-  border: 1px solid var(--gray-3);
+  /* 常态透明，不是没有边框 —— 边框的宽度仍然占 1px，卡片盒子尺寸与原先完全一致，
+     所以"框消失"不会让文字位置挪动半像素；变的只有颜色：静止时看不见，
+     悬停/展开时才由 border-color 过渡把它染成黑（过渡已在下面那条里）。
+     若写成 border: none 或 0，盒子会比现在小 2px，展开前后会跳一下 */
+  border: 1px solid transparent;
   padding: 32px 36px;
   cursor: pointer;
 }
@@ -989,11 +993,12 @@ body {
 }
 
 /* max-height 需要给"内容长到顶"留够余量：留言墙本身封顶 360px（见下），
-   所以表单+留言墙的总高有上界；底部又多了一张 .guest-lamp（160px 高 + 28px 上间距）。
-   最坏情况是"选了图（预览 220px）+ 留言墙撑满 + 底部小图"同时发生，约 1135px，
-   故取 1200px 留一档余量，不会出现内容被裁掉 */
+   所以表单+留言墙的总高有上界；底部又多了一条 .guest-film（约 162px 高 + 28px 上间距 + 44px 下间距）。
+   最坏情况是"选了图（预览 220px）+ 留言墙撑满 + 底部胶片"同时发生，约 1180px，
+   故取 1280px 留一档余量，不会出现内容被裁掉。
+   注意：胶片的下间距一改，这里的总高也要跟着往上调，否则末尾会被裁掉一截 */
 .footer-guestbook.expanded .footer-guestbook-body {
-  max-height: 1200px;
+  max-height: 1280px;
 }
 
 /* 展开区宽度 ≈ 上面文章卡片的 60%：卡片在 800px 容器里两侧各退 48px 内边距 = 704px，
@@ -1176,23 +1181,55 @@ body {
   margin-bottom: 12px;
 }
 
-/* 留言板最底部那张图（一盏台灯）。
+/* 留言板最底部：一条缓缓向左流动的照片带（原先只有一张台灯图）。
+   同屏三张。帧宽不写死：每帧按自己的宽高比（HTML 里的 --aspect）分配宽度，
+   同一高度下照片宽度 = 比例 × 高度，于是三帧拼起来恰好铺满留言区，
+   照片之间零间隙，既不裁切（用不到 object-fit，图片就是原始比例），
+   也不会出现两侧黑边（黑边往往来自「固定宽度的框 + contain」）。
    灰度交给 CSS，与 .hero-image 同一条算式（grayscale(100%) contrast(1.05)），
    所以 public/img/ 里放彩色原图也行 —— 与首图、档案馆照片的做法一致。
-   尺寸只锁高度一个方向，宽度交给原比例（见 .footer-bottom-img 的注释）：
-   它是竖构图，写死宽度会把画面压扁。
-   max-width + object-fit 是兜底：万一将来换成更极端的比例，也不会撑破留言区。
-   要调大小只改 height 这一个数字：这张是竖构图（3:4），160px 高约合 120px 宽，
-   在 424px 的留言区里是一枚小照片的量级，不与首图争视线。 */
-.guest-lamp {
+   左右两端用遮罩淡出到页脚的黑，让照片流看起来是从黑里出来的 */
+.guest-film {
+  overflow: hidden;
+  /* 下间距比上间距（28px）大：上头贴的是留言墙，下头要隔开的是页脚的刊名与版权行。
+     两件事分量不一样 —— 留言墙是"刚才发生的话"，刊名是"这本刊物是谁"；
+     紧挨着会让胶片看起来像页脚的装饰条，而不是留言栏自己的收尾。
+     只在展开留言栏时才出现（收起时 .footer-guestbook-body 是 max-height:0），
+     所以这个数字不动收起状态下的页脚排版 */
+  margin: 28px 0 48px;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
+}
+
+/* 轨道宽 200%：同一组照片排两遍，translateX(-50%) 恰好转回起点，循环无缝 */
+.guest-film-track {
+  display: flex;
+  width: 200%;
+  animation: guest-film-scroll 42s linear infinite;
+}
+
+/* flex-grow = 宽高比、flex-basis = 0：
+   剩余空间按各帧比例分配，宽度自然与「等高时的原比例宽度」一致 */
+.guest-film-frame {
+  flex: var(--aspect, 1.33) 1 0;
+  min-width: 0;
+}
+
+.guest-film-frame img {
   display: block;
-  height: 160px;
-  width: auto;
-  max-width: 100%;
-  object-fit: contain;
-  margin: 28px auto 0;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  width: 100%;
+  height: auto;
   filter: grayscale(100%) contrast(1.05);
+}
+
+@keyframes guest-film-scroll {
+  to { transform: translateX(-50%); }
+}
+
+/* 系统偏好减少动效时保持静止（悬停不暂停：这条照片要一直流着） */
+
+@media (prefers-reduced-motion: reduce) {
+  .guest-film-track { animation: none; }
 }
 
 /* 刊名与版权行由原来的左右分居改为纵向居中叠放：刊名在上、版权行在下。
@@ -1406,4 +1443,76 @@ body.cursor-hidden * {
   25% { transform: translate(-1px, 1px); }
   50% { transform: translate(1px, -1px); }
   75% { transform: translate(-0.8px, -1px); }
+}
+
+/* ---------- 触屏：去掉"点了就赖着不走"的悬停态 ---------- */
+/* 触屏浏览器没有真正的悬停：手指点下去会先触发一次 :hover，而这份 :hover
+   会一直挂着，直到用户去点别的地方——于是被点过的文章卡片整块反色不还原、
+   月份框一直亮着、刊名一直抖。下面把这些"只该由鼠标悬停触发"的状态
+   在触屏上复位回静态外观（卡片展开态不受影响，它走的是 .expanded）。
+   桌面端（hover: hover）不命中这一块，显示与性能零变化。
+   位置必须放在整份样式的最后：这里每一条都是对前面同名 :hover 规则的覆盖，
+   两者特异度相同、媒体查询不加权重，只能靠源码顺序决胜 */
+@media (hover: none) {
+  .article-item:hover:not(.expanded) {
+    background: #ffffff;
+    border-color: var(--gray-3);
+  }
+  .article-item:hover:not(.expanded) .article-meta {
+    color: var(--gray-4);
+  }
+  .article-item:hover:not(.expanded) .article-author {
+    color: var(--gray-5);
+  }
+  .article-item:hover:not(.expanded) .article-title {
+    color: var(--black);
+  }
+  .article-item:hover:not(.expanded) .article-excerpt {
+    color: var(--gray-5);
+  }
+  .article-item:hover:not(.expanded) .article-toggle {
+    color: var(--gray-4);
+  }
+  /* 刊徽也跟着回到常态：底图那张回来、反相那张继续透明 */
+  .article-item:hover:not(.expanded) .article-logo .logo-base {
+    opacity: 1;
+  }
+  .article-item:hover:not(.expanded) .article-logo .logo-inv {
+    opacity: 0;
+  }
+  .archive-group:hover .archive-year {
+    color: var(--black);
+  }
+  .archive-group:hover .archive-year::before {
+    opacity: 1;
+  }
+  .archive-month:hover {
+    color: var(--black);
+  }
+  .archive-month:hover::before {
+    opacity: 0;
+  }
+  .month-post:hover .month-post-title {
+    border-bottom-color: rgba(255, 255, 255, 0);
+  }
+  .guest-submit:hover {
+    background: var(--white);
+    color: var(--black);
+  }
+  /* 社交标识常态是 62% 白，触屏上不因为点过就一直亮成纯白 */
+  .footer-social-item:hover {
+    color: rgba(255, 255, 255, 0.62);
+  }
+  .guest-note-mine:hover {
+    color: var(--gray-5);
+  }
+  /* 逐字抖动是"悬停才颤"的效果，触屏没有悬停这一说，别让它点一下就一直颤 */
+  :is(a, .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit):hover .jitter-char {
+    animation: none;
+  }
+  /* 跟随鼠标的反色圆在触屏上没有鼠标可跟；留着它只是一块固定定位的
+     backdrop-filter，纯开销。JS 那边同时不再注册 mousemove（见 site.js） */
+  .cursor-invert {
+    display: none;
+  }
 }

@@ -2,9 +2,10 @@
 // 只在首屏（首页那张画）与页脚出现，其余内容区不打扰阅读；鼠标离开窗口也隐去
 const cursorInvert = document.querySelector('.cursor-invert');
 const INVERT_SHOW = '.hero, .footer';
-// 留言板的表单与留言墙排除在外：输入框要看清、要光标，让一个硕大的反色圆
-// 在光标旁把白底黑字反复翻转，是干扰而不是效果
-const INVERT_MUTE = '.footer-guestbook-inner';
+// 只把留言板的表单与留言墙排除在外：输入框要看清、要光标，让一个硕大的反色圆
+// 在光标旁把白底黑字反复翻转，是干扰而不是效果。底部的照片流则保留反色圆——
+// 在那块区域让光标变成反色圆、反相底色，刚好贴合"照片从黑里流出来"的感觉
+const INVERT_MUTE = '.guest-form, .guest-wall';
 // 触屏设备没有鼠标可跟：手指点一下会合成一次 mousemove，若照旧监听，
 // 反色圆会突然出现在手指位置，并且因为再也收不到"离开"事件而一直挂在屏幕上。
 // 所以整套跟随逻辑只在"能悬停且指针精确"的设备上注册（CSS 里 .cursor-invert
