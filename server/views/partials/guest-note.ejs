@@ -1,0 +1,5 @@
+              <div class="guest-note" data-id="<%= note.id %>">
+                <p class="guest-note-head"><span class="guest-note-name"><%= note.name %></span><span><%= note.date %></span></p>
+<% if (note.body) { %>                <p class="guest-note-text"><%= note.body %></p>
+<% } %><% if (note.imageUrl) { %>                <img class="guest-note-img" alt="<%= note.name %> 上传的图片" src="<%= note.imageUrl %>">
+<% } %>              </div>

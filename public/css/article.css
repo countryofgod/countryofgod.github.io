@@ -1,0 +1,274 @@
+/* 文章永久页：不引入新的视觉语言 —— 配色、字体族全部取自 site.css 的 :root。
+   这里只定义"一页纸"自己的排版，以及回声区。 */
+
+.page-article {
+  background: var(--white);
+  color: var(--black);
+  line-height: 1.9;
+}
+
+.sheet {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 96px 24px 140px;
+}
+
+/* 顶行：回刊物 / 随机一篇。两端对齐，与页脚入口行同一排法 */
+.sheet-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 24px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--gray-4);
+  margin-bottom: 72px;
+}
+
+.sheet-home,
+.sheet-random {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--gray-4);
+  text-decoration: none;
+  transition: color 0.35s ease;
+}
+
+.sheet-home:hover,
+.sheet-random:hover {
+  color: var(--black);
+}
+
+/* 标题三层的排法与首页卡片一致：标题居中、作者与日期居中 */
+.sheet-title {
+  font-family: var(--font-title);
+  font-size: 32px;
+  font-weight: normal;
+  line-height: 1.4;
+  letter-spacing: 2px;
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.sheet-author {
+  font-family: var(--font-body);
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--gray-5);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.sheet-meta {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--gray-4);
+  text-align: center;
+  text-transform: uppercase;
+  margin-bottom: 56px;
+}
+
+.sheet-body {
+  font-size: 18px;
+  line-height: 1.9;
+  color: var(--gray-6);
+}
+
+/* 已入档：给一段摘要让人认得出它，正文不展开 */
+.sheet-excerpt {
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--gray-5);
+}
+
+.sheet-archived {
+  margin-top: 32px;
+  padding: 28px;
+  border: 1px solid var(--gray-3);
+  text-align: center;
+}
+
+.sheet-archived-line {
+  font-family: var(--font-title);
+  font-size: 16px;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.sheet-archived-note {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--gray-5);
+  margin-bottom: 20px;
+}
+
+.sheet-archived-btn {
+  display: inline-block;
+  font-family: var(--font-title);
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: var(--black);
+  border: 1px solid var(--black);
+  padding: 10px 22px;
+  text-decoration: none;
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+/* 悬停反色：与文章卡片、档案馆同一套反馈 */
+.sheet-archived-btn:hover {
+  background: var(--black);
+  color: var(--white);
+}
+
+/* ---------- 回声 ---------- */
+.echo {
+  margin-top: 88px;
+  padding-top: 32px;
+  border-top: 1px solid var(--gray-2);
+}
+
+.echo-title {
+  font-family: var(--font-title);
+  font-size: 20px;
+  font-weight: normal;
+  letter-spacing: 4px;
+  margin-bottom: 8px;
+}
+
+.echo-note {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--gray-4);
+  margin-bottom: 28px;
+}
+
+.echo-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.echo-item {
+  border: 1px solid var(--gray-2);
+  padding: 16px;
+}
+
+.echo-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--gray-4);
+  margin-bottom: 8px;
+}
+
+.echo-name {
+  font-family: var(--font-title);
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  color: var(--black);
+}
+
+.echo-body {
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--gray-6);
+  overflow-wrap: anywhere;
+}
+
+.echo-empty {
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--gray-4);
+  padding: 8px 0;
+}
+
+.echo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.echo-input,
+.echo-textarea {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--black);
+  background: var(--white);
+  border: 1px solid var(--gray-3);
+  padding: 12px 14px;
+  outline: none;
+}
+
+.echo-input::placeholder,
+.echo-textarea::placeholder {
+  color: var(--gray-4);
+}
+
+.echo-textarea {
+  resize: vertical;
+  min-height: 112px;
+}
+
+.echo-submit {
+  font-family: var(--font-title);
+  font-size: 16px;
+  letter-spacing: 2px;
+  padding: 12px 0;
+  background: var(--white);
+  color: var(--black);
+  border: 1px solid var(--black);
+  cursor: pointer;
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+.echo-submit:hover {
+  background: var(--black);
+  color: var(--white);
+}
+
+.echo-hint {
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: #660000;
+  text-align: center;
+}
+
+/* 「撤回」：只在这台设备自己的回声上出现，由脚本插入 */
+.echo-mine {
+  display: block;
+  margin-top: 10px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--gray-5);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.35s ease;
+}
+
+.echo-mine:hover {
+  color: var(--black);
+}
+
+@media (max-width: 768px) {
+  .sheet {
+    padding: 64px 24px 100px;
+  }
+  .sheet-title {
+    font-size: 26px;
+  }
+  .sheet-body {
+    font-size: 17px;
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "gods-country",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "上帝之国（Einmal ist keinmal）刊物站点",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server/app.js",
+    "seed": "node --env-file-if-exists=.env server/seed.js",
+
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "templates": "node worker/build-templates.mjs",
+
+    "d1:create": "wrangler d1 create gods-country",
+    "r2:create": "wrangler r2 bucket create gods-country-images"
+  },
+  "engines": {
+    "node": ">=22.9.0"
+  },
+  "dependencies": {
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "multer": "^2.4.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}

@@ -1,0 +1,18 @@
+      <article class="article-item">
+        <span class="article-logo">
+          <img class="logo-base" src="/img/logo.png" alt="上帝之国">
+          <img class="logo-inv" src="/img/logo.png" alt="" aria-hidden="true">
+        </span>
+        <h3 class="article-title" style="font-size: 25px;"><%= article.title %></h3>
+        <p class="article-author">— <%= article.author %></p>
+        <p class="article-meta"><%= article.meta %></p>
+        <div class="article-content">
+          <p class="article-excerpt" style="font-size: 18px;"><%= article.excerpt %></p>
+          <!-- 展开后的正文字号必须与上方摘要一致：摘要被手动调成了 18px，
+               而 .article-full 的 CSS 默认是 15px，展开时正文会「变小」一档。
+               这里把同一个 18px 补到全文段落上，展开前后字号不跳变。
+               这两处内联字号必须留在 HTML 里：搬进 CSS 会因选择器优先级变化而让字号变回去 -->
+          <p class="article-full" style="font-size: 18px;"><%- article.content %></p>
+        </div>
+        <span class="article-toggle">↓</span>
+      </article>

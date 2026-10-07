@@ -1,0 +1,268 @@
+# 上帝之国（Einmal ist keinmal）
+
+刊物站点。前端观感与交互与重构前逐像素一致，内容改为由服务端渲染 + SQLite 持久化，并提供一套 REST 接口与管理台。
+
+仓库里有**两套运行时**，共用同一份 `public/` 静态资源与同一套业务校验：
+
+| | 目录 | 用途 |
+|---|---|---|
+| Node 版 | `server/` | 本机直接跑 / 自托管；Express + `node:sqlite`，数据在 `data/gods-country.db` |
+| Workers 版 | `worker/` | 部署到 Cloudflare；D1 存数据、R2 存留言图片 |
+
+两边渲染出的 HTML **逐 token 一致**（`node worker/dev-check.mjs` 会验证这一点）。
+
+## 快速开始（本机）
+
+```bash
+npm install
+npm start           # → http://localhost:3000
+```
+
+首次启动会自动建表，并把重构前硬编码的《创刊号》原样导入数据库。
+
+管理台在 `/admin`。口令有两种给法：
+
+```bash
+# 方式一：环境变量
+ADMIN_PASSWORD=你的口令 npm start
+
+# 方式二：不管它——服务会在 data/admin.password 生成随机口令，启动时打印文件路径
+npm start
+```
+
+可选：把 `.env.example` 复制成 `.env` 再改（`npm start` 已带 `--env-file-if-exists`）。
+
+## 目录结构
+
+```
+server/
+├─ app.js               装配：静态目录、视图引擎、路由、错误处理、优雅退出
+├─ config.js            环境变量与默认值集中在这里
+├─ db.js                连接、WAL、建表、触发 seed
+├─ seed.js / seed-data.js  首启导入的初始内容（从旧页原样导出）
+├─ auth.js              口令校验（定长比较）+ HMAC 签名 Cookie
+├─ validators.js        系统边界校验规则
+├─ queries.js           所有 SQL 都收敛在这里
+├─ routes/
+│  ├─ pages.js          GET / 、/admin、登录登出
+│  ├─ content.js        文章 / 档案馆 读写
+│  └─ guestbook.js      留言读写 + 图片流
+├─ views/
+│  ├─ index.ejs         首页（服务端渲染）—— 两套运行时共用的模板来源
+│  ├─ admin.ejs         管理台
+│  └─ partials/         文章卡片、年份组、月份条目、留言
+（validators.js 在上一行，Workers 版直接复用这一份）
+
+worker/                 Cloudflare Workers 版
+├─ src/index.js         路由与全部处理器（fetch 入口）
+├─ src/db.js            D1 查询（异步 API）+ 首启建表与 seed
+├─ src/schema.js        建表语句（batch 用）
+├─ src/auth.js          WebCrypto 版口令校验与签名 Cookie
+├─ src/html.js          由 build-templates.mjs 从 EJS 编译而来，勿手改
+├─ build-templates.mjs  EJS → 模板字面量（Workers 禁用 new Function）
+└─ dev-check.mjs        本机跑 Workers 代码的验收脚本（D1/R2 用模拟实现）
+
+public/                 静态资源，两套运行时 + Workers [assets] 共用
+├─ css/site.css         旧 <style> 原文迁出
+├─ css/admin.css        管理台样式（复用 site.css 的配色变量与字体族）
+├─ js/site.js           旧 <script> 迁出 + 留言板接后端
+├─ js/admin.js          管理台交互
+├─ img/                 795.jpg / archive.jpg / logo.png
+└─ fonts/               三套被引用的字体
+
+wrangler.jsonc          Workers / D1 / R2 / 静态资源的绑定配置
+data/                   Node 版的 SQLite 库、口令与会话密钥（不入库）
+index.legacy.html       重构前的单文件页，留作回滚参照
+```
+
+## 接口
+
+### 公开
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/` | 服务端渲染的首页 HTML |
+| GET | `/api/articles` | 文章列表（sort_order 升序，同序按发布日期倒序） |
+| GET | `/api/articles/:slug` | 单篇；不存在 404 |
+| GET | `/api/archive` | `[{year, months:[{month, hasPosts, posts}]}]`，年份倒序 |
+| GET | `/api/guestbook` | `?limit=&before=`；`{items:[{id,name,body,date,imageUrl}]}`，最新在前 |
+| POST | `/api/guestbook` | multipart：`name` / `body` / `image`；成功 201 |
+| GET | `/p/:slug` | 文章永久页。半年内全文；超期只剩「已入档」视图 |
+| GET | `/random` | 随便一篇（不分时间），302 到 `/p/<slug>?r=1` |
+| GET | `/api/guestbook/mine` | 「我的」：这台设备留过的留言 id + 上次用的名字；`no-store` |
+| GET | `/api/echoes?article=:id` | 某篇的回声，按时间正序 |
+| GET | `/api/echoes/mine?article=:id` | 这篇我留过吗 |
+| POST | `/api/echoes` | `{articleId, name?, body}`；一篇一次，重复返回 409 |
+| DELETE | `/api/echoes/:id` | 本人撤回；管理员撤任意一条 |
+| GET/PUT/DELETE | `/api/drafts?slot=` | 写到一半的草稿，随设备 |
+| GET | `/api/guestbook/:id/image` | 图片流；无图 404；带一年强缓存 |
+| DELETE | `/api/guestbook/:id` | 管理员删任意一条；本人只能撤回自己那条（否则 403） |
+
+### 管理（均需登录 Cookie）
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | `/admin/login` | body `{password}`；成功 204/200 + Set-Cookie |
+| POST | `/admin/logout` | 清除 Cookie |
+| GET | `/admin` | 管理台页面（未登录渲染登录视图） |
+| POST | `/api/articles` | 新建文章 |
+| PUT | `/api/articles/:id` | 更新文章 |
+| DELETE | `/api/articles/:id` | 删除文章（级联删除其档案馆条目） |
+| POST | `/api/archive` | 新增档案馆条目 `{year, month, articleId}` |
+| DELETE | `/api/archive/:id` | 删除档案馆条目 |
+| DELETE | `/api/guestbook/:id` | 删除留言及其图片 |
+
+### 校验边界
+
+| 字段 | 规则 |
+|---|---|
+| `name` | ≤ 24 字符，可空，空值渲染为「匿名」 |
+| `body` | ≤ 500 字符，可空（与 image 至少一项非空） |
+| `image` | ≤ 5 MB，MIME 限 png / jpeg / gif / webp |
+| 文章 | 标题 ≤ 100，摘要 ≤ 1000，全文 ≤ 20000，日期 `YYYY-MM-DD` |
+| 档案馆 | 年份 1900–2999，月份 1–12，同一月份里文章不重复 |
+
+违规统一返回 `400`（图片过大 `413`），响应体 `{ error, field }`。
+
+## 前端等价性
+
+重构的硬门槛是「看不出来」。已做的保证：
+
+- `index.ejs` 由旧 `index.html` 的 `<body>` **逐段迁移**而非重写；
+- 两处内联字号（`style="font-size: 25px"` / `18px`）留在 HTML 里，没有搬进 CSS——搬了会因选择器优先级变化而变字号；
+- 外置样式表放在 `<head>` 同步阻塞渲染，字体 `font-display: swap` 原样保留；
+- `site.js` 仍放在 `</body>` 前同步执行，不加 `defer`，拆字脚本的时机不变；
+- 档案馆「最新年份默认展开」的 `open` 类改为服务端直出，首次绘制即带该状态，不会补一次 `max-height` 动画；
+- `.hero` 及其子元素没有新增 `filter` / `transform` / `will-change`，`background-attachment: fixed` 的对齐不受影响。
+
+规范化后的 `<body>` 结构比对（忽略注释与空白）与 `index.legacy.html` 仅差三处：资源 URL 前缀（`/img/`、`/js/`）、年份组的 `open` 类、「投稿」的 `href` 改为 `mailto:`。都是预期内的功能变化，不影响任何一帧的画面。
+
+## 部署
+
+### A. Cloudflare Workers（数据库在 D1，图片在 R2）——推荐
+
+Workers 上跑不了 `node:sqlite` / Express / multer / EJS，所以 `worker/` 是同一套功能的第二份实现：
+D1（托管版 SQLite）存文章与留言，R2 存留言图片，静态资源走 Workers Assets（`public/`）。
+
+**1. 装依赖并登录**
+
+```bash
+npm install
+npx wrangler login
+```
+
+**2. 建 D1 数据库和 R2 桶**
+
+```bash
+npm run d1:create     # 输出里有一行 database_id，复制它
+npm run r2:create
+```
+
+把 `database_id` 填回 `wrangler.jsonc` 里的 `d1_databases[0].database_id`
+（替换 `REPLACE_WITH_YOUR_D1_DATABASE_ID`）。
+
+**3. 设管理口令（密钥，不进代码）**
+
+```bash
+npx wrangler secret put ADMIN_PASSWORD     # 按提示输入你自己设定的口令（不要写进仓库）
+npx wrangler secret put SESSION_SECRET     # 任意长随机串；不设则回退用 ADMIN_PASSWORD 派生
+```
+
+**4. 构建模板并部署**
+
+```bash
+npm run templates     # EJS → worker/src/html.js，Workers 禁用 new Function，必须预编译
+npm run deploy
+```
+
+首次访问会自动建表并导入《创刊号》（`worker/src/db.js` 的 `bootstrap`），不需要手工跑 SQL。
+部署完成后 `*.workers.dev` 域名即可访问，`/admin` 用上面的口令登录。
+
+**5. 连 GitHub 自动部署**
+
+- 方式一（最省事）：Cloudflare 面板 → Workers & Pages → Create → 选 "Import from GitHub"，
+  授权 `countryofgod` 组织，选中本仓库，构建命令填 `npm run templates && npm run deploy`
+  （或 `npx wrangler deploy`），之后推 `main` 就自动上线。
+- 方式二：用仓库里已备好的 `.github/workflows/deploy.yml`，
+  在 GitHub 仓库 Settings → Secrets 里加 `CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID`、`ADMIN_PASSWORD`。
+
+**绑定自定义域名**：Workers 的 Settings → Domains & Routes → Add custom domain。
+
+> 本机 `npm run dev`（`wrangler dev`）需要 workerd 能启动。Windows 上若报
+> "access violation / overflowed its stack"，多半是 Microsoft Visual C++ Redistributable 太旧，
+> 装最新版即可；实在起不来也可以 `node worker/dev-check.mjs`——它用 node:sqlite 模拟 D1、用 Map 模拟 R2，
+> 直接在 Node 里把 Workers 代码整条链路跑一遍（含结构等价性比对）。
+
+### B. Node 版自托管
+
+- 只需要 Node ≥ 22.9（用到内置 `node:sqlite` 与 `--env-file-if-exists`），无原生编译依赖。
+- `data/` 目录是唯一有状态的东西，备份/迁移只需搬这一个目录（含 `.db` 与口令文件）。
+- 公网部署请置于 HTTPS 反向代理之后，并把 `COOKIE_SECURE=1`。
+- 进程会以 SIGINT / SIGTERM 优雅退出并关闭数据库。
+
+## 五种核心机制
+
+这五条不是功能清单，是从《创刊号》那句「哪怕抛却凝视也要表达的冲动」推出来的取舍。
+
+### 文章永久页 `/p/<slug>` —— 只保留最近半年
+
+每篇收录的文章都有一个永久地址。但**主动打开这个地址，只在发布后半年内可读全文**。
+半年之后这篇沉入档案馆，页面只剩标题、署名、日期、摘要和一句说明——正文不展开。
+
+要读它，只能等**随机**翻到。这是刻意的：过刊不摆在架子外面。
+
+### 随便一篇 `/random` —— 唯一的发现入口
+
+服务端随机取一篇，**不分时间**，任何一年的都可能被翻出来。
+
+没有算法、没有权重、没有"猜你喜欢"。算法排序隐含"这篇比那篇好"，随机不含这个判断。
+它同时保证旧文不会被埋掉——2020 年的文章和本月的有同样的机会被碰到。
+
+入口在档案馆标题下方，以及每篇永久页的顶行。
+
+### 回声 —— 一台设备对一篇只留一次
+
+回声是**对某一篇**说的；页脚的「留言」是**对整本刊物**说的。两件事分开。
+
+- 一台设备对一篇文章只能留一条，重复提交返回 `409`，先撤回才能重留
+- 按时间正序，**不显示条数、不按热度排序、不能回复盖楼**
+- 输入框的提示语是「我也这样想过……」，引导共鸣而不是评价
+- 本人可撤回自己的那条；管理员可撤任意一条
+
+### 写到一半 —— 草稿随设备
+
+留言框与回声框里的内容随打字自动存（800ms 防抖），绑在设备号上，按 `slot`
+分开存（`guestbook` / `echo:<文章id>`）。刷新、改天回来，半截话还在。
+留言或回声一旦留成，草稿自动清掉。
+
+### 收录后不改
+
+文章一旦进档案馆（`POST /api/archive`）即置 `locked_at`，此后 `PUT /api/articles/:id`
+一律返回 `409`。**要改就另发一篇**，旧文留着。
+
+理由：那一刻的想法就是那一刻的。改过的记忆不算数，档案馆该有刊物的诚实。
+
+## 设备即账号（不做登录）
+
+没有注册、没有登录、没有邮箱手机号密码。第一次访问时服务端发一串随机号，`HMAC` 签名后写进
+`gc_dev` 这个 httpOnly Cookie —— 这串号就是「这台设备在这里的身份」。
+
+它只做三件事：
+
+1. **认领**：`/api/guestbook/mine` 返回这台设备留过的留言 id，前端给它们挂上「撤回」
+2. **记住名字**：设备上一次填的昵称会被记住，下次自动填进输入框
+3. **撤回**：本人可以删自己那条；删别人的一律 403，管理员除外
+
+刻意不做的事：换设备就是新身份，不做跨设备同步、不做找回。**不为留存去换隐私。**
+
+`mine` 走独立接口而不写进 SSR，是为了让首页与设备无关 —— 页面可缓存，也不会把一个人的
+昵称串给另一个人看。
+
+## 已知取舍
+
+- Node 版把留言图片以 BLOB 存进 SQLite，部署只需搬一个文件；Workers 版改存 R2，避免把 5 MB 的二进制塞进 D1 的行里。两边单张都封顶 5 MB，管理台可见图片占用总量。
+- 想把 Node 版已有的数据搬到 D1：先把 `data/gods-country.db` 导出成 `.sql`，再
+  `npx wrangler d1 execute gods-country --remote --file=dump.sql`（D1 与 SQLite 语法兼容，
+  注意 D1 版 guestbook 表存的是 `image_key` 而不是 `image` 列）。
+- 文章正文是富 HTML，只有登录后才能写，属信任边界；留言等用户输入一律经 `textContent` 渲染。
+- 不做注册登录、留言审核与限流——单机小站，超出当前需要。

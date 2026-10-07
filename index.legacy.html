@@ -845,17 +845,17 @@
       max-height: 400px;
     }
 
-    /* 「关于」展开区：4 枚社交标识（QQ / 小红书 / 微信 / GitHub），横排一行 4 枚。
+    /* 「关于」展开区：4 枚社交标识（QQ / 小红书 / 微信 / GitHub），2×2 网格。
        去掉平台名后每格只剩一枚图标，列宽改为随内容（auto）并靠左排列——
        原先用 1fr 是为了给"图标 + 文字"留等宽的两栏；现在文字没了，
        1fr 会在每格右侧留出 ~110px 空档，把两枚图标拉得很散。
-       网格也不再需要宽度上限：4 枚 30px 图标 + 3 道间距 ≈ 204px，
+       网格也不再需要宽度上限：内容只有两枚 30px 图标 + 间距 ≈ 88px，
        伸不到「留言板」底下，原先那条 calc(50% - 96px) 的约束随之作废 */
     .footer-social {
       display: grid;
-      grid-template-columns: repeat(4, auto);
+      grid-template-columns: repeat(2, auto);
       justify-content: start;
-      gap: 28px;
+      gap: 18px 28px;
       margin-top: 6px;
       list-style: none;
     }
@@ -1340,7 +1340,7 @@
         </div>
 
         <div class="footer-about-body">
-          <!-- 「关于」展开区：4 枚社交标识，横排一行。href 先统一留 "#"，等给真实地址再逐条替换。
+          <!-- 「关于」展开区：4 枚社交标识，2×2。href 先统一留 "#"，等给真实地址再逐条替换。
                每枚图标是 Simple Icons 的官方品牌字形（单条 path、实心，24×24 viewBox），
                颜色由 .footer-social-item 的 color 经 fill: currentColor 统一控制。
                平台名不画在画面上，改由 <a> 的 aria-label 承担读屏名称。

@@ -1,0 +1,1292 @@
+@font-face {
+  font-family: 'LoveLetter';
+  src: url('/fonts/love-letter-tw/Lovelt__.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'KeBenSong';
+  src: url('/fonts/AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'ShanHaiJi';
+  src: url('/fonts/ShanHaiJiGuSongKe-JianFan/ShanHaiJiGuSongKe-JianFan-2.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --white: #ffffff;
+  --black: #000000;
+  --gray-1: #f5f5f5;
+  --gray-2: #e5e5e5;
+  --gray-3: #cccccc;
+  --gray-4: #999999;
+  --gray-5: #666666;
+  --gray-6: #333333;
+  --font-title: 'LoveLetter', 'KeBenSong', serif;
+  --font-body: 'LoveLetter', 'ShanHaiJi', serif;
+  /* 首图下沿"淡出为透明"走完所需的高度：以首屏线（100vh）为起点，
+     往下这一段内把图片自身的不透明度从 1 降到 0，再往下图片完全不显示（露出页面底色）。
+     文章区会相应地上移到"图片刚好淡没的那条线"（见 #latest 的负外边距）。
+     一个数字管两处，改这里两处同步——否则文章区会挪到图片还没淡没的位置，
+     首图残影就从文章背后透出来 */
+  --hero-fade-len: 240px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--white);
+  color: var(--black);
+  font-family: var(--font-body);
+  font-weight: normal;
+  line-height: 1.9;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ---------- Hero ---------- */
+/* 首屏即图片：至少一屏高，比例随宽度缩放，任何窗口下首页都是这张画 */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  aspect-ratio: 3 / 3.16;
+  overflow: hidden;
+}
+
+.hero-crop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* cover 撑满容器，纵向裁切；靠底对齐 → 只从顶部裁掉空白墙，画框下沿完整保留。
+   下沿"渐隐"由这里的 mask 负责：自 100vh（首屏线）起，在 --hero-fade-len 内把
+   图片自身的不透明度从 1 降到 0——**是图片淡出为透明，不是在图片上盖一层白**。
+   这两种做法叠在纯白页面上的灰阶算出来一样，但盖白是一层"不透明的东西"：
+   它不随图片走，图片像素之外它照样在，观感上就成了一块白而不是"图淡出去了"。
+   mask 写在图片自己身上，图片淡到哪，白就从哪开始，两者不可能各自为政 */
+.hero-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
+  filter: grayscale(100%) contrast(1.05);
+  -webkit-mask-image: linear-gradient(to bottom,
+      #000 0,
+      #000 100vh,
+      rgba(0, 0, 0, 0) calc(100vh + var(--hero-fade-len)));
+  mask-image: linear-gradient(to bottom,
+      #000 0,
+      #000 100vh,
+      rgba(0, 0, 0, 0) calc(100vh + var(--hero-fade-len)));
+}
+
+/* 首页那一屏保持清晰；越过首屏、需要下滑才看到的部分渐糊 */
+.hero-blur {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  -webkit-mask-image: linear-gradient(to bottom,
+      transparent 0,
+      transparent 100vh,
+      rgba(0, 0, 0, 0.5) calc(100vh + 18vh),
+      #000 calc(100vh + 40vh));
+  mask-image: linear-gradient(to bottom,
+      transparent 0,
+      transparent 100vh,
+      rgba(0, 0, 0, 0.5) calc(100vh + 18vh),
+      #000 calc(100vh + 40vh));
+}
+
+/* 这里原来有一个 .hero-fade：一层铺满首屏线以下的白色渐变遮罩，用来"把首图盖成白"。
+   用户明确否掉它——"不要把它做成白色渐变，而是做成透明渐变"，要的是首图自身淡出为透明。
+   改法已上移到 .hero-image 的 mask-image（见上）。留此记录，不要再把白色遮罩加回来 */
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.3);
+  z-index: 1;
+}
+
+/* 标题仍锁定在首屏内居中，不随图片变高而下移 */
+.hero-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 48px;
+}
+
+.hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  max-width: 1200px;
+  width: 100%;
+  text-align: left;
+}
+
+.hero-title {
+  font-family: var(--font-title);
+  font-size: clamp(48px, 7vw, 96px);
+  line-height: 1.05;
+  letter-spacing: 1px;
+  font-weight: normal;
+}
+
+.hero-title .line {
+  display: block;
+}
+
+/* 英文刊名里的「ist」：红字 + 身后背景反色。
+   反色取景窗靠 backdrop-filter 实现，它需要一块独立的滤镜区域，
+   纯内联盒上会落空，所以这里保留 display: inline-block */
+.hero-title .line-highlight {
+  display: inline-block;
+  color: #660000;
+  line-height: 1;
+  backdrop-filter: invert(1);
+  -webkit-backdrop-filter: invert(1);
+}
+
+/* 首页右下角的中文刊名（繁体），钉在首屏右下角做"署名"。
+   绝对定位，不参与 .hero-inner 的 flex 居中，免得把英文大标题挤偏。
+   字号与英文大标题同级（同一串 clamp），line-height 也跟它对齐 1.05——
+   否则继承 body 的 1.9，行框下沿会空出半个行距，同样写 bottom: 48px，文字看着比 48px 高一截。
+   右边的留白要与英文标题左边的留白相等，屏幕上才左右对称：
+   英文标题的左偏移 = max(48px, (视口 − 1200px) / 2)——48 是 .hero-inner 的左右内边距，
+   1200 是 .hero-text 的 max-width；本元素的包含块正是 .hero-inner，所以 100% 就等于视口宽，
+   同一个算式写进 right 即可（窄窗口下算出来是负数，被 max 兜回 48px） */
+.hero-cn {
+  position: absolute;
+  right: max(48px, calc((100% - 1200px) / 2));
+  bottom: 48px;
+  font-family: var(--font-title);
+  font-size: clamp(48px, 7vw, 96px);
+  line-height: 1.05;
+  letter-spacing: 6px;
+  /* 字距会在末字右侧再多留一格，右对齐时整串看着不贴边；抵消掉才对得齐 48px 边距 */
+  margin-right: -6px;
+  color: var(--black);
+}
+
+/* 刊名里的「之」：红字 + 身后一枚圆形反色取景窗。
+   负反色本来由字盒自己承担，但字盒是 1em×1.05em（宽还含字距 6px），
+   直接给它 border-radius: 50% 得到的是椭圆而不是圆——所以反色改由 ::before 承担：
+   1.05em 的正方形 + 50% 圆角 = 正圆。
+   水平圆心钉在"字面中心"而不是"盒中心"：汉字宽 1em，字面中心在字符左沿起 0.5em 处；
+   若写 left: 50%，那是盒宽的一半，会把末尾 6px 字距也算进去，圆心右偏 3px。
+   垂直取行盒中心再下移 0.03em：行盒上下留白并不对称（字体下伸部小于上伸部），
+   纯 50% 圆心会略偏上，补一点点才落在字的视觉重心上；再用 translate(-50%,-50%) 抵消自身尺寸。
+   z-index: -1 让它在文字之下；上一层 .hero-inner 自带堆叠上下文（z-index: 2），
+   所以这个负层级不会漏到首图下面，只会待在首屏之内、文字底下 */
+.hero-cn-hl {
+  position: relative;
+  display: inline-block;
+  color: #660000;
+}
+
+.hero-cn-hl::before {
+  content: '';
+  position: absolute;
+  left: 0.5em;
+  top: calc(50% + 0.03em);
+  width: 1.05em;
+  height: 1.05em;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  backdrop-filter: invert(1);
+  -webkit-backdrop-filter: invert(1);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ---------- Section common ---------- */
+.section {
+  position: relative;
+  padding: 120px 48px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* 文章区上移到"首图刚好淡没"的那条线：首屏线 + --hero-fade-len。
+   要先知道首图有多高才能算出要往回拉多少：首图高度 = 105.333% × 容器宽
+   （aspect-ratio 3/3.16 → 高 = 宽 × 3.16/3），而百分比外边距正是按包含块宽度解析的，
+   所以 "105.333%" 在此恰好等于首图高度。于是
+   margin-top = (首屏线 + 淡出长度) − 首图高度，负值即需要上拉的距离。
+   min(0px, …) 是窄窗口的兜底：那里首图高度就是 100vh（min-height 生效），
+   算式为正，被 clamp 成 0——不上移、不重叠，文章自然接在首图之后。
+   注意本式与 --hero-fade-len 是绑定的：动了那个变量，这里同步，文章才不会挪到图片还没淡没的地方。
+   末尾的 + 60px 是"创刊号往下让一让"的手动余量：图片刚好淡没的那条线太贴着首篇了，
+   让文章区从那条线再落 60px，上方多留一段纯白呼吸位。要调幅度就改这一个数字。
+   （此处注释曾误写成 120px，实际代码一直是 60px，以本行的算式为准）
+   padding-top: 40px 是既有约定"首篇文章与封面区间距 40px"，此处保留 */
+#latest {
+  position: relative;
+  z-index: 3;
+  padding-top: 40px;
+  margin-top: min(0px, calc(100vh + var(--hero-fade-len) + 60px - 105.333%));
+}
+
+/* 版块标题：只放宽字距，保持左对齐——用户明确否掉了档案馆这一处的居中。
+   放宽字距取自 fauux 站那种"松"的排法；卡片内的文章标题仍居中，那才是用户要的"标题居中" */
+.section-label {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--gray-4);
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-family: var(--font-title);
+  font-size: 42px;
+  font-weight: normal;
+  margin-bottom: 56px;
+  letter-spacing: 4px;
+}
+
+/* ---------- Latest articles ---------- */
+.article-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  /* 补回卡片被清掉的内联 transform: translateY(16.111px) 所产生的视觉位移。
+     那串内联几何值（width/height/transform）是工具快照，不能留着——height 会把卡片钉死、
+     展开长文时不长高；但它的"往下挪 16px"是用户已经看习惯的位置，所以改在这里用
+     一条普通内边距把首张卡片推回原处：布局参与排布（不再是脱离文档流的浮动位移），
+     且不去动 #latest 那两处有名义的间距（padding-top 40px 的约定、margin-top 的 60px 余量） */
+  padding-top: 16px;
+}
+
+.article-item {
+  /* 不透明纯白。曾试过 rgba(255,255,255,0.55)（想让首屏的白场透过卡片连下来），
+     用户看后决定改回纯白，故不要在"半透明"上再试：
+     一是 background-color 过渡里不带 alpha，不会与别的管线不同步；
+     二是给 logo 的 mix-blend-mode 一个确定的混合基准——半透明底会让混合结果
+     取决于卡片背后是什么，而不是卡片最终显示的颜色。 */
+  background: #ffffff;
+  /* 把混合关在卡片里面：logo 只跟卡片自己的底色混合，不会穿出去跟页面、首图混 */
+  isolation: isolate;
+  border: 1px solid var(--gray-3);
+  padding: 32px 36px;
+  cursor: pointer;
+}
+
+/* 反色渐显渐隐：底色、描边、文字同步过渡 */
+.article-item,
+.article-meta,
+.article-author,
+.article-title,
+.article-excerpt,
+.article-full {
+  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+}
+
+/* 悬停反色：与档案馆年份行同一套交互语言 */
+.article-item:hover:not(.expanded) {
+  background: var(--black);
+  border-color: var(--black);
+}
+
+.article-item:hover:not(.expanded) .article-meta {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.article-item:hover:not(.expanded) .article-author {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.article-item:hover:not(.expanded) .article-title {
+  color: var(--white);
+}
+
+.article-item:hover:not(.expanded) .article-excerpt {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.article-item:hover:not(.expanded) .article-toggle {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* 悬停时刊徽一并反相：灰度图在黑底上仍保持原样的话，深色笔画会糊掉，
+   与文字同翻才维持得住"整块反色"的观感。
+   这里不写 filter，只对调两张同源图的透明度——理由见下方 .article-logo 的注释 */
+.article-item:hover:not(.expanded) .article-logo .logo-base {
+  opacity: 0;
+}
+
+.article-item:hover:not(.expanded) .article-logo .logo-inv {
+  opacity: 1;
+}
+
+/* 展开后回到白底，保证长文可读 */
+.article-item.expanded {
+  border-color: var(--black);
+}
+
+/* 卡片顶部的刊徽：用项目里的 logo.png。
+   两张同源图叠在同一个网格单元里——原图一张、反相一张，各自带一个混合模式。
+   为什么不用 filter 过渡：filter 作用在元素自己的画布像素上，而卡片的 background-color
+   走绘制期的颜色插值，两条管线中途不保证逐帧对齐，卡面变黑时会闪出一圈矩形边。
+   为什么也不用"两张图纯 opacity 交叉淡入"（试过，更糟）：两张都不透明的图叠着淡入，
+   上层的半透明会挡掉下层，中途的合成值并不等于两端的平均——
+   算下来线稿那块会比卡面暗 32 级左右，闪得更凶。
+   所以真正的解法不是"让两段动画同步"（那要求两条管线逐帧对齐，没有规范保证），
+   而是让底色根本不参与动画——用混合模式把它变成卡面颜色的函数：
+   原图那张 multiply：白底 × 卡面 = 卡面（**任何瞬间都恒等**），黑线 × 任何色仍是黑；
+   反相那张 screen：黑底与卡面做 screen 同样恒等于卡面，白线恒为白。
+   于是不论卡片当时是白、是灰、是黑，logo 的底色都严丝合缝等于卡面——
+   不是"同步得好"，而是数学上不可能不同；线稿则从黑经灰平滑淡到白。
+   display: grid + width: max-content + 左右 auto 外边距 = 自成一块并水平居中；
+   两图 grid-area 同格叠放，格子尺寸自动取较大者，不必写死比例（原图比例未知，写死会把图拉变形） */
+.article-logo {
+  display: grid;
+  width: max-content;
+  margin: 0 auto 18px;
+}
+
+.article-logo img {
+  grid-area: 1 / 1;
+  height: 48px;
+  width: auto;
+  /* 全站是黑白画廊风，彩色刊徽会跳出来，所以先转灰度；
+     过渡时长与卡片的反色过渡（0.35s）对齐，悬停时才不会各走各的 */
+  filter: grayscale(100%);
+  transition: opacity 0.35s ease;
+}
+
+/* 原图那张：白底乘法融进卡面，黑线不变 */
+.article-logo .logo-base {
+  mix-blend-mode: multiply;
+}
+
+/* 反相那张：灰度之后再反相（白底变黑、黑线变白），静止时完全透明只占位 */
+.article-logo .logo-inv {
+  filter: grayscale(100%) invert(1);
+  mix-blend-mode: screen;
+  opacity: 0;
+}
+
+/* 卡片内的三层元信息：标题 / 作者 / 日期各占一行，居中并放宽字距
+   （取自 fauux 站"标题—作者—日期"三层松散的排法）。
+   正文段落仍然左对齐——中文长段落居中会伤阅读节奏 */
+.article-title {
+  font-family: var(--font-title);
+  font-size: 22px;
+  font-weight: normal;
+  color: var(--black);
+  margin-bottom: 14px;
+  line-height: 1.5;
+  letter-spacing: 2px;
+  text-align: center;
+}
+
+.article-author {
+  font-family: var(--font-body);
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--gray-5);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.article-meta {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--gray-4);
+  text-align: center;
+  /* 元信息从标题上方挪到了标题下方，它下面接的是正文，间距要比原先大一些 */
+  margin-bottom: 26px;
+  text-transform: uppercase;
+}
+
+.article-content {
+  overflow: hidden;
+}
+
+.article-excerpt {
+  font-size: 15px;
+  color: var(--gray-5);
+  line-height: 1.8;
+}
+
+.article-full {
+  font-size: 15px;
+  color: var(--gray-6);
+  line-height: 1.9;
+  margin-top: 20px;
+  display: none;
+}
+
+.article-item.expanded .article-excerpt {
+  display: none;
+}
+
+.article-item.expanded .article-full {
+  display: block;
+}
+
+.article-toggle {
+  display: block;
+  margin-top: 24px;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1;
+  color: var(--gray-4);
+  transition: color 0.35s ease, transform 0.3s ease;
+}
+
+.article-item.expanded .article-toggle {
+  transform: rotate(180deg);
+}
+
+/* ---------- Archive ---------- */
+.archive {
+  background: var(--gray-1);
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* 档案馆照片层：黑白常显；提高对比与压暗，让灰阶更沉。
+   照片之上压着一层 rgba(245,245,245,0.18) 的白纱（#f5f5f5 属白系，等于整块提亮 18%）。
+   本轮曾把它撤掉并改底色为黑（误把"顶部的白"当成这里来的），
+   后经用户澄清——他要改的是**首图**（.hero-image 的淡出方式），不是档案馆——故按原样还原。
+   注：上一轮的 dither 噪点层没有一并还原，因为它已被用户实测"根本没变化"，
+   撤除不改变画面，留着反而会被误当成有效手段（理由见 .archive::after 注释） */
+.archive::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(245, 245, 245, 0.18) 0%, rgba(245, 245, 245, 0.18) 100%),
+    url('/img/archive.jpg') center / cover no-repeat fixed;
+  filter: grayscale(100%) contrast(1.3) brightness(0.88);
+  pointer-events: none;
+}
+
+/* 档案馆与页脚的交接处：只保留"下沿渐出到黑"这一头。
+   原先是"一条渐变写两头"（上沿从白场渐入、下沿渐出到黑）；
+   用户裁定上沿那半要去掉——单篇文章的短页里，首屏下沿的白场一直铺到
+   文章区背后，档案馆再叠一道"白场渐入照片"，两道白场在同一屏相叠。
+   所以上沿不再透白；下沿那一头没被投诉，保持原样（含长度），便于日后归因。
+   （曾在此加过一层 opacity 0.03 的 SVG 噪点去"抖动"横向浅色条带，
+   用户反馈"根本没变化"——已撤除且不再还原。噪点打散的是 8 位色深的量化台阶，
+   对"整块被提亮"这类成因无效，别把它当成通解再加回来） */
+.archive::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom,
+      rgba(0, 0, 0, 0) calc(100% - 240px),
+      rgba(0, 0, 0, 0.6) calc(100% - 80px),
+      var(--black) 100%);
+}
+
+/* 档案馆标题区单独拎出来做"实时反色"，所以它不能待在 .archive-inner 里：
+   .archive-inner 带 z-index: 1（用来压在照片与黑色渐晕之上），
+   而"带 z-index 的定位元素"会自成堆叠上下文——等于给 mix-blend-mode 画了一个封闭的混合组，
+   组里没有照片，字就只能跟透明底混合，"反色"根本不会发生。
+   于是把标题移到 .archive 的直接子级，只留 position: relative（z-index: auto）：
+   它仍排在 .archive::before（照片）之后、能被画在照片上面，却不成堆叠上下文，
+   混合组就一路通到根，照片落在它的"背景"里，反色才成立。
+   max-width / margin / padding 三项与 .archive-inner 完全一致，标题与下方内容保持同一条左对齐线 */
+.archive-head {
+  position: relative;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+/* "档案馆"三字与身后照片实时反色：白字 + difference 混合。
+   difference 的算法是 |背景 − 前景|，前景取纯白即 |背景 − 1| = 背景反相；
+   又因为它只作用在元素真正画上去的像素上（透明处不参与），
+   所以呈现的是"笔画本身＝笔画后面那块背景的反色"，而不是一个反色矩形块。
+   照片是 background-attachment: fixed 的：字随页面滚动时，字后面换成照片的哪一块像素就取哪一块，
+   "实时"由此而来，不需要 JS。
+   注意：这条规则依赖 .archive-head 不建堆叠上下文；一旦把标题挪回 .archive-inner，反色会整体失效 */
+.archive .section-title {
+  color: var(--white);
+  mix-blend-mode: difference;
+}
+
+/* 「随便一篇」：档案馆里唯一的发现入口。样式刻意压到最轻——
+   它是个门，不是个功能入口，不该跟标题抢注意力 */
+.archive-random {
+  margin: -40px 0 40px;
+}
+
+.archive-random a {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.62);
+  text-decoration: none;
+  transition: color 0.35s ease;
+}
+
+.archive-random a:hover {
+  color: var(--white);
+}
+
+.archive-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+.archive-year {
+  position: relative;
+  font-family: var(--font-title);
+  font-size: 28px;
+  margin: 48px 0 0;
+  color: var(--gray-6);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border: 1px solid var(--gray-3);
+  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+}
+
+/* 年份行是一扇彩色窗口：用图片原色作底，与身后黑白照片同一参照系对齐。
+   常态即叠着反色层（见下方 ::before），所以文字常态取黑——反色底偏亮，白字读不出；
+   悬停撤掉反色层、还原成原色，文字随之转白。底与字是配套的一对，必须同翻 */
+.archive-year {
+  background: url('/img/archive.jpg') center / cover no-repeat fixed;
+  color: var(--black);
+  /* z-index: 0 不是为了层叠先后，而是为了建一个堆叠上下文——
+     绝对定位的 ::before 按绘制顺序会画在文字之上，会把「2026」一起反相成白字
+     （黑字反相 = 白，落在偏亮的底上就读不出来）。建了上下文再把反色层压到负层级，
+     它才只翻底色、不翻年份数字。注意：不能用 filter / transform / isolation 来建，
+     那几个属性会改变 background-attachment: fixed 的参照系，把取景窗与底图的对齐打散 */
+  z-index: 0;
+}
+
+/* 悬停到具体某一年：撤掉反色层、露出图片原色，文字随之转白（须排在上一块之后以覆盖） */
+.archive-group:hover .archive-year {
+  color: var(--white);
+}
+
+/* 反色层：常显，悬停时渐隐回原色。用 backdrop-filter 翻转而非给年份行加 filter—— */
+/* filter 会把年份行变成 fixed 定位的包含块，毁掉与身后照片的对齐 */
+.archive-year::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* 负层级：落在年份行自身底色之上、文字之下——只翻底，不翻「2026」 */
+  z-index: -1;
+  opacity: 1;
+  backdrop-filter: invert(1);
+  -webkit-backdrop-filter: invert(1);
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+/* 悬停撤掉这一层反色 */
+.archive-group:hover .archive-year::before {
+  opacity: 0;
+}
+
+.archive-arrow {
+  font-family: var(--font-body);
+  font-size: 20px;
+  transition: transform 0.3s ease;
+}
+
+/* 箭头方向跟随展开状态，而不是鼠标位置：面板悬停离开后仍保持展开 */
+.archive-group.open .archive-arrow {
+  transform: rotate(45deg);
+}
+
+.archive-group {
+  position: relative;
+}
+
+/* 收起：不再由鼠标离开触发，改由点击年份行/月份框之外收回（JS 切换 .open） */
+.archive-items {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.6s ease;
+}
+
+/* 展开：悬停意图的"等一小会"交给 JS 计时器（可被离开取消）；时长与收起看齐，收放同速 */
+.archive-group.open .archive-items {
+  max-height: 900px;
+  transition: max-height 0.6s ease;
+}
+
+/* 面板直接显示图片原色——不再挂常显反色层。
+   这样它与"悬停后还原成原色"的年份行连成同一块原色表面（原先连的是反色） */
+.archive-months {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--gray-3);
+  border-top: none;
+  background: url('/img/archive.jpg') center / cover no-repeat fixed;
+}
+
+.archive-month {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-body);
+  font-size: 12px;
+  border: 1px solid var(--gray-3);
+  color: var(--black);
+  cursor: pointer;
+  transition: color 0.35s ease;
+}
+
+/* 悬停月份：在原色底上再叠一层反相 → 翻成反色 */
+.archive-month::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  backdrop-filter: invert(1);
+  -webkit-backdrop-filter: invert(1);
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.archive-month:hover::before {
+  opacity: 1;
+}
+
+/* 悬停翻成反色后，数字与箭头随之转白，形成明确的黑↔白反馈 */
+.archive-month:hover {
+  color: var(--white);
+}
+
+/* 有文章的月份：数字正下方一个向下箭头，点击展开文章列表 */
+.archive-month.has-posts::after {
+  content: '↓';
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1;
+  color: inherit;
+}
+
+/* 收起状态下只是数据容器，内容由 JS 搬进下方面板 */
+.month-posts {
+  display: none;
+}
+
+/* 文章列表面板：常态高度收为 0，展开时用 max-height / opacity / padding 一起做入场动效 */
+.month-posts-panel {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  padding: 0 32px;
+  border: 0 solid var(--gray-3);
+  border-top: none;
+  background: var(--black);
+  transition: max-height 0.38s ease, opacity 0.3s ease,
+              padding 0.38s ease, border-width 0.38s ease;
+}
+
+.month-posts-panel.open {
+  max-height: 420px;
+  opacity: 1;
+  padding: 22px 32px;
+  border-width: 1px;
+}
+
+.month-post {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 4px 0;
+  text-decoration: none;
+  color: var(--white);
+  font-family: var(--font-title);
+  font-size: 22px;
+  line-height: 1;
+  /* 与卡片里的 .article-title 用同一套标题排版：字体 var(--font-title)、字号 22px、字距 2px。
+     差别只在对齐——卡片标题居中，这里靠左（flex 起点），这正是"和前面文章的标题一致且左对齐"。
+     日期 span 会一并继承这 2px 字距，而卡片 .article-meta 本来也是 2px，属同一排法，故不单独复位。
+     另注：这一行不参与逐字抖动拆分（见 JS 的 a:not(.month-post)）——
+     拆出的每个 span 都会变成独立 flex 项，被 space-between 摊到整行，标题会散开 */
+  letter-spacing: 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  gap: 12px;
+}
+
+.month-post:last-child {
+  border-bottom: none;
+}
+
+/* 标题文字正下方、跟随标题宽度的一条下划线。
+   这个 span 在 .month-post（flex 行）里是独立的一项，宽度只包住自己的字，
+   所以 border-bottom 画出来恰好是标题的宽度，而不是整行。
+   常态透明、悬停转白，0.35s 渐显——与全站其它悬停反馈同一时长。
+   注意：不能用 .month-post span 这种宽泛选择器，否则日期也会被当成标题一起画线 */
+.month-post-title {
+  display: inline-block;
+  border-bottom: 1px solid rgba(255, 255, 255, 0);
+  transition: border-color 0.35s ease;
+}
+
+/* 悬停不再把标题变灰（原先的 color: rgba(255,255,255,0.6) 已撤除），改为让上面的下划线浮现 */
+.month-post:hover .month-post-title {
+  border-bottom-color: var(--white);
+}
+
+/* 日期：弱灰是静态排版的一部分，不随悬停变化 */
+.month-post-date {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+}
+
+/* ---------- Footer ---------- */
+.footer {
+  position: relative;
+  background: var(--black);
+  color: var(--white);
+  /* 上沿留白 100→64：入口行原本离黑底上沿太远。收到与页脚内部其它间距同一量级
+     （行间 24 / 下沿 60），免得"上重下轻" */
+  padding: 64px 48px 60px;
+}
+
+.footer-inner {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* 页脚入口行：关于 / 留言板 / 投稿，一左一中一右。
+   baseline 对齐让三者文字压在同一条基线上（两个链接自带 20px 上下内边距，
+   若用 flex-start 会让「关于」比它们高出 20px）。
+   「留言板」恰好落在中线上：首尾两项「关于」「投稿」都是两个字，宽度相等 */
+.footer-links {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 40px;
+}
+
+/* 「关于」的整块：上排是入口行，正文挂在行的下方。
+   正文若留在这一行内，展开时会撑宽「关于」那一格、把后两项顶走，
+   所以它必须是行的兄弟节点而不是行内项目 */
+.footer-about {
+  margin-bottom: 24px;
+  cursor: pointer;
+}
+
+.footer-about-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-title);
+  font-size: 22px;
+  letter-spacing: 0.5px;
+  color: var(--white);
+  margin-bottom: 20px;
+}
+
+.footer-about-arrow {
+  font-size: 18px;
+  letter-spacing: 0;
+  transition: translate 0.3s ease, transform 0.3s ease;
+}
+
+/* 悬停时只有箭头平移，文字一动不动。用独立的 translate 而不是 gap——
+   gap 会改变盒子宽度、把并排的项顶走；translate 只挪画面不动布局，
+   而且与展开态的 rotate 是两个属性，可以各自动作、互不覆盖 */
+.footer-about-label:hover .footer-about-arrow {
+  translate: 12px 0;
+}
+
+/* 展开后 → 转为 ↓，与折叠状态区分 */
+.footer-about.expanded .footer-about-arrow {
+  transform: rotate(90deg);
+}
+
+/* 正文在行的下方、不参与那一行的宽度计算，所以展开只会向下长，
+   不会把「留言板」「投稿」往右顶 */
+.footer-about-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.6s ease;
+}
+
+.footer-about.expanded .footer-about-body {
+  max-height: 400px;
+}
+
+/* 「关于」展开区：4 枚社交标识（QQ / 小红书 / 微信 / GitHub），横排一行 4 枚。
+   去掉平台名后每格只剩一枚图标，列宽改为随内容（auto）并靠左排列——
+   原先用 1fr 是为了给"图标 + 文字"留等宽的两栏；现在文字没了，
+   1fr 会在每格右侧留出 ~110px 空档，把两枚图标拉得很散。
+   网格也不再需要宽度上限：4 枚 30px 图标 + 3 道间距 ≈ 204px，
+   伸不到「留言板」底下，原先那条 calc(50% - 96px) 的约束随之作废 */
+.footer-social {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  justify-content: start;
+  gap: 28px;
+  margin-top: 6px;
+  list-style: none;
+}
+
+/* 一格 = 一枚官方标识，整枚是一个链接。
+   颜色只在这一处写一次，图标走 fill: currentColor，悬停改 color 即整体换色。
+   平台名已从画面上去掉（改由图标的 aria-label 承担读屏名称），
+   所以原先给文字准备的字体/字号/字距/gap 一并撤除 */
+.footer-social-item {
+  display: inline-flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.62);
+  transition: color 0.35s ease;
+}
+
+/* 悬停整枚转纯白。不做位移/放大——本站的悬停反馈只保留"颜色变化"这类因果提示 */
+.footer-social-item:hover {
+  color: var(--white);
+}
+
+/* 官方标识是"实心字形"（单条 path、靠 fill 上色），不是线条：
+   fill: currentColor 让它跟着链接的 color 走，stroke 显式关掉——
+   否则会继承外层的描边设置，字形边缘糊一圈。
+   尺寸由 26px 提到 30px：小红书那枚是官方完整字形，笔画极密（path 数据约 3.5KB），
+   26px 下细节被压到亚像素、看着糊成一团；网格单格约 138px 宽，放到 30px 也放得下 */
+.footer-social-item svg {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  fill: currentColor;
+  stroke: none;
+}
+
+/* 页脚入口「投稿」的样式与手势。flex: none 让它不参与挤压，免得文字被折成两行 */
+.footer-submit {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 12px;
+  font-family: var(--font-title);
+  font-size: 22px;
+  color: var(--white);
+  text-decoration: none;
+  padding: 20px 0;
+}
+
+/* 悬停同样只挪箭头，文字固定 */
+.footer-submit-arrow {
+  font-size: 18px;
+  transition: translate 0.3s ease;
+}
+
+.footer-submit:hover .footer-submit-arrow {
+  translate: 12px 0;
+}
+
+/* ---------- Footer / 留言板 ---------- */
+/* 「留言板」的标签留在入口行里（与「关于」同行），展开区挂在行的下方——
+   与「关于」同一套结构，只是标签在行内、正文在行外。
+   两块互斥：展开其一时另一块收起，收起走同一段 max-height 过渡，自带动效 */
+.footer-guestbook-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-title);
+  font-size: 22px;
+  letter-spacing: 0.5px;
+  color: var(--white);
+  padding: 20px 0;
+  cursor: pointer;
+}
+
+/* 与「关于」同款手势：悬停只挪箭头，文字不动 */
+.footer-guestbook-arrow {
+  font-size: 18px;
+  letter-spacing: 0;
+  transition: translate 0.3s ease, transform 0.3s ease;
+}
+
+.footer-guestbook-label:hover .footer-guestbook-arrow {
+  translate: 12px 0;
+}
+
+/* 标签在入口行里、内容壳在行外，是两个元素，所以箭头看的是标签自己身上这份展开态 */
+.footer-guestbook-label.expanded .footer-guestbook-arrow {
+  transform: rotate(90deg);
+}
+
+.footer-guestbook-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.6s ease;
+}
+
+/* max-height 需要给"内容长到顶"留够余量：留言墙本身封顶 360px（见下），
+   所以表单+留言墙的总高有上界，1000px 足以覆盖，不会出现内容被裁掉 */
+.footer-guestbook.expanded .footer-guestbook-body {
+  max-height: 1000px;
+}
+
+/* 展开区宽度 ≈ 上面文章卡片的 60%：卡片在 800px 容器里两侧各退 48px 内边距 = 704px，
+   其 60% ≈ 424px。用 60% 起步、424px 封顶，窄窗口下随容器同比例收窄 */
+.footer-guestbook-inner {
+  width: 60%;
+  max-width: 424px;
+  margin: 0 auto;
+  padding-top: 8px;
+}
+
+/* 表单三个字段（名字 / 上传 / 留言）一律白底黑字——
+   黑底页脚上把输入控件反过来用白底，与站内"反色"是同一套语言 */
+.guest-field {
+  display: block;
+  width: 100%;
+  background: var(--white);
+  color: var(--black);
+  border: 1px solid var(--white);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.8;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  outline: none;
+}
+
+.guest-field::placeholder {
+  color: var(--gray-4);
+}
+
+.guest-field:focus {
+  box-shadow: inset 0 0 0 1px var(--gray-3);
+}
+
+.guest-textarea {
+  resize: vertical;
+  min-height: 112px;
+}
+
+/* 上传字段：用 label 包住真正被隐藏的 file input，点整条白框都能选图 */
+.guest-upload {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: var(--white);
+  color: var(--gray-5);
+  font-family: var(--font-body);
+  font-size: 14px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.guest-file {
+  display: none;
+}
+
+.guest-upload-preview {
+  display: none;
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  background: var(--white);
+  margin-bottom: 12px;
+}
+
+.guest-upload-preview.on {
+  display: block;
+}
+
+.guest-submit {
+  display: block;
+  width: 100%;
+  background: var(--white);
+  color: var(--black);
+  border: 1px solid var(--white);
+  font-family: var(--font-title);
+  font-size: 18px;
+  letter-spacing: 2px;
+  padding: 12px 0;
+  cursor: pointer;
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+/* 悬停反色：与文章卡片、档案馆同一套反馈 */
+.guest-submit:hover {
+  background: var(--black);
+  color: var(--white);
+}
+
+/* 留言墙：仍是黑底白字，与页脚底色一致；白底留给"可输入"的东西。
+   自身封顶、超出时内部滚动——留言条数无上限，不能让展开区跟着无限长高 */
+.guest-wall {
+  margin-top: 28px;
+  text-align: left;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.guest-wall-empty {
+  font-family: var(--font-body);
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--gray-5);
+  text-align: center;
+}
+
+.guest-note {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.guest-note-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--gray-4);
+  margin-bottom: 8px;
+}
+
+.guest-note-name {
+  font-family: var(--font-title);
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  color: var(--white);
+}
+
+.guest-note-text {
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--gray-2);
+  overflow-wrap: anywhere;
+}
+
+.guest-note-img {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+  margin-top: 12px;
+  background: var(--white);
+}
+
+/* 「撤回」：只在这台设备自己的留言下面出现，由脚本在认领后插入，
+   常态不存在于文档里，是追加的规则，不参与任何既有排版 */
+.guest-note-mine {
+  display: block;
+  margin-top: 10px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--gray-5);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.35s ease;
+}
+
+.guest-note-mine:hover {
+  color: var(--white);
+}
+
+/* 提交失败时的提示行。这个节点只在出错时才由脚本创建，常态不存在于文档里，
+   所以它是追加的规则，不参与任何既有排版的层叠 */
+.guest-form-hint {
+  font-family: var(--font-body);
+  font-size: 12px;
+  letter-spacing: 1px;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.78);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+/* 刊名与版权行由原来的左右分居改为纵向居中叠放：刊名在上、版权行在下。
+   两者都居中，所以去掉 space-between，改 column + align-items: center */
+.footer-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--gray-4);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.footer-name {
+  font-family: var(--font-title);
+  font-size: 16px;
+  color: var(--white);
+  letter-spacing: 0.5px;
+  /* 父级 .footer-bottom 有 text-transform: uppercase，这里显式关掉，保住首字母小写 */
+  text-transform: none;
+}
+
+/* 「ist」沿用首屏标题那一处深红；黑底上太沉，给它开一扇反色取景窗：
+   与反色小圆、档案馆同一套语言——身后黑底翻成白，深红字才读得出来 */
+.footer-name-ist {
+  display: inline-block;
+  color: #660000;
+  backdrop-filter: invert(1);
+  -webkit-backdrop-filter: invert(1);
+}
+
+/* 最底部的版权行（原「© 2026 · 上帝之国」）换成 bottom.png 的反色版：
+   原图是白底黑线，反色后底色恰为纯黑，与 .footer 的黑底严丝合缝，不需要再做混合模式。
+   尺寸直接照抄文章卡上的刊徽（.article-logo img 是 height 48px / width auto）——
+   本项目图片一律只锁高度一个方向，另一个交给原比例，否则会把线条拉变形。
+   反色已在图片文件里做掉，所以这里不挂 filter：挂 filter 会另开一层画布，
+   与站内「反色取景窗」（.cursor-invert 的 backdrop-filter）叠加时不易推理。 */
+.footer-bottom-img {
+  display: block;
+  height: 48px;
+  width: auto;
+  max-width: 100%;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .hero-inner {
+    padding: 0 24px;
+  }
+  .hero-text {
+    gap: 28px;
+  }
+  .section {
+    padding: 80px 24px;
+  }
+  .section-title {
+    font-size: 32px;
+    margin-bottom: 40px;
+  }
+  .article-title {
+    font-size: 18px;
+  }
+  .footer {
+    padding: 60px 24px 40px;
+  }
+  /* 窄屏放不下并排，退回上下排列（两项都靠左） */
+  .footer-links {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  /* 窄屏再取 60% 就太窄了，留言区铺满容器 */
+  .footer-guestbook-inner {
+    width: 100%;
+    max-width: none;
+  }
+}
+/* ---------- 跟随鼠标的反色圆 ---------- */
+/* 用 backdrop-filter: invert(1) 实时翻转身后的页面内容；移动只改 transform，不触发布局。
+   尺寸与「之」字后面那枚取景窗同源——同一条算式（1.05 × 刊名字号的 clamp(48px, 7vw, 96px)），
+   所以任何窗口宽度下二者都严格等大，而不是各写一个固定像素值 */
+.cursor-invert {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: clamp(50.4px, 7.35vw, 100.8px);
+  height: clamp(50.4px, 7.35vw, 100.8px);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  backdrop-filter: invert(1);
+  -webkit-backdrop-filter: invert(1);
+}
+
+.cursor-invert.on {
+  opacity: 1;
+}
+
+/* 反色圆出现时隐藏系统光标——圆本身就是指针。
+   必须用 * 覆盖到子元素：链接的 pointer、输入框的 text 来自浏览器默认样式，
+   并不继承 body 的 cursor，只写 body 会漏掉它们 */
+body.cursor-hidden,
+body.cursor-hidden * {
+  cursor: none !important;
+}
+
+/* 链接悬停的字符抖动（借鉴 fauux 站）：让每个字各自错相位轻抖，像受潮的电信号。
+   每个字符是 JS 拆出来的独立 span，靠 nth-child 给不同延迟——
+   若相位一致，看起来就只剩整块平移，失去"字在颤"的感觉。
+   display: inline-block 之后 letter-spacing 不再作用于字符之间，
+   所以 JS 把原字距改写成每个 span 的 margin-right，静态排版与原样完全一致 */
+.jitter-char {
+  display: inline-block;
+}
+
+:is(a, .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit):hover .jitter-char {
+  animation: char-jitter 0.6s linear infinite;
+}
+
+:is(a, .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit):hover .jitter-char:nth-child(2n) {
+  animation-delay: 0.1s;
+}
+
+:is(a, .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit):hover .jitter-char:nth-child(3n) {
+  animation-delay: 0.2s;
+}
+
+/* 位移在一像素量级：用户先说要"轻微"，看过之后要"再明显一点"，
+   于是从 0.5px 提到 1px；再往上（2px+）就不再是"轻微的颤"而是故障特效了。
+   周期由 0.3s 放缓到 0.6s（用户反馈"太快"），错相位延迟同步按比例翻倍，
+   两档间隔与周期的比值不变，抖动节奏才与原设计一致 */
+@keyframes char-jitter {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-1px, 1px); }
+  50% { transform: translate(1px, -1px); }
+  75% { transform: translate(-0.8px, -1px); }
+}

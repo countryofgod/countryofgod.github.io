@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理 · 上帝之国</title>
+  <!-- 先挂主站样式：配色变量、字体族、基础重置全部沿用，管理页不再另起一套视觉语言 -->
+  <link rel="stylesheet" href="/css/site.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="admin-body">
+
+<% if (!authed) { %>
+  <main class="admin-login">
+    <h1 class="admin-login-title">上帝之国</h1>
+    <p class="admin-login-sub">管理台</p>
+    <form class="admin-form" method="post" action="<%= adminPath %>/login">
+      <input class="admin-input" type="password" name="password" placeholder="管理口令" autocomplete="current-password" autofocus>
+      <button class="admin-btn" type="submit">进入</button>
+<% if (loginError) { %>      <p class="admin-hint">口令不正确</p>
+<% } %>    </form>
+  </main>
+<% } else { %>
+  <header class="admin-head">
+    <div class="admin-head-inner">
+      <h1 class="admin-title">上帝之国 · 管理台</h1>
+      <form method="post" action="<%= adminPath %>/logout">
+        <button class="admin-btn admin-btn-ghost" type="submit">退出</button>
+      </form>
+    </div>
+  </header>
+
+  <main class="admin">
+
+    <!-- ---------- 文章 ---------- -->
+    <section class="admin-section">
+      <h2 class="admin-section-title">文章</h2>
+
+      <form class="admin-form admin-article-form" id="article-form">
+        <input type="hidden" name="id" id="article-id">
+        <div class="admin-grid">
+          <label class="admin-field">
+            <span>标题</span>
+            <input class="admin-input" name="title" required maxlength="100" placeholder="标题">
+          </label>
+          <label class="admin-field">
+            <span>作者</span>
+            <input class="admin-input" name="author" maxlength="40" placeholder="编辑部">
+          </label>
+          <label class="admin-field">
+            <span>发布日期</span>
+            <input class="admin-input" type="date" name="publishedAt" required>
+          </label>
+          <label class="admin-field">
+            <span>栏目</span>
+            <input class="admin-input" name="category" maxlength="30" placeholder="发刊词">
+          </label>
+          <label class="admin-field">
+            <span>标识 slug</span>
+            <input class="admin-input" name="slug" maxlength="120" placeholder="留空自动生成">
+          </label>
+          <label class="admin-field">
+            <span>排序</span>
+            <input class="admin-input" type="number" name="sortOrder" value="0" step="1">
+          </label>
+        </div>
+        <label class="admin-field">
+          <span>摘要</span>
+          <textarea class="admin-input admin-textarea" name="excerpt" rows="3" required maxlength="1000"></textarea>
+        </label>
+        <label class="admin-field">
+          <span>全文（可用 &lt;br&gt; 换行）</span>
+          <textarea class="admin-input admin-textarea admin-textarea-tall" name="content" rows="12" required maxlength="20000"></textarea>
+        </label>
+        <div class="admin-actions">
+          <button class="admin-btn" type="submit" id="article-submit">新建文章</button>
+          <button class="admin-btn admin-btn-ghost" type="button" id="article-cancel" hidden>取消编辑</button>
+        </div>
+        <p class="admin-hint" id="article-hint" hidden></p>
+      </form>
+
+      <ul class="admin-list" id="article-list">
+<% articles.forEach((a) => { %>        <li class="admin-row">
+          <div class="admin-row-main">
+            <p class="admin-row-title"><%= a.title %></p>
+            <p class="admin-row-meta"><%= a.meta %><% if (a.category) { %> · <%= a.author %><% } %></p>
+          </div>
+          <div class="admin-row-actions">
+            <button class="admin-btn admin-btn-ghost" type="button"
+                    data-edit-article="<%= a.id %>">编辑</button>
+            <button class="admin-btn admin-btn-ghost" type="button"
+                    data-del-article="<%= a.id %>" data-name="<%= a.title %>">删除</button>
+          </div>
+        </li>
+<% }); %>      </ul>
+    </section>
+
+    <!-- ---------- 档案馆 ---------- -->
+    <section class="admin-section">
+      <h2 class="admin-section-title">档案馆</h2>
+
+      <form class="admin-form admin-archive-form" id="archive-form">
+        <div class="admin-grid">
+          <label class="admin-field">
+            <span>年份</span>
+            <input class="admin-input" type="number" name="year" min="1900" max="2999" value="<%= new Date().getFullYear() %>" required>
+          </label>
+          <label class="admin-field">
+            <span>月份</span>
+            <input class="admin-input" type="number" name="month" min="1" max="12" value="<%= new Date().getMonth() + 1 %>" required>
+          </label>
+          <label class="admin-field admin-field-wide">
+            <span>文章</span>
+            <select class="admin-input" name="articleId" required>
+<% articles.forEach((a) => { %>              <option value="<%= a.id %>"><%= a.title %>（<%= a.publishedAt %>）</option>
+<% }); %>            </select>
+          </label>
+        </div>
+        <div class="admin-actions">
+          <button class="admin-btn" type="submit">加入档案馆</button>
+        </div>
+        <p class="admin-hint" id="archive-hint" hidden></p>
+      </form>
+
+      <ul class="admin-list" id="archive-list">
+<% archiveEntries.forEach((e) => { %>        <li class="admin-row">
+          <div class="admin-row-main">
+            <p class="admin-row-title"><%= e.year %>.<%= String(e.month).padStart(2, '0') %></p>
+            <p class="admin-row-meta"><%= e.title %></p>
+          </div>
+          <div class="admin-row-actions">
+            <button class="admin-btn admin-btn-ghost" type="button"
+                    data-del-archive="<%= e.id %>">删除</button>
+          </div>
+        </li>
+<% }); %>      </ul>
+    </section>
+
+    <!-- ---------- 留言 ---------- -->
+    <section class="admin-section">
+      <h2 class="admin-section-title">留言<% if (stats) { %>（<%= stats.count %> 条 · 图片 <%= (stats.imageBytes / 1024 / 1024).toFixed(2) %> MB）<% } %></h2>
+
+      <ul class="admin-list" id="guest-list">
+<% notes.forEach((n) => { %>        <li class="admin-row">
+          <div class="admin-row-main">
+            <p class="admin-row-title"><%= n.name %> <span class="admin-row-meta"><%= n.date %></span></p>
+<% if (n.body) { %>            <p class="admin-row-body"><%= n.body %></p>
+<% } %><% if (n.imageUrl) { %>            <img class="admin-row-thumb" src="<%= n.imageUrl %>" alt="<%= n.name %> 上传的图片">
+<% } %>          </div>
+          <div class="admin-row-actions">
+            <button class="admin-btn admin-btn-ghost" type="button"
+                    data-del-guest="<%= n.id %>">删除</button>
+          </div>
+        </li>
+<% }); %><% if (!notes.length) { %>        <li class="admin-empty">还没有留言</li>
+<% } %>      </ul>
+    </section>
+
+  </main>
+<% } %>
+
+  <script src="/js/admin.js"></script>
+</body></html>

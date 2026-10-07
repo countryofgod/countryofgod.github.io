@@ -1,0 +1,9 @@
+      <div class="archive-group<%= open ? ' open' : '' %>">
+        <h3 class="archive-year"><%= group.year %> <span class="archive-arrow">+</span></h3>
+        <div class="archive-items">
+          <div class="archive-months">
+<% group.months.forEach((m) => { %>            <div class="archive-month<%= m.hasPosts ? ' has-posts' : '' %>"><span class="month-num"><%= String(m.month).padStart(2, '0') %></span><div class="month-posts"><% m.posts.forEach((post) => { %><%- include('month-post', { post }) %><% }); %></div></div>
+<% }); %>          </div>
+          <div class="month-posts-panel" data-month=""><% group.panelPosts.forEach((post) => { %><%- include('month-post', { post }) %><% }); %></div>
+        </div>
+      </div>

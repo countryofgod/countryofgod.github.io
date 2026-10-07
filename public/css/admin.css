@@ -1,0 +1,268 @@
+/* 管理页：不引入新的视觉语言——配色、字体族全部取自 site.css 的 :root，
+   卡片圆角、悬停反色与主站同一套因果提示 */
+
+.admin-body {
+  background: var(--white);
+  color: var(--black);
+  line-height: 1.8;
+}
+
+/* ---------- 登录 ---------- */
+.admin-login {
+  max-width: 360px;
+  margin: 0 auto;
+  padding: 22vh 24px 80px;
+  text-align: center;
+}
+
+.admin-login-title {
+  font-family: var(--font-title);
+  font-size: 32px;
+  font-weight: normal;
+  letter-spacing: 4px;
+}
+
+.admin-login-sub {
+  font-size: 11px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--gray-4);
+  margin-bottom: 40px;
+}
+
+/* ---------- 骨架 ---------- */
+.admin-head {
+  border-bottom: 1px solid var(--gray-2);
+}
+
+.admin-head-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.admin-title {
+  font-family: var(--font-title);
+  font-size: 20px;
+  font-weight: normal;
+  letter-spacing: 2px;
+}
+
+.admin {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 24px 120px;
+}
+
+.admin-section {
+  padding: 32px 0;
+  border-bottom: 1px solid var(--gray-2);
+}
+
+.admin-section:last-child {
+  border-bottom: none;
+}
+
+.admin-section-title {
+  font-family: var(--font-title);
+  font-size: 16px;
+  font-weight: normal;
+  letter-spacing: 4px;
+  margin-bottom: 24px;
+}
+
+/* ---------- 表单 ---------- */
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--gray-3);
+  margin-bottom: 24px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--gray-5);
+}
+
+.admin-field-wide {
+  grid-column: 1 / -1;
+}
+
+.admin-input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--black);
+  background: var(--white);
+  border: 1px solid var(--gray-3);
+  padding: 10px 12px;
+  outline: none;
+  letter-spacing: 0;
+}
+
+.admin-input:focus {
+  box-shadow: inset 0 0 0 1px var(--black);
+}
+
+.admin-textarea {
+  resize: vertical;
+  line-height: 1.8;
+}
+
+.admin-textarea-tall {
+  min-height: 260px;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.admin-btn {
+  font-family: var(--font-title);
+  font-size: 14px;
+  letter-spacing: 2px;
+  padding: 10px 22px;
+  background: var(--black);
+  color: var(--white);
+  border: 1px solid var(--black);
+  cursor: pointer;
+  transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease;
+}
+
+/* 悬停反色：与文章卡片、档案馆同一套反馈 */
+.admin-btn:hover {
+  background: var(--white);
+  color: var(--black);
+}
+
+.admin-btn:disabled {
+  cursor: default;
+  opacity: 0.45;
+  background: var(--black);
+  color: var(--white);
+}
+
+.admin-btn-ghost {
+  background: var(--white);
+  color: var(--black);
+  border-color: var(--gray-3);
+}
+
+.admin-btn-ghost:hover {
+  background: var(--black);
+  color: var(--white);
+  border-color: var(--black);
+}
+
+.admin-hint {
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: #660000;
+}
+
+/* ---------- 列表 ---------- */
+.admin-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--gray-2);
+  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+}
+
+.admin-row:hover {
+  background: var(--black);
+  border-color: var(--black);
+  color: var(--white);
+}
+
+.admin-row:hover .admin-row-meta,
+.admin-row:hover .admin-row-body {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.admin-row:hover .admin-btn-ghost {
+  background: transparent;
+  color: var(--white);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.admin-row-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.admin-row-title {
+  font-family: var(--font-title);
+  font-size: 15px;
+  letter-spacing: 1px;
+  overflow-wrap: anywhere;
+}
+
+.admin-row-meta {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--gray-4);
+  margin-top: 2px;
+}
+
+.admin-row-body {
+  font-size: 13px;
+  color: var(--gray-5);
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+
+.admin-row-thumb {
+  display: block;
+  width: 160px;
+  max-height: 160px;
+  object-fit: contain;
+  background: var(--white);
+  margin-top: 10px;
+}
+
+.admin-row-actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+
+.admin-empty {
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--gray-4);
+  padding: 8px 0;
+}
+
+@media (max-width: 640px) {
+  .admin-row {
+    flex-direction: column;
+  }
+}

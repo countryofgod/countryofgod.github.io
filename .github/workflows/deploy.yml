@@ -1,0 +1,35 @@
+# 可选：推到 GitHub 就自动部署到 Cloudflare Workers。
+# 若已在 Cloudflare 面板里连了仓库（Workers Builds），就不需要这个文件。
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm ci
+
+      # EJS 在 Workers 里跑不了（禁用 new Function），先把模板编译成普通 JS 再打包
+      - run: npm run templates
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          secrets: |
+            ADMIN_PASSWORD
+        env:
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}

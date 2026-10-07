@@ -1,0 +1,39 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "gods-country",
+  "main": "worker/src/index.js",
+  "compatibility_date": "2026-01-01",
+
+  // 静态资源：与 Node 版共用根目录的 public/
+  "assets": {
+    "directory": "./public"
+  },
+
+  "observability": {
+    "enabled": true
+  },
+
+  // D1：托管版 SQLite。database_id 用 `npx wrangler d1 create gods-country` 拿到后填回这里
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "gods-country",
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+    }
+  ],
+
+  // R2：留言图片。bucket 用 `npx wrangler r2 bucket create gods-country-images` 建
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "gods-country-images"
+    }
+  ],
+
+  "vars": {
+    "SUBMIT_MAIL": "afterrainnn@outlook.com",
+    "SESSION_TTL_DAYS": "7"
+    // ADMIN_PASSWORD / SESSION_SECRET 走密钥，不写在这里：
+    //   npx wrangler secret put ADMIN_PASSWORD
+  }
+}

@@ -707,6 +707,31 @@
 
 5. **同一段结构被 JS 用 `innerHTML` 复制时，它会同时存在于"隐藏的源"和"运行期生成的面板"两处，改结构必须两处都改。** 档案馆的 `.month-posts`（隐藏源）与 `.month-posts-panel`（面板）里都躺着一段旧写法的 `.month-post`——**面板里那份是页面被保存下来时留下的运行期快照**。只改源、不改面板，用户在面板上看到的就还是旧结构。**教训：改任何"会被 JS 搬到别处"的片段前，先搜一遍该 class 在文件里出现的全部位置。本轮收尾裁定：①`#latest` 的余量以代码 `+60px` 为准（用户明示"保持 +60px，改注释"，注释已改回）；②卡片内联几何值整段清除，其带来的 16px 下移改由 `.article-list` 的 `padding-top: 16px` 补回（脱离文档流的 transform 位移 → 参与排布的普通内边距，位置不变但不再干扰布局）；③"展开时字号变小"的真因是摘要被手动调成内联 18px 而 `.article-full` 仍是 CSS 的 15px，已给全文段落补上同一个内联 18px；④git 存档仍需用户手动执行，Shell 依旧死。**
 
+## 2026-10-05（第五十九段）
+
+1. **手写的 SVG 路径必须过一遍机器校验，不能"看着对"就交付。** 我给 QQ 图标手写的企鹅轮廓，`c` 命令那段一共 35 个数字——而 `c` 的参数硬性要求是 6 的倍数，浏览器遇到残缺段会**静默截断**（不报错、不提示），图标直接变成半个形状。**做法：在 Exec 沙箱里 `Read` 全文件，用自写的校验器把每条 `d` 按命令切分、逐段核对其数字个数是否为该命令元数（M/L=2、C=6、H/V=1、A=7、Z=0）的整数倍；本轮 6 条路径全过。教训：凡"我拼出来的结构化数据"（路径、矩阵、颜色、正则），交付前都要找一台能跑的机器校一遍，视觉类改动尤其如此。**
+
+2. **本机 Shell 虽然死在 PowerShell 解析期，但 Exec 沙箱能读文件——"无法验证"这个旧结论要更新。** 此前所有视觉/结构结论都只能靠推测（并据此向用户声明"只能靠你目视确认"）；本轮首次绕道 `integrated_code_mode` 的 `Exec`（独立 V8，不加载 PowerShell profile，故不受工作区路径里 U+2018 的影响），在沙箱内调用 `Read` 完成**真正的机器校验**（标签配平 + 路径数对）。**注意 `Read` 有 64KB 上限，70KB 的文件必须分块读；分块时不要用"非空行数"判断是否读到末尾（空行会造成假边界，本轮就因此只读到 1100 行而误判 `svgOpen: 0`）。教训：死路要定期重估，换一条工具链可能就通了。**
+
+3. **站内那段"逐字抖动"脚本会递归拆解元素，遇到 SVG 会把 `<path>/<circle>` 逐个包进 `<span>`，图标直接散掉。** 开关就写在脚本里那条 `!child.hasAttribute('aria-hidden')`——**给 SVG 加 `aria-hidden="true"` 同时解决两件事**：图标不读屏（平台名已由旁边文字给出）、脚本不再往下拆。教训：往"会遍历/改写 DOM 的脚本"的势力范围内添加新元素前，先读那段脚本的跳过条件，而不是事后看效果。**
+
+4. **flex 行里放"图标 + 文字"，文字必须再包一层 `<span>`。** `.footer-social-item` 是 inline-flex，若把平台名写成锚点的直接文本节点，拆字后**每个字都会成为独立 flex 项**，被 gap/布局摊开（与 `.month-post` 那个坑同源）。包一层 `<span>` 后锚点只有两个 flex 子项（svg + 文字块），拆字发生在 `<span>` 内部，布局不变。教训：同一个坑会在不同组件里复现——上次是 `space-between` 把标题摊开，这次是 `gap` 会摊开，都要靠"多包一层"隔断。**
+
+5. **删掉一个元素时，要连它在别处的引用一起清。"** `.footer-about-text` 被社交标识取代后，媒体查询里那条 `.footer-about-text { max-width: none }`（窄屏放开宽度上限）若不改名就成了**永远不匹配的死规则**——它原本要解决的问题（窄屏把展开区压成细柱）会重新出现。已改为 `.footer-social`。**另：展开区里的 `<a class="footer-social-item">` 点击会冒泡到 `.footer-about` 的点击处理器，被当成"再点一次关于"而收起面板，已加入放行白名单（与 `.footer-submit`、`.footer-guestbook-label` 并列）。本段交付状态：4 枚线稿标识（QQ/小红书/微信/GitHub）2×2 网格、href 统一留 `#` 待补；标注给用户的可确认项是**图标观感**（我能验几何合法性，验不了"像不像"）；git 存档仍待用户手动执行。**
+
+## 2026-10-06（第六十段）
+
+1. **用户说"我要官方的那种"，是方向性否决，不是技法优化——立刻换权威源，不要继续打磨自绘。** 我上一轮手写的 4 枚线稿标识几何上完全合法（见第五十九条第 1 点，路径校验全过），但用户一眼就否掉："你这画的也太丑了，我要官方的那种"。**教训：品牌标识（QQ/微信/小红书/GitHub 这类）属于"有唯一权威字形"的物件，自绘必然在比例、笔画、气质上失真——第一步就该去取官方字形（本轮用 Simple Icons：`cdn.jsdelivr.net/npm/simple-icons@latest/icons/<slug>.svg`，24×24 viewBox、单条 path、靠 `fill` 上色），而不是"先画一版看看"。判断依据：用户要的是"官方"，自绘在任何完成度下都不满足这个约束。**
+
+2. **取官方 SVG 不能用 `WebFetch`（它会把 SVG 转成 markdown，直接失败），要用浏览器 fetch 原始文本。** 4 个 jsdelivr SVG URL 全部报 "Failed to fetch URL content and convert to markdown"。**破法：`browser_navigate({url, newTab:true})` 打开该 URL，再 `browser_evaluate({script: 'return await (await fetch(location.href)).text();'})` 拿原始文本。注意两个参数坑：①`browser_evaluate` 的字段名是 `script`（不是 `function`），且脚本里必须显式 `return`；②`browser_navigate` 要显式传 `newTab: true`，否则报 "Tab xxx does not exist"。** 另外 6KB 的 path 数据不要往对话上下文里搬——在沙箱内直接组装好再 `Edit` 落盘。
+
+3. **预览本地单文件站：`about:` 与 `file://` 都被浏览器工具显式拒绝（"Only http:// and https:// URLs are supported"）。** **破法：先 `browser_navigate` 到任意可用的 https 页面（本轮用 jsdelivr 的目录页，它是 HTML 文档），再用 `browser_evaluate` 执行 `document.open(); document.write(整页HTML); document.close();` 把本地文件内容注入进去。** 但有两个陷阱：①注入的 tab 与截图的 tab 可能不是同一个——`browser_take_screenshot`/`browser_evaluate` 默认都作用于"last interacted tab"，跨调用会漂移，本轮就出现过"注入成功、截图却拍到 CDN 目录页"；②所以要**把注入、滚动、截图放在同一次 Exec 调用里连续做完**。另：`browser_take_screenshot` 的 `filename` 会强行补 `.jpg`（写 `_x.png` 得到 `_x.png.jpg`）；元素级 `ref` 截图不可靠，想要某块内容居中，改注入"只含该块的迷你页"。**
+
+4. **"删掉图标旁边的文字"不是删几个 `<span>` 就完事——列宽是照着文字留的，文字一走就露出空档。** `.footer-social` 原本 `repeat(2, minmax(0,1fr))`，每格 1fr 是为了给"图标 + 文字"两栏等宽；文字删除后每格右侧留出 ~110px 空档，两枚图标被拉得极散。**已改为 `repeat(2, auto)` + `justify-content: start`（保持用户既定的 2×2 排布，只把死空档收掉）。** 随之作废的还有：`max-width: calc(50% - 96px)`（内容只剩 ~88px 宽，伸不到「留言板」底下）以及媒体查询里 `.footer-social { max-width: none }` 这条覆盖——这正是第五十九条第 5 点"删元素要连带清引用"的再次复现。**教训：删可见内容前，先问"这个布局尺寸是为谁留的"。**
+
+5. **文字标签删掉后，必须给链接补 `aria-label`，否则该链接在读屏里彻底无名。** 图标 SVG 上带着 `aria-hidden="true"`（它同时承担"防逐字抖动脚本拆解"的职责，见第五十九条第 3 点），一旦可见文字被移除，`<a>` 就失去全部可访问名称。已在 4 个锚点上补 `aria-label="QQ/小红书/微信/GitHub"`。**另：本轮"删除投稿外面的框"一项未能定案——我对整页做了计算样式普查，`.footer-submit` 的 `border: 0px none`、`outline: none`、`box-shadow: none`、`background: rgba(0,0,0,0)` 全为空，渲染截图里也看不出框，怀疑是点击后浏览器默认 focus ring（该链接无 `outline: none`），已列为待用户确认项。**本段交付状态：4 枚官方字形、无文字、2×2 紧凑网格、href 统一留 `#` 待补、临时截图文件已清理；git 存档仍待用户手动执行。**
+
+
 
 
 

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= article.title %> · 上帝之国</title>
+  <meta name="description" content="<%= article.excerpt %>">
+  <!-- 先挂主站样式：配色变量与字体族沿用同一套，文章页不另起视觉语言 -->
+  <link rel="stylesheet" href="/css/site.css">
+  <link rel="stylesheet" href="/css/article.css">
+</head>
+<body class="page-article">
+<% const arch = new Date(article.publishedAt + 'T00:00:00Z'); arch.setUTCMonth(arch.getUTCMonth() + 6); %>
+
+  <main class="sheet">
+    <p class="sheet-top">
+      <a class="sheet-home" href="/">上帝之国</a>
+      <a class="sheet-random" href="/random">随便一篇 →</a>
+    </p>
+
+    <h1 class="sheet-title"><%= article.title %></h1>
+    <p class="sheet-author">— <%= article.author %></p>
+    <p class="sheet-meta"><%= article.meta %></p>
+
+<% if (readable) { %>
+    <div class="sheet-body"><%- article.content %></div>
+<% } else { %>
+    <p class="sheet-excerpt"><%= article.excerpt %></p>
+    <div class="sheet-archived">
+      <p class="sheet-archived-line">这篇已于 <%= arch.toISOString().slice(0, 7).replace('-', '.') %> 沉入档案馆。</p>
+      <p class="sheet-archived-note">过刊不摆在架子外面。想读它，只能等随机翻到。</p>
+      <a class="sheet-archived-btn" href="/random">随便一篇</a>
+    </div>
+<% } %>
+
+    <section class="echo" data-article="<%= article.id %>">
+      <h2 class="echo-title">回声</h2>
+      <p class="echo-note">一台设备对一篇只留一次。留过可以先撤回再重留。</p>
+
+      <ul class="echo-list">
+<% echoes.forEach((e) => { %>        <li class="echo-item" data-id="<%= e.id %>">
+          <p class="echo-head"><span class="echo-name"><%= e.name %></span><span class="echo-date"><%= e.date %></span></p>
+          <p class="echo-body"><%= e.body %></p>
+        </li>
+<% }); %><% if (!echoes.length) { %>        <li class="echo-empty">还没有回声</li>
+<% } %>      </ul>
+
+      <!-- 表单默认可见：脚本失效时也能留回声（脚本只负责"留过了就收起来"） -->
+      <form class="echo-form">
+        <input class="echo-input" type="text" placeholder="名字" maxlength="24" autocomplete="off">
+        <textarea class="echo-textarea" placeholder="我也这样想过……" maxlength="500"></textarea>
+        <button class="echo-submit" type="submit">留下回声</button>
+        <p class="echo-hint" hidden></p>
+      </form>
+    </section>
+  </main>
+
+  <script src="/js/article.js"></script>
+</body></html>
