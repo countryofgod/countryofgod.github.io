@@ -8,6 +8,7 @@
     "start": "node --env-file-if-exists=.env server/app.js",
     "seed": "node --env-file-if-exists=.env server/seed.js",
     "dump": "node server/dump.mjs",
+    "daily": "node tools/publish-daily.mjs",
 
     "templates": "node worker/build-templates.mjs",
     "gray": "python tools/grayscale.py",
