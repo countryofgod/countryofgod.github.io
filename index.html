@@ -306,6 +306,79 @@
       letter-spacing: 4px;
     }
 
+    /* ---------- Daily：每日推荐（左右栏，标题规范参照档案馆）---------- */
+    /* 左标签列 + 右内容列的栅格；列宽 160px 给左栏留足小写衬线词的空间 */
+    .daily-grid {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+
+    /* 左栏：巴黎评论式的衬线小写词，竖排、右侧一道浅分隔线 */
+    .daily-tags {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      padding-right: 24px;
+      border-right: 1px solid var(--gray-2);
+    }
+
+    .daily-tag {
+      font-family: Georgia, 'Times New Roman', var(--font-title), serif;
+      font-size: 22px;
+      letter-spacing: 0.5px;
+      color: var(--gray-4);
+      text-decoration: none;
+      transition: color 0.35s ease;
+    }
+
+    .daily-tag:hover {
+      color: var(--black);
+    }
+
+    .daily-tag.is-active {
+      color: var(--black);
+    }
+
+    /* 右栏：每日推荐内容，后续设计——先放日期占位与一行说明 */
+    .daily-content {
+      min-height: 120px;
+    }
+
+    .daily-date {
+      font-family: var(--font-body);
+      font-size: 12px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--gray-4);
+      margin-bottom: 20px;
+    }
+
+    .daily-placeholder {
+      font-family: var(--font-body);
+      font-size: 17px;
+      line-height: 1.9;
+      color: var(--gray-5);
+    }
+
+    /* 窄屏放不下并排，左栏标签横排到内容上方，右栏接在下面 */
+    @media (max-width: 768px) {
+      .daily-grid {
+        grid-template-columns: 1fr;
+        gap: 28px;
+      }
+      .daily-tags {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 14px 24px;
+        padding-right: 0;
+        padding-bottom: 16px;
+        border-right: none;
+        border-bottom: 1px solid var(--gray-2);
+      }
+    }
+
     /* ---------- Latest articles ---------- */
     .article-list {
       display: flex;
@@ -1543,6 +1616,24 @@
           </div>
           <div class="month-posts-panel" data-month=""><a href="#" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a></div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Daily：每日推荐。左右栏结构（左标签 / 右内容），标题规范参照档案馆。
+       右侧为每日推荐内容，后续设计——这里先放日期占位与一行说明 -->
+  <section class="section daily" id="daily">
+    <p class="section-label">Daily</p>
+    <h2 class="section-title">每日</h2>
+    <div class="daily-grid">
+      <nav class="daily-tags" aria-label="每日推荐分类">
+        <a class="daily-tag" href="#">music</a>
+        <a class="daily-tag is-active" href="#">article</a>
+        <a class="daily-tag" href="#">poem</a>
+      </nav>
+      <div class="daily-content">
+        <p class="daily-date">2026.10.08</p>
+        <p class="daily-placeholder">每日推荐内容，后续设计。</p>
       </div>
     </div>
   </section>

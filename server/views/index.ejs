@@ -57,6 +57,24 @@
     </div>
   </section>
 
+  <!-- Daily：每日推荐。左右栏结构（左标签 / 右内容），标题规范参照档案馆。
+       右侧为每日推荐内容，后续设计——这里先放日期占位与一行说明 -->
+  <section class="section daily" id="daily">
+    <p class="section-label">Daily</p>
+    <h2 class="section-title">每日</h2>
+    <div class="daily-grid">
+      <nav class="daily-tags" aria-label="每日推荐分类">
+        <a class="daily-tag" href="#">music</a>
+        <a class="daily-tag is-active" href="#">article</a>
+        <a class="daily-tag" href="#">poem</a>
+      </nav>
+      <div class="daily-content">
+        <p class="daily-date"><%= new Date().toISOString().slice(0, 10).replace(/-/g, '.') %></p>
+        <p class="daily-placeholder">每日推荐内容，后续设计。</p>
+      </div>
+    </div>
+  </section>
+
   <!-- Footer -->
   <footer class="footer" id="about">
     <div class="footer-inner">

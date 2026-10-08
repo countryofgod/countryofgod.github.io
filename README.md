@@ -205,10 +205,24 @@ curl https://<你的域名>/healthz     # → {"ok":true,"articles":1}
 - D1：`gods-country` / `dfedac7b-6c48-43a7-9881-c7bcc5258961`
 - 密钥：`ADMIN_PASSWORD`、`SESSION_SECRET` 已通过 `wrangler secret put` 写入
 
-> **R2 尚未开通。** 账号还没启用 R2（API 报 10042），而 `wrangler deploy` 会校验桶存在（10085），
-> 所以 `wrangler.jsonc` 里的 `r2_buckets` 暂时注释掉了。
-> 影响：**留言文字正常，带图留言会返回 503**，且整条留言回滚，不会留坏数据。
-> 开通后：面板 → R2 → 启用 → 解开 `wrangler.jsonc` 里那段注释 → `npm run deploy`。不需要改代码。
+**图片的落点按优先级自动选，不用改代码：**
+
+| 优先级 | 条件 | 存到哪 | 库里存什么 |
+|---|---|---|---|
+| 1 | 有 `IMAGES` 绑定（R2 已开通） | 你自己的 R2 桶 | `image_key`，走 `/api/guestbook/:id/image` |
+| 2 | 有 `IMGBB_API_KEY` | ImgBB 图床 | `image_url`，页面直接用外链 |
+| 3 | 都没有 | — | 带图留言返回 503，文字留言照常 |
+
+**当前跑的是第 2 档（ImgBB）**，因为账号还没启用 R2（API 报 10042），而 `wrangler deploy`
+又会校验桶存在（10085），所以 `wrangler.jsonc` 里的 `r2_buckets` 暂时注释着。
+
+想切回自己存：面板 → R2 → 启用 → 解开 `wrangler.jsonc` 里那段注释 → `npm run deploy`。
+第 1 档优先级更高，一开通就自动切过去。
+
+> **图床的代价，说清楚**：图片托管在 `i.ibb.co`，不在自己手里。图床哪天关停或改策略，
+> 历史图片会失效——对一个以"被收好"为立意的档案馆来说，这是个真实的妥协。
+> 所以这只是**过渡方案**，R2 开通后应当切回去。
+> 另外：留言被删时，图床上的图不会跟着删（`delete_url` 没有入库）。
 
 在 Windows 上设密钥请用 `npm run secret -- ADMIN_PASSWORD 你的口令`——
 直接 `echo xxx | wrangler secret put` 会被 PowerShell 的编码弄坏，登录一直失败还查不出原因。
