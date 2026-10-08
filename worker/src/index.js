@@ -177,6 +177,21 @@ on('GET', '/api/archive', async (req, env) => {
   return json(await db.getArchive(env));
 });
 
+/**
+ * GET /api/daily —— 公开读：今天这一条（首页「每日」右栏的内容）。
+ * 只读、无参数，没有今天的条目就返回 null（首页那一栏本来就渲染成空栏）。
+ * CORS 放行 *：数据本来就印在首页上，没有多暴露任何东西；但 GitHub Pages 那份
+ * 静态副本（countryofgod.github.io）与 workers.dev 不同源，不放行就取不到数。
+ * no-store：后台「本日 Daily」一保存，副本刷新就能看到，不在浏览器里留旧值。
+ */
+on('GET', '/api/daily', async (req, env) => {
+  await db.bootstrap(env);
+  return json(await db.getDailyByDate(env, db.todayIso()), 200, {
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'no-store',
+  });
+});
+
 on('GET', '/api/guestbook', async (req, env) => {
   await db.bootstrap(env);
   const url = new URL(req.url);

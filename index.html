@@ -1812,9 +1812,11 @@
           <button class="daily-ipod-btn is-center" type="button" data-ipod="center" aria-label="确认，进入选中项"></button>
         </div>
       </div>
-      <!-- 右栏：今天的每日推荐。这是静态预览副本，没有后端，所以只有标题；
-           线上（Express / Worker）这一栏由 SSR 按 daily_entries 里当天的条目渲染，
-           内容在 /admin 的「本日 Daily」面板里维护 -->
+      <!-- 右栏：今天的每日推荐。线上（Express / Worker）由 SSR 按 daily_entries 里当天
+           的条目渲染；本页是静态副本、没有后端，所以这里写的是一份兜底标题——
+           页尾脚本会向 Worker 的公开接口 GET /api/daily 取当天这一条覆盖掉它，
+           取不到（离线 / 后端挂了 / 今天还没写）就保留这份兜底，页面不会变空。
+           内容仍然只在 /admin 的「本日 Daily」面板里维护 -->
       <div class="daily-content">
         <h3 class="daily-title">河的第三条岸</h3>
       </div>
@@ -2422,6 +2424,31 @@
         panel.classList.add('open');
       });
     });
+
+    /* 右栏「每日」：正文的来源是后端，页面上那句写死的标题只是兜底。
+       取的是 Worker 的公开只读接口 GET /api/daily（与 SSR 同一份数据，响应带 CORS）；
+       取到就换掉标题、补上正文，取不到（离线、后端挂了、今天还没写）就什么都不做——
+       静态兜底原样留着，页面不会因为一个 fetch 失败而变空。
+       文本一律走 textContent：拼 HTML 会把作者在 admin 里敲的尖括号当标签执行。 */
+    const dailyRoot = document.querySelector('.daily-content');
+    if (dailyRoot) {
+      fetch('https://gods-country.lyw2373314970.workers.dev/api/daily')
+        .then(res => (res.ok ? res.json() : null))
+        .then(daily => {
+          if (!daily || !daily.title) return;
+          const titleEl = dailyRoot.querySelector('.daily-title');
+          if (titleEl) titleEl.textContent = daily.title;
+          if (!daily.body) return;
+          let bodyEl = dailyRoot.querySelector('.daily-body');
+          if (!bodyEl) {
+            bodyEl = document.createElement('div');
+            bodyEl.className = 'daily-body';
+            dailyRoot.appendChild(bodyEl);
+          }
+          bodyEl.textContent = daily.body;
+        })
+        .catch(() => {});
+    }
   </script>
 
 

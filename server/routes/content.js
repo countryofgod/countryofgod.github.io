@@ -7,6 +7,8 @@ import {
   updateArticle,
   deleteArticle,
   getArchive,
+  getDailyByDate,
+  todayIso,
   createArchiveEntry,
   deleteArchiveEntry,
   upsertDaily,
@@ -39,6 +41,21 @@ router.get('/api/articles/:slug', (req, res, next) => {
 router.get('/api/archive', (req, res, next) => {
   try {
     res.json(getArchive());
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/daily —— 公开读：今天这一条（首页「每日」右栏的内容）。
+ * 与 Workers 版同一形状（返回值为 null 表示今天还没有条目）；
+ * CORS 与 no-store 的理由见 worker/src/index.js 里同名接口的注释。
+ */
+router.get('/api/daily', (req, res, next) => {
+  try {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Cache-Control', 'no-store');
+    res.json(getDailyByDate(todayIso()));
   } catch (err) {
     next(err);
   }
