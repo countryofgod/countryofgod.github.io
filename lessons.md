@@ -791,6 +791,18 @@
 
 5. **"表现速度"与"不丢字"可以用两档字体解耦，且要比同族 `unicode-range` 双 face 更稳。** 最终结构：`--font-title: 'LoveLetter','KeBenSong','KeBenSongFull',serif`，其中 ①`KeBenSong` 是 60 字形 / 16,496 B（1,502,956 B 的 1.1%），配 `preload` + `font-display: block`——**宁可标题多等零点几秒，也不先闪一遍系统宋体**；②`KeBenSongFull` 是整包，`swap`，排后面按需触发，本页下载量为 0 字节，只在新标题出现字表外的字时兜底。**不用"同族两个 face 各带 unicode-range"是因为两条规则会命中同一码位，规范里"谁赢"存在歧义；改成字体栈（family 级回退）后选择顺序是确定的。验收实测：`KeBenSong: loaded` / `KeBenSongFull: unloaded`，控制台零报错。**
 
+## 2026-10-08（第六十六段）
+
+1. **提交信息也是要校对的产出物，不是随手打的备注。** 本轮把「`alt` 属性」写成了「`alt` 属地」推了上去。写代码时会逐字读、写 commit message 时不会——于是唯一的防线是**推送前重读一遍 message**。教训：`git log` 是要给人看的历史，错字成本比想象中高（要么长期留着，要么强推重写）。
+
+2. **"用新提交纠正旧提交信息里的错字"是一个做不到的请求，必须在执行前讲明。** 提交一旦生成，其 message 就被 sha 绑死；新提交（哪怕是 `--allow-empty`）只能在历史里留一条更正记录，旧 message 原样存在。真正改写只有 `--amend` / `rebase` + 强推一条路。**教训：用户选项里若有"物理上不可能达成"的表述，先纠正前提再动手，否则就是"看起来做了、其实没做"。**
+
+3. **判断 GitHub Pages 是否部署完成，要用"本次新增、必然无缓存的文件名"当探针，不能用 HTML 页。** 本轮：`AaGuDianKeBenSong-WebTitles.woff2`（新文件）第一次轮询即 `200 / len=16496 / font/woff2`；而同一时刻 `index.html` 仍返回旧内容（`hasWebTitles=False`）——因为它带 `Cache-Control: max-age=600` 且过 CDN 缓存，**若拿它当判据会误判"没部署成功"，然后再白等十分钟**。要拿新版 HTML 得加 `?v=N` 破缓存。教训：`有缓存的资源判旧、无缓存的资源判新`，验证顺序先取后者。
+
+4. **`gh api repos/<owner>/<repo>/pages/builds/latest` 能直接读到 Pages 构建状态，比盲等有据。** 返回里的 `status`（`building`/`built`/`errored`）与 `commit`（sha）足以确认"这次推送是否已在构建、构建的是不是它"。本轮据此确认 `8894382` 处于 `building`，避免把"还没构建"误读成"部署失败了"。
+
+5. **每次 `push` 都会重新触发 Pages 构建，所以验证必须排在"最后一次 push"之后。** 本轮先推 `8894382`（功能）、又推 `86c49fb`（更正提交），前一次构建的产物立刻作废；等待窗口只能以后者为准。教训：**一轮里若有多个 push，把等待与验证统一放到末尾一次做，不要推一次等一次。**
+
 
 
 
