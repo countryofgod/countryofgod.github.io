@@ -779,6 +779,19 @@
 
 5. **同一个改动要在两处各做一遍时，要留意"自包含副本会漂移"，并且本地验证的服务器根必须对着文件真实的相对路径。** 根 `index.html`（GitHub Pages 版）是**自包含**的——内联 `<style>`、内联 `<script>`、字体路径是相对的（`AaGuDianKeBenSongYouMoBan/…`），全页只有一个 `<script>` 且不加载 `/js/site.js`；于是「之」那套改动（三条 CSS + 标记 + 抖动选择器排除）在 Node/Workers 共用的 `site.css`/`index.ejs`/`site.js` 与这份 Pages 副本里**各实现了一次**。**教训：验证静态版时服务器根要指向仓库根（不是 `public/`），否则相对字体路径 404、你会误判"字体坏了"；另外记住 `worker/src/html.js` 只烘焙 EJS 模板，**不含 CSS、也不含 site.js**，所以改 CSS/改 JS 都不需要重跑 `npm run templates`——只有改 `.ejs` 才要。**
 
+## 2026-10-08（第六十五段）
+
+1. **用户报的症状与真因可以不同源：「图片加载特别慢」实测下来图片只占首屏字节的 7%。** 受控实测（同网络同时段，折算成 KB/s 才可比）：首页 HTML 40,427 B、全部图片合计约 168 KB，而两个中文字体 **2,309,888 B（占 93%）**；逐项测速得到 KeBenSong 1,502,956 B 下 **76.4s**、ShanHaiJi 789,084 B 下 **49.4s**，而首图 795.webp 只有 70,718 B / 2.24s。**教训：诊断的第一步是"体量账 + 折算速率"，先看谁占字节；不要顺着用户用的那个名词去查同一个组件（他说图片，我就去查图片，会查一整天也查不到）。**
+
+2. **`font-display: swap` 之下「中文不对／标题晚」几乎恒等于「字体文件太大」，与引用路径无关**（第六十二段第 1 条的推广与再确认）。旁证：线上三个 woff2 全是 200 且 `font/woff2`，四张 webp 全 200——引用一个都没错。
+
+3. **采集「页面实际用字」必须按"渲染"采集，不能按"文件字符"采集。** 直接对 `index.html` 抠非 ASCII 字符，会把 CSS 注释和页内 `<script>` 里的 HTML 模板注释、`alt` 属性正文一并算进来：实测虚增 78 字，而这 78 字占了那一版子集体积的 **65%**（46,172 B → 收窄后 16,496 B）。正确口径是 `TreeWalker` 遍历 text 节点 + 伪元素 `content` + `input/textarea` 的 `placeholder`/`value`，并按 `getComputedStyle().fontFamily` 分桶（栈里含 `KeBenSong` 的即标题桶，含 `ShanHaiJi` 的即正文桶）。**教训：任何"用字集/覆盖率"类采集，口径是渲染面而不是存储面。**
+
+4. **全角汉字上"比宽度"是无效验证；`document.fonts.check(family, text)` 也不验字形覆盖。** 10 个汉字在任何中文字体下都量出 640px（1em/字），所以 `KeBenSong` 与 `serif` 宽度逐字节相同，区分不出有没有用上 webfont；而 `check()` 只反映"该 face 加载完成没有"，对子集外的字照样返回 `true`（本轮实测 `coverOutside: true`，是假阳性）。**能真正判定的只有两条路：① Canvas 像素比对——同一串字分别用 webfont 与 `serif` 画，比 `getImageData` 的差异像素数（本轮 5135 px，证明真的在用）；② 离线 cmap 覆盖率——`set(用字集) - set(新 woff2 cmap)` 必须为空。**
+
+5. **"表现速度"与"不丢字"可以用两档字体解耦，且要比同族 `unicode-range` 双 face 更稳。** 最终结构：`--font-title: 'LoveLetter','KeBenSong','KeBenSongFull',serif`，其中 ①`KeBenSong` 是 60 字形 / 16,496 B（1,502,956 B 的 1.1%），配 `preload` + `font-display: block`——**宁可标题多等零点几秒，也不先闪一遍系统宋体**；②`KeBenSongFull` 是整包，`swap`，排后面按需触发，本页下载量为 0 字节，只在新标题出现字表外的字时兜底。**不用"同族两个 face 各带 unicode-range"是因为两条规则会命中同一码位，规范里"谁赢"存在歧义；改成字体栈（family 级回退）后选择顺序是确定的。验收实测：`KeBenSong: loaded` / `KeBenSongFull: unloaded`，控制台零报错。**
+
+
 
 
 

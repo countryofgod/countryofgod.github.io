@@ -3,6 +3,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Einmal ist keinmal — 上帝之国</title>
+  <!-- 提前发起标题字体：它只有 16KB，但首屏刊名「上帝之國」就要用它。
+       不 preload 的话，浏览器要先解析完这一千多行内联 CSS、走到 @font-face 才知道有这个文件，
+       白白晚起步一两秒。crossorigin 不能省——字体预加载一律走 CORS 模式，
+       少了它这里预载的和后面 @font-face 取的就成了两次请求。 -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="AaGuDianKeBenSong-WebTitles.woff2">
   <style>
     @font-face {
       font-family: 'LoveLetter';
@@ -12,8 +17,25 @@
       font-display: swap;
     }
 
+    /* 标题字体拆成两份，解决「标题字要等 1.5MB 才换过来」：
+       ① KeBenSong —— 只包住本页真正会用它的 60 个字形（网站标题、栏目大标题、文章标题、数字与标点），
+          16,496 B，是整包 1,502,956 B 的 1.1%。它由 <head> 里的 <link rel="preload"> 提前发起，
+          并配 font-display: block —— 宁可让标题多等零点几秒，也不要先闪一遍系统宋体再换字
+          （这是用户明确要的：「固定的标题先显示目标字体」）。
+       ② KeBenSongFull —— 仍是原本的整包 3625 字形，font-display: swap，排在 KeBenSong 之后。
+          只有当标题里出现了 ① 覆盖不到的字（例如日后新写的文章标题）才轮到它，
+          语义即「其他的先兜底、慢慢加载」。本页所有标题字都在 ① 里，所以它今天的下载量是 0 字节。
+       用字集、再生成命令与触发条件见 tools/charset-title.txt 与 README「标题字体子集」。 */
     @font-face {
       font-family: 'KeBenSong';
+      src: url('AaGuDianKeBenSong-WebTitles.woff2') format('woff2');
+      font-weight: normal;
+      font-style: normal;
+      font-display: block;
+    }
+
+    @font-face {
+      font-family: 'KeBenSongFull';
       src: url('AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2.woff2') format('woff2');
       font-weight: normal;
       font-style: normal;
@@ -43,7 +65,7 @@
       --gray-4: #999999;
       --gray-5: #666666;
       --gray-6: #333333;
-      --font-title: 'LoveLetter', 'KeBenSong', serif;
+      --font-title: 'LoveLetter', 'KeBenSong', 'KeBenSongFull', serif;
       --font-body: 'LoveLetter', 'ShanHaiJi', serif;
       /* 首屏"一屏高"所依据的视口高度。
          桌面端浏览器没有可伸缩工具栏，svh / lvh / dvh 与 vh 完全相等，

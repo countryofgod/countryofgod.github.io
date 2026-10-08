@@ -383,6 +383,37 @@ python -m fontTools.subset ShanHaiJiGuSongKe-JianFan/ShanHaiJiGuSongKe-JianFan-2
 
 **什么时候要重跑**：新写的文章或留言里出现用字集之外的字时，那个字会显示成系统宋体（同句其余字仍是古宋）。把那个字追加进 `tools/font-charset-cn.txt` 重跑即可。原始 `.ttf` 一直留在仓库里，随时能从全量重新子集。
 
+### 标题字体再收窄一层（只作用于 GitHub Pages 静态副本）
+
+上面的 3629 字用字集是按「以后可能写出什么字」准备的，对**正文**是对的。但**标题**不是——标题的字是固定的、当场就能数清。实测 1,502,956 B 的 KeBenSong 在首页只服务于 26 个不同的字（「上帝之國」「创刊号」「档案馆」「河的第三条岸」这类），为了几个字形下 1.5 MB。
+
+所以根目录这份自包含的 `index.html` 里，标题字体拆成两档：
+
+| 档位 | 文件 | 字形数 | 体积 | `font-display` | 何时被下载 |
+|---|---|---|---|---|---|
+| ① 首屏标题级 | `AaGuDianKeBenSong-WebTitles.woff2` | 60 | **16,496 B** | `block` | 首屏就下（`<link rel="preload">` 提前发起） |
+| ② 兜底级 | `AaGuDianKeBenSongYouMoBan/…-2.woff2` | 3625 | 1,502,956 B | `swap` | 只有标题里出现 ① 覆盖不到的字才下；本页今天为 **0 字节** |
+
+字体栈因此是 `--font-title: 'LoveLetter', 'KeBenSong', 'KeBenSongFull', serif`。
+
+- ① 用 `block` 而非 `swap`：**宁可让标题多等零点几秒，也不要先闪一遍系统宋体再换字**。它有 `preload` 且只有 16 KB，正常情况下与 HTML 并行到位，不会真的空窗。
+- ② 是「不退化成系统宋体」的保险：它排在①后面，只按需触发，语义是「其他的先兜底、慢慢加载」。
+
+**用字集**：`tools/charset-title.txt`，60 字 = 首页**实际渲染**出来的标题用字（按 `--font-title` 的 13 个选择器分桶采集，含伪元素 `content`、`placeholder`、`value`）∪ 0-9 与标题常用标点。中间产物 `tools/charset-rendered.json` 是这次采集的原始结果。
+
+**再生成**（改完页面内容后如需重跑，Windows 下写成一行）：
+
+```bash
+python -m fontTools.subset AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2.ttf --text-file=tools/charset-title.txt --flavor=woff2 --layout-features='*' --output-file=AaGuDianKeBenSong-WebTitles.woff2
+```
+
+**什么时候要重跑**：静态副本里新增/改写了标题，且新标题出现了字表外的字。此时①不含该字 → 自动落到②，那个标题会「先用系统宋体、等 1.5 MB 到齐再换」。想让新标题也立刻用上目标字体，把新字追加进 `tools/charset-title.txt` 重跑上面这条命令即可（60 字 → 70 字只多几百字节）。
+
+**验收口径**（盯「丢了什么」，不是「省了多少」）：`tools/charset-title.txt` 里每个字的码位都必须在新 woff2 的 cmap 里，缺字数为 0；浏览器侧则要求 `document.fonts` 里 `KeBenSong` 为 `loaded` 而 `KeBenSongFull` 保持 `unloaded`。
+
+> Node / Workers 版**没动**，仍用 `public/fonts/` 下的整包 KeBenSong。那两版渲染的是数据库里的任意文章标题，不适合按页面用字裁剪；要提速得走另一条路（按 `unicode-range` 把整包切成分片，浏览器只下有字的那些片）。
+
+
 ## 已知取舍
 
 - Node 版把留言图片以 BLOB 存进 SQLite，部署只需搬一个文件；Workers 版改存 R2，避免把 5 MB 的二进制塞进 D1 的行里。两边单张都封顶 5 MB，管理台可见图片占用总量。
