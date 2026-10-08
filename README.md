@@ -413,6 +413,37 @@ python -m fontTools.subset AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2
 
 > Node / Workers 版**没动**，仍用 `public/fonts/` 下的整包 KeBenSong。那两版渲染的是数据库里的任意文章标题，不适合按页面用字裁剪；要提速得走另一条路（按 `unicode-range` 把整包切成分片，浏览器只下有字的那些片）。
 
+### 正文用字再收窄一层（同前，只作用于 GitHub Pages 静态副本）
+
+标题之外还有一头更大的：正文那 789 KB 的 `ShanHaiJi`——正文里每一个汉字都要问它，
+于是**每次访问都要下完 789 KB**，而这份静态副本里会渲染出来的字其实只有 765 个。
+同一套两档办法照搬：
+
+| 档位 | 文件 | 字形数 | 体积 | `font-display` | 何时被下载 |
+|---|---|---|---|---|---|
+| ① 首屏正文级 | `ShanHaiJi-WebBody.woff2` | 765 | **150,868 B** | `swap` | 首次渲染正文时 |
+| ② 兜底级 | `ShanHaiJiGuSongKe-JianFan/…-2.woff2` | 3629 | 789,084 B | `swap` | 正文出现 ① 覆盖不到的字才下；本页今天为 **0 字节** |
+
+字体栈因此是 `--font-body: 'LoveLetter', 'ShanHaiJi', 'ShanHaiJiFull', serif`。
+① 刻意**不 preload**：150 KB 去抢带宽会把 70 KB 的首图（LCP）往后挤；而 `swap` 语义下
+正文在字体到达之前就已经用系统宋体画出来了，本来就没有空窗可抢。
+
+**用字集**：`tools/charset-body-page.txt`，765 字 = 去掉 `<style>`（CSS 里的汉字全在注释里，
+不渲染）与 HTML 注释之后的标签文本 ∪ `<script>` 里的界面文案，再与原始 cmap 求交，
+另补一份 ASCII。
+
+**再生成**（Windows 下写成一行）：
+
+```bash
+python -m fontTools.subset ShanHaiJiGuSongKe-JianFan/ShanHaiJiGuSongKe-JianFan-2.ttf --text-file=tools/charset-body-page.txt --flavor=woff2 --layout-features='*' --output-file=ShanHaiJi-WebBody.woff2
+```
+
+**什么时候要重跑**：静态副本里新增/改写了页面文案或界面提示，且新字不在 ① 里时——那个字会落到 ②（先用系统宋体，等 789 KB 到齐再换）。把新字追加进 `tools/charset-body-page.txt` 重跑即可（765 → 800 字只多几 KB）。
+
+**验收口径**：`tools/charset-body-page.txt` 里每个字的码位都必须在新 woff2 的 cmap 里，缺字数为 0（本次实测 0）；浏览器侧则要求 `document.fonts` 里 `ShanHaiJi`（①）为 `loaded`。
+
+> Node / Workers 版同样**没动**：`public/fonts/` 下的 ShanHaiJi 仍是整包。那两版渲染的是数据库里的任意文章正文，按页面用字裁剪会让新文章掉进系统宋体。
+
 
 ## 已知取舍
 
