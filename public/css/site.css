@@ -586,11 +586,13 @@ body {
   color: var(--black);
 }
 
-/* 右栏：每日推荐内容。今天的推荐是《河的第三条岸》——只放标题，
-   其余内容后续设计再填（此前那块占位——封面图 / 署名 / 斜体摘要——已按要求删掉，不恢复） */
+/* 右栏：每日推荐内容。字号与文章卡片对齐（用户本轮指定）：
+   创刊号那边的标题 25px、正文 18px 是内联写在 article-item.ejs 上的
+   （那两处必须留在 HTML 里，理由见该文件的注释），这里跟着同一个值，
+   两处看起来才一样大——不要把 22px / 16px 的旧值改回来 */
 .daily-title {
   font-family: var(--font-title);
-  font-size: 22px;
+  font-size: 25px;
   line-height: 1.45;
   letter-spacing: 1px;
   color: var(--black);
@@ -598,11 +600,11 @@ body {
 }
 
 /* 右栏正文：来自后端的长文。white-space: pre-line 保留作者在 admin 里敲的换行，
-   不必把每一段都拆成 <p>；行距与全站正文一致 */
+   不必把每一段都拆成 <p>；行距与全站正文一致（1.9 两处本来就相同） */
 .daily-body {
   margin-top: 14px;
   font-family: var(--font-body);
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1.9;
   color: var(--gray-5);
   white-space: pre-line;

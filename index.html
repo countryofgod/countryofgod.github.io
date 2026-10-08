@@ -594,11 +594,12 @@
       color: var(--black);
     }
 
-    /* 右栏：每日推荐内容。今天的推荐是《河的第三条岸》——只放标题，
-       其余内容后续设计再填（此前那块占位——封面图 / 署名 / 斜体摘要——已按要求删掉，不恢复） */
+    /* 右栏：每日推荐内容。字号与文章卡片对齐（用户本轮指定）：
+       创刊号那边的标题 25px、正文 18px 是内联写在这份副本的卡片上的，
+       这里跟着同一个值，两处看起来才一样大——不要把 22px / 16px 的旧值改回来 */
     .daily-title {
       font-family: var(--font-title);
-      font-size: 22px;
+      font-size: 25px;
       line-height: 1.45;
       letter-spacing: 1px;
       color: var(--black);
@@ -606,11 +607,11 @@
     }
 
     /* 右栏正文：来自后端的长文。white-space: pre-line 保留作者在 admin 里敲的换行，
-       不必把每一段都拆成 <p>；行距与全站正文一致 */
+       不必把每一段都拆成 <p>；行距与全站正文一致（1.9 两处本来就相同） */
     .daily-body {
       margin-top: 14px;
       font-family: var(--font-body);
-      font-size: 16px;
+      font-size: 18px;
       line-height: 1.9;
       color: var(--gray-5);
       white-space: pre-line;
@@ -1837,23 +1838,24 @@
              decoding="async" alt="iPod nano 4th gen">
         <div class="daily-ipod-screen">
           <!-- 屏内视图：menu 是菜单本身，music 是点 music 后在同一块屏幕里换上来的内容。
-               两个视图都带 data-ipod-view，脚本靠它切换；没有对应视图的菜单项点了不响应 -->
+               两个视图都带 data-ipod-view，脚本靠它切换；
+               article / poem 不是屏幕视图：它们切的是右栏显示哪一类当天内容 -->
           <nav class="daily-tags daily-ipod-view is-current" data-ipod-view="menu" aria-label="每日推荐分类">
             <!-- 循环列表：轨道上排 3 份相同内容（每份 3 行）。滑动只改 translateY、不改 DOM；
                  走过一个循环就把位移减掉一个循环，内容每 3 行重复一次，接缝不可见。
                  只有第一份（data-ipod-base）是"原项"，脚本靠它判断当前选中；后两份是副本，
                  只为让上下都接得上，读屏与 Tab 都跳过）
-                 注：副本里 music 仍带 data-ipod-go，鼠标点到它也能进 music -->
+                 注：副本里同样带 data-ipod-go，鼠标点到它也有对应行为 -->
             <div class="daily-tags-track">
               <button class="daily-tag" type="button" data-ipod-base data-ipod-go="music">music</button>
-              <button class="daily-tag" type="button" data-ipod-base>article</button>
-              <button class="daily-tag" type="button" data-ipod-base>poem</button>
+              <button class="daily-tag" type="button" data-ipod-base data-ipod-go="article">article</button>
+              <button class="daily-tag" type="button" data-ipod-base data-ipod-go="poem">poem</button>
               <button class="daily-tag" type="button" data-ipod-go="music" aria-hidden="true" tabindex="-1">music</button>
-              <button class="daily-tag" type="button" aria-hidden="true" tabindex="-1">article</button>
-              <button class="daily-tag" type="button" aria-hidden="true" tabindex="-1">poem</button>
+              <button class="daily-tag" type="button" data-ipod-go="article" aria-hidden="true" tabindex="-1">article</button>
+              <button class="daily-tag" type="button" data-ipod-go="poem" aria-hidden="true" tabindex="-1">poem</button>
               <button class="daily-tag" type="button" data-ipod-go="music" aria-hidden="true" tabindex="-1">music</button>
-              <button class="daily-tag" type="button" aria-hidden="true" tabindex="-1">article</button>
-              <button class="daily-tag" type="button" aria-hidden="true" tabindex="-1">poem</button>
+              <button class="daily-tag" type="button" data-ipod-go="article" aria-hidden="true" tabindex="-1">article</button>
+              <button class="daily-tag" type="button" data-ipod-go="poem" aria-hidden="true" tabindex="-1">poem</button>
             </div>
             <!-- 固定选中框：钉在窗口正中，永远不随文字移动 -->
             <div class="daily-menu-band" aria-hidden="true"></div>
@@ -1875,18 +1877,17 @@
           <button class="daily-ipod-btn is-center" type="button" data-ipod="center" aria-label="确认，进入选中项"></button>
         </div>
       </div>
-      <!-- 右栏：今天的每日推荐。线上（Express / Worker）由 SSR 按 daily_entries 里当天
-           的条目渲染；本页是静态副本、没有后端，所以这里写的是一份兜底标题——
-           页尾脚本会向 Worker 的公开接口 GET /api/daily 取当天这一条覆盖掉它，
-           取不到（离线 / 后端挂了 / 今天还没写）就保留这份兜底，页面不会变空。
-           内容仍然只在 /admin 的「本日 Daily」面板里维护 -->
-      <div class="daily-content">
-        <h3 class="daily-title">河的第三条岸</h3>
-      </div>
+      <!-- 右栏：当天的 article / poem。内容来自仓库里的文本文件（本页与线上同源同路径）——
+           daily/article/ 或 daily/poem/ 下的「2026_10_8.txt」这种名字（年_月_日），
+           第一行是标题、其余是正文；页面按当天日期取，没有就往前找最近的一篇。
+           文件名就是发布日期：push 一个文件，等于发布那一天那一篇。
+           iPod 菜单里的 article / poem 切换看哪一类，默认 article。取数逻辑在页尾脚本 -->
+      <div class="daily-content"></div>
       </div><!-- /折叠视窗 .daily-fold：越线的正文在这里被裁住 -->
       <!-- 展开箭头：与文章卡片上那枚同款。默认只露到机身底边那一条线，点它把越线的续文放出来
-           （那部分落在浮动之外，自动按整栏宽铺开） -->
-      <button class="daily-toggle" type="button" data-daily-toggle aria-expanded="false">↓</button>
+           （那部分落在浮动之外，自动按整栏宽铺开）。初始隐藏，右栏内容真的超出折叠线时
+           由脚本显出来（没超线就没有这个按钮） -->
+      <button class="daily-toggle" type="button" data-daily-toggle aria-expanded="false" hidden>↓</button>
     </div>
   </section>
 
@@ -2065,8 +2066,12 @@
     // 屏内视图切换：点 music 是在这块屏幕里换一屏，不跳 URL、不换页面。
     // 用 pushState 记一层，MENU 才能靠 history.back() 退回上一个视图；
     // 浏览器前进／后退触发 popstate，再把视图同步回来。
-    // 没有对应视图的菜单项（目前是 article / poem）点了不响应——它们的视图还没做。
+    // article / poem 不是屏幕里的视图：它们是"右栏显示哪一类当天内容"的开关（见下面 Daily 段）。
     const ipodScreen = document.querySelector('.daily-ipod-screen');
+
+    /** 切右栏看 article 还是 poem；由下面的 Daily 段赋值（页面里没有 Daily 区块时保持空函数） */
+    let showDailyCategory = () => {};
+
     if (ipodScreen) {
       const ipodViews = Array.from(ipodScreen.querySelectorAll('[data-ipod-view]'));
 
@@ -2123,7 +2128,11 @@
 
       const enterIpodView = (target) => {
         if (!target) return;
-        // 没有对应视图的项（目前是 article / poem）按了不响应——视图还没做
+        // article / poem 不进屏幕视图：切的是右栏显示哪一类的当天内容
+        if (target === 'article' || target === 'poem') {
+          showDailyCategory(target);
+          return;
+        }
         if (!ipodViews.some((v) => v.dataset.ipodView === target)) return;
         if (target === currentIpodView()) return;
         history.pushState({ ipod: target }, '', '#ipod-' + target);
@@ -2492,66 +2501,135 @@
       });
     });
 
-    /* 右栏「每日」：正文的来源是后端，页面上那句写死的标题只是兜底。
-       取的是 Worker 的公开只读接口 GET /api/daily（与 SSR 同一份数据，响应带 CORS）；
-       取到就换掉标题、补上正文，取不到（离线、后端挂了、今天还没写）就什么都不做——
-       静态兜底原样留着，页面不会因为一个 fetch 失败而变空。
-       文本一律走 textContent：拼 HTML 会把作者在 admin 里敲的尖括号当标签执行。 */
+    /* 右栏「每日」：当天的 article / poem。
+       内容不在数据库里，是仓库里的纯文本文件：
+         daily/article/2026_10_8.txt（article 类）
+         daily/poem/2026_10_8.txt   （poem 类）
+       文件名就是发布日期：年_月_日，月、日不补前导零；push 一个文件 = 发布那一天那一篇。
+       页面按"今天"取当天的文件，当天没有就往前逐天找最近的一篇（最多往回 60 天）。
+       文件第一行是标题，其余行是正文；正文的换行原样保留（.daily-body 是 pre-line）。
+       iPod 菜单里的 article / poem 决定看哪一类，默认 article。
+       文本一律走 textContent：拼 HTML 会把文件里的尖括号当标签执行。 */
     const dailyGrid = document.querySelector('.daily-grid');
-    const dailyRoot = document.querySelector('.daily-content');
-    const dailyFold = document.querySelector('.daily-fold');
-    const dailyToggle = document.querySelector('[data-daily-toggle]');
+    if (dailyGrid) {
+      const dailyFold = dailyGrid.querySelector('.daily-fold');
+      const dailyToggle = dailyGrid.querySelector('[data-daily-toggle]');
+      const dailyIpod = dailyGrid.querySelector('.daily-ipod');
+      const dailyRoot = dailyGrid.querySelector('.daily-content');
 
-    /* 默认只露到机身底边那一条线（--daily-fold），点 ↓ 展开；越线的那部分落在浮动之外，
-       自动按整栏宽铺开。折叠线取机身实测高度：图片按比例缩放，写死会在窄屏或换图后错位。
-       被裁的是 .daily-fold（视窗）而不是正文那层——正文那层必须保持普通块盒，
-       它一旦 overflow: hidden 就会躲到机身右侧，展开后也只有半栏。
-       箭头只在"真的被裁住了"时显示——否则会留一个点了没反应的 ↓ 挂在那儿。 */
-    const syncDailyFold = () => {
-      if (!dailyGrid || !dailyFold) return;
-      const ipodBody = dailyGrid.querySelector('.daily-ipod');
-      if (!ipodBody) return;
-      const fold = ipodBody.getBoundingClientRect().height;
-      dailyGrid.style.setProperty('--daily-fold', fold + 'px');
-      if (!dailyToggle) return;
-      // scrollHeight 是"被裁之前"的完整高度，与当前是否展开无关，
-      // 所以展开态下这个判断照样成立，箭头不会自己消失
-      const clipped = dailyFold.scrollHeight > fold + 2;
-      dailyToggle.hidden = !clipped;
-      if (!clipped) dailyGrid.classList.remove('expanded');
-    };
+      /* 默认只露到机身底边那一条线（--daily-fold），点 ↓ 展开；越线的那部分落在浮动之外，
+         自动按整栏宽铺开。折叠线取机身实测高度：图片按比例缩放，写死会在窄屏或换图后错位。
+         被裁的是 .daily-fold（视窗）而不是正文那层——正文那层必须保持普通块盒，
+         它一旦 overflow: hidden 就会躲到机身右侧，展开后也只有半栏。
+         箭头只在"真的被裁住了"时显示——否则会留一个点了没反应的 ↓ 挂在那儿。 */
+      const syncDailyFold = () => {
+        if (!dailyFold || !dailyIpod) return;
+        const fold = dailyIpod.getBoundingClientRect().height;
+        dailyGrid.style.setProperty('--daily-fold', fold + 'px');
+        if (!dailyToggle) return;
+        // scrollHeight 是"被裁之前"的完整高度，与当前是否展开无关，
+        // 所以展开态下这个判断照样成立，箭头不会自己消失
+        const clipped = dailyFold.scrollHeight > fold + 2;
+        dailyToggle.hidden = !clipped;
+        if (!clipped) dailyGrid.classList.remove('expanded');
+      };
 
-    if (dailyToggle) {
-      dailyToggle.addEventListener('click', () => {
-        const expanded = dailyGrid.classList.toggle('expanded');
-        dailyToggle.setAttribute('aria-expanded', String(expanded));
-      });
-    }
+      if (dailyToggle) {
+        dailyToggle.addEventListener('click', () => {
+          const expanded = dailyGrid.classList.toggle('expanded');
+          dailyToggle.setAttribute('aria-expanded', String(expanded));
+        });
+      }
 
-    if (dailyRoot) {
-      fetch('https://gods-country.lyw2373314970.workers.dev/api/daily')
-        .then(res => (res.ok ? res.json() : null))
-        .then(daily => {
-          if (!daily || !daily.title) return;
-          const titleEl = dailyRoot.querySelector('.daily-title');
-          if (titleEl) titleEl.textContent = daily.title;
-          if (!daily.body) return;
-          let bodyEl = dailyRoot.querySelector('.daily-body');
-          if (!bodyEl) {
-            bodyEl = document.createElement('div');
-            bodyEl.className = 'daily-body';
-            dailyRoot.appendChild(bodyEl);
+      window.addEventListener('resize', syncDailyFold);
+      syncDailyFold();
+
+      /* —— 找文件：今天没有就往前逐天找 —— */
+      const DAILY_FALLBACK_DAYS = 60; // 最多往回找多少天
+      const DAILY_BATCH = 7;          // 一批并发探几个日期：都是小文件，并发比逐个问快
+      const dailyCache = {};          // article / poem → { title, body } 或 null（找过了、没有）
+
+      const dailyFileName = (daysAgo) => {
+        const d = new Date();
+        d.setDate(d.getDate() - daysAgo);
+        return d.getFullYear() + '_' + (d.getMonth() + 1) + '_' + d.getDate() + '.txt';
+      };
+
+      /** 某一天的文件；404 回 null（那天没有），网络不通抛错交给调用方 */
+      const probeDaily = async (category, daysAgo) => {
+        // no-store：push 当天文件后刷新就能看到，不在浏览器里留住旧的 404
+        const res = await fetch('daily/' + category + '/' + dailyFileName(daysAgo), { cache: 'no-store' });
+        if (!res.ok) return null;
+        const text = (await res.text()).replace(/^\uFEFF/, '');
+        return text.trim() ? { daysAgo, text } : null; // 空文件当成没有
+      };
+
+      const findDaily = async (category) => {
+        for (let start = 0; start < DAILY_FALLBACK_DAYS; start += DAILY_BATCH) {
+          const batch = [];
+          for (let d = start; d < Math.min(start + DAILY_BATCH, DAILY_FALLBACK_DAYS); d++) {
+            batch.push(probeDaily(category, d));
           }
-          bodyEl.textContent = daily.body;
-        })
-        // 取不到就什么都不做：静态兜底那句标题继续留着，页面不会因此变空
-        .catch(() => {})
-        // 正文换了，折叠线与"有没有被裁"都要重量一次（远端那篇有三千多字）
-        .finally(syncDailyFold);
-    }
+          const hit = (await Promise.all(batch)).filter(Boolean).sort((a, b) => a.daysAgo - b.daysAgo)[0];
+          if (hit) return hit;
+        }
+        return null;
+      };
 
-    syncDailyFold();
-    window.addEventListener('resize', syncDailyFold);
+      /** 第一行是标题（跳过开头的空行），其余是正文 */
+      const splitDaily = (text) => {
+        const lines = text.split(/\r?\n/);
+        let i = 0;
+        while (i < lines.length && !lines[i].trim()) i++;
+        return {
+          title: (lines[i] || '').trim(),
+          body: lines.slice(i + 1).join('\n').replace(/^\n+/, '').replace(/\s+$/, ''),
+        };
+      };
+
+      const renderDaily = (entry) => {
+        dailyRoot.textContent = '';
+        if (entry) {
+          const title = document.createElement('h3');
+          title.className = 'daily-title';
+          title.textContent = entry.title;
+          dailyRoot.appendChild(title);
+          if (entry.body) {
+            const body = document.createElement('div');
+            body.className = 'daily-body';
+            body.textContent = entry.body;
+            dailyRoot.appendChild(body);
+          }
+        }
+        // 字数变了：折叠线与展开箭头都要按新高度重量一次
+        syncDailyFold();
+      };
+
+      const loadDaily = async (category) => {
+        if (dailyCache[category] !== undefined) return dailyCache[category];
+        let entry = null;
+        try {
+          const hit = await findDaily(category);
+          if (hit) entry = splitDaily(hit.text);
+        } catch {
+          // 网络不通：当作没有，右栏保持空；刷新页面会重试
+        }
+        dailyCache[category] = entry;
+        return entry;
+      };
+
+      let dailySeq = 0;
+      showDailyCategory = (category) => {
+        const seq = ++dailySeq;
+        loadDaily(category).then((entry) => {
+          if (seq !== dailySeq) return; // 期间又切了分类：这次结果作废
+          renderDaily(entry);
+        });
+      };
+
+      // 默认显示 article
+      showDailyCategory('article');
+    }
   </script>
 
 
