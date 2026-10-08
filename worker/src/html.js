@@ -162,6 +162,11 @@ function renderHome({ articles, archive, notes, submitMail, daily }) {
     <p class="section-label">Daily</p>
     <h2 class="section-title">每日</h2>
     <div class="daily-grid">
+      <!-- 折叠视窗：机身与右栏正文都包在里面。裁切（max-height + overflow: hidden）
+           必须挂在【这一层】：overflow 会建立 BFC，而 BFC 块盒会整体躲开浮动，
+           挂在正文那层的话，正文永远待在机身右侧、展开后也只有半栏。
+           正文自己是普通块盒、宽整栏——行盒在机身范围内变窄，机身以下自动整栏宽 -->
+      <div class="daily-fold">
       <div class="daily-ipod">
         <!-- ipod-clean.jpg 与 ipod.jpeg 同尺寸，机身左右边界（实测 x 38..917）之外已置纯白 -->
         <!-- ipod-clean.webp：显示宽度 230px 的 2 倍（460×1015），17KB；原 jpg 是 955×2107 / 507KB。
@@ -230,6 +235,7 @@ function renderHome({ articles, archive, notes, submitMail, daily }) {
   }
   out += `
       </div>
+      </div><!-- /折叠视窗 .daily-fold：越线的正文在这里被裁住 -->
 `;
   if (daily) {
   out += `

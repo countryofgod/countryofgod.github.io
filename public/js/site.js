@@ -156,18 +156,20 @@ if (ipodScreen) {
 // 箭头只在"真的被裁住了"时显示——否则会留一个点了没反应的 ↓ 挂在那儿。
 const dailyGrid = document.querySelector('.daily-grid');
 if (dailyGrid) {
-  const dailyContent = dailyGrid.querySelector('.daily-content');
+  // 被裁的是 .daily-fold（视窗），不是正文那层——正文那层必须保持普通块盒，
+  // 它一旦 overflow: hidden 就会躲到机身右侧，展开后也只有半栏
+  const dailyFold = dailyGrid.querySelector('.daily-fold');
   const dailyToggle = dailyGrid.querySelector('[data-daily-toggle]');
   const dailyIpod = dailyGrid.querySelector('.daily-ipod');
 
   const syncDailyFold = () => {
-    if (!dailyContent || !dailyIpod) return;
+    if (!dailyFold || !dailyIpod) return;
     const fold = dailyIpod.getBoundingClientRect().height;
     dailyGrid.style.setProperty('--daily-fold', fold + 'px');
     if (!dailyToggle) return;
     // scrollHeight 是"被裁之前"的完整高度，与当前是否展开无关，
     // 所以展开态下这个判断照样成立，箭头不会自己消失
-    const clipped = dailyContent.scrollHeight > fold + 2;
+    const clipped = dailyFold.scrollHeight > fold + 2;
     dailyToggle.hidden = !clipped;
     if (!clipped) dailyGrid.classList.remove('expanded');
   };

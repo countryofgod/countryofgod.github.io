@@ -323,17 +323,20 @@ body {
   /* 折叠线 = 机身底边（230px × 1015/460 ≈ 507.5px）。脚本会按实测高度覆写，
      这里只是脚本没跑时的兜底 */
   --daily-fold: 508px;
-  /* 收住浮动，否则机身会压到下一节的文章区上 */
-  overflow: hidden;
 }
 
-/* 右栏默认只露到那条折叠线；越线的部分被裁掉但仍在文档里，展开时原地露出来 */
-.daily-content {
+/* 折叠视窗：机身与正文都包在它里面，裁切由它负责。
+   为什么必须分成两层：overflow: hidden 会建立 BFC，而 BFC 块盒会整体躲开浮动
+   （规范要求它的边框盒不与浮动重叠）——第一版把 overflow 挂在正文那一层，
+   于是整块正文永远待在机身右侧，展开后仍是只有半栏。
+   现在的分法：视窗（.daily-fold）负责裁切并收住浮动，正文自己是普通块盒、宽整栏，
+   行盒在机身范围内自动变窄、机身以下自动整栏宽 */
+.daily-fold {
   max-height: var(--daily-fold);
   overflow: hidden;
 }
 
-.daily-grid.expanded .daily-content {
+.daily-grid.expanded .daily-fold {
   max-height: none;
 }
 
@@ -613,7 +616,7 @@ body {
     float: none;
     margin: 0 auto 32px;
   }
-  .daily-content {
+  .daily-fold {
     max-height: none;
   }
   .daily-toggle {

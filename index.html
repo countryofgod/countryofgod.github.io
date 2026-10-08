@@ -336,17 +336,20 @@
       /* 折叠线 = 机身底边（230px × 1015/460 ≈ 507.5px）。脚本按实测高度覆写，
          这里只是脚本没跑时的兜底 */
       --daily-fold: 508px;
-      /* 收住浮动，否则机身会压到下一节的文章区上 */
-      overflow: hidden;
     }
 
-    /* 右栏默认只露到那条折叠线；越线的部分被裁掉但仍在文档里，展开时原地露出来 */
-    .daily-content {
+    /* 折叠视窗：机身与正文都包在它里面，裁切由它负责。
+       为什么必须分两层：overflow: hidden 会建立 BFC，而 BFC 块盒会整体躲开浮动
+       （规范要求它的边框盒不与浮动重叠）——第一版把 overflow 挂在正文那层，
+       于是整块正文永远待在机身右侧，展开后仍只有半栏。
+       现在的分法：视窗负责裁切并收住浮动，正文自己是普通块盒、宽整栏，
+       行盒在机身范围内变窄、机身以下自动整栏宽 */
+    .daily-fold {
       max-height: var(--daily-fold);
       overflow: hidden;
     }
 
-    .daily-grid.expanded .daily-content {
+    .daily-grid.expanded .daily-fold {
       max-height: none;
     }
 
@@ -621,7 +624,7 @@
         float: none;
         margin: 0 auto 32px;
       }
-      .daily-content {
+      .daily-fold {
         max-height: none;
       }
       .daily-toggle {
@@ -1821,6 +1824,11 @@
     <p class="section-label">Daily</p>
     <h2 class="section-title">每日</h2>
     <div class="daily-grid">
+      <!-- 折叠视窗：机身与右栏正文都包在里面。裁切（max-height + overflow: hidden）
+           必须挂在【这一层】：overflow 会建立 BFC，而 BFC 块盒会整体躲开浮动；
+           挂在正文那层的话，正文永远待在机身右侧、展开后也只有半栏。
+           正文自己是普通块盒、宽整栏——行盒在机身范围内变窄，机身以下自动整栏宽 -->
+      <div class="daily-fold">
       <div class="daily-ipod">
         <!-- ipod-clean.jpg 与 ipod.jpeg 同尺寸，机身左右边界（实测 x 38..917）之外已置纯白 -->
         <!-- ipod-clean.webp：显示宽度 230px 的 2 倍（460×1015），17KB；原 jpg 是 955×2107 / 507KB。
@@ -1875,6 +1883,7 @@
       <div class="daily-content">
         <h3 class="daily-title">河的第三条岸</h3>
       </div>
+      </div><!-- /折叠视窗 .daily-fold：越线的正文在这里被裁住 -->
       <!-- 展开箭头：与文章卡片上那枚同款。默认只露到机身底边那一条线，点它把越线的续文放出来
            （那部分落在浮动之外，自动按整栏宽铺开） -->
       <button class="daily-toggle" type="button" data-daily-toggle aria-expanded="false">↓</button>
@@ -2490,13 +2499,16 @@
        文本一律走 textContent：拼 HTML 会把作者在 admin 里敲的尖括号当标签执行。 */
     const dailyGrid = document.querySelector('.daily-grid');
     const dailyRoot = document.querySelector('.daily-content');
+    const dailyFold = document.querySelector('.daily-fold');
     const dailyToggle = document.querySelector('[data-daily-toggle]');
 
     /* 默认只露到机身底边那一条线（--daily-fold），点 ↓ 展开；越线的那部分落在浮动之外，
        自动按整栏宽铺开。折叠线取机身实测高度：图片按比例缩放，写死会在窄屏或换图后错位。
+       被裁的是 .daily-fold（视窗）而不是正文那层——正文那层必须保持普通块盒，
+       它一旦 overflow: hidden 就会躲到机身右侧，展开后也只有半栏。
        箭头只在"真的被裁住了"时显示——否则会留一个点了没反应的 ↓ 挂在那儿。 */
     const syncDailyFold = () => {
-      if (!dailyGrid || !dailyRoot) return;
+      if (!dailyGrid || !dailyFold) return;
       const ipodBody = dailyGrid.querySelector('.daily-ipod');
       if (!ipodBody) return;
       const fold = ipodBody.getBoundingClientRect().height;
@@ -2504,7 +2516,7 @@
       if (!dailyToggle) return;
       // scrollHeight 是"被裁之前"的完整高度，与当前是否展开无关，
       // 所以展开态下这个判断照样成立，箭头不会自己消失
-      const clipped = dailyRoot.scrollHeight > fold + 2;
+      const clipped = dailyFold.scrollHeight > fold + 2;
       dailyToggle.hidden = !clipped;
       if (!clipped) dailyGrid.classList.remove('expanded');
     };
