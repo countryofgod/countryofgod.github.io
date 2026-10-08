@@ -359,33 +359,33 @@ npm run daily -- --no-deploy   # 提交 + push，不本地部署（等 CI）
 
 ## 字体子集
 
-三套字体的分工：`LoveLetter`（101 字形 / 17.8 KB）承担西文；`KeBenSong` 与 `ShanHaiJi` 是两个中文字体，分别给标题与正文，**原始字形数 7544 / 7205，未子集化时合计 4.69 MB**。
+三套字体的分工：`LoveLetter`（101 字形 / 17.8 KB）承担西文；`KeBenSong` 承担中文标题；`ShanHaiJi` 原本承担中文正文，**现已整体弃用**——两套运行时的正文字体栈都改成 `'LoveLetter', serif`，中文正文交给系统衬线。两个中文字体的**原始字形数 7544 / 7205，未子集化时合计 4.69 MB**。
 这正是「英文看着对、中文看着不对」的原因——`font-display: swap` 的语义是「先用兜底字体画、字体到了再换」，西文 17.8 KB 瞬间到位，汉字要等整个文件下完，期间显示系统宋体。
+**弃用正文宋体就是为了消掉这一项**：正文中文字到处都在用，换系统衬线后它的下载量归零，连「等字体」的闪烁也不存在了。
 
-两个中文字体现在按用字集子集化：
+中文字体当初按用字集子集化（下表留作记录，`ShanHaiJi` 那行已不再被任何页面引用）：
 
 | 字体 | 子集前 | 子集后 |
 |---|---|---|
 | KeBenSong（标题） | 3,120,076 B | 1,502,956 B |
-| ShanHaiJi（正文） | 1,565,528 B | 789,084 B |
+| ShanHaiJi（正文，已弃用） | 1,565,528 B | 789,084 B |
 
 用字集是 `tools/font-charset-cn.txt`，共 3629 字 = **《现代汉语常用字表》3500 常用字**（开头与 gov.cn 官方《通用规范汉字表》一级字表交叉核对过）∪ **站点现有全部用字**（`國`、`「」`、箭头等繁体与符号）。
 留出法实测（拿 `lessons.md` 当「还没写出来的新文章」）：不同字覆盖 99.45%，按字数加权 99.92%。
 
-改动用字集后重新生成（两条命令各跑一遍；Windows 下用 PowerShell 请写成一行）：
+改动用字集后重新生成（Windows 下用 PowerShell 请写成一行）：
 
 ```bash
 python -m fontTools.subset AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2.ttf --text-file=tools/font-charset-cn.txt --flavor=woff2 --layout-features='*' --output-file=AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2.woff2
-python -m fontTools.subset ShanHaiJiGuSongKe-JianFan/ShanHaiJiGuSongKe-JianFan-2.ttf --text-file=tools/font-charset-cn.txt --flavor=woff2 --layout-features='*' --output-file=ShanHaiJiGuSongKe-JianFan/ShanHaiJiGuSongKe-JianFan-2.woff2
 ```
 
-生成后把两个文件各复制一份到 `public/fonts/` 下的同名目录：仓库根目录那两份供 GitHub Pages 的相对路径引用，`public/fonts/` 那两份供 Node / Workers 版的 `/fonts/…` 引用。
+生成后把文件复制一份到 `public/fonts/` 下的同名目录：仓库根目录那份供 GitHub Pages 的相对路径引用，`public/fonts/` 那份供 Node / Workers 版的 `/fonts/…` 引用。
 
-**什么时候要重跑**：新写的文章或留言里出现用字集之外的字时，那个字会显示成系统宋体（同句其余字仍是古宋）。把那个字追加进 `tools/font-charset-cn.txt` 重跑即可。原始 `.ttf` 一直留在仓库里，随时能从全量重新子集。
+**什么时候要重跑**：这条现在只对 `KeBenSong`（中文标题）有意义。新写的标题里出现用字集之外的字时，那个字会显示成系统宋体。把那个字追加进 `tools/font-charset-cn.txt` 重跑即可。两个 `.ttf` 都留在仓库里，随时能从全量重新子集——`ShanHaiJi` 的 `.ttf` 也一样，正文哪天想换回古宋就重新子集它。
 
 ### 标题字体再收窄一层（只作用于 GitHub Pages 静态副本）
 
-上面的 3629 字用字集是按「以后可能写出什么字」准备的，对**正文**是对的。但**标题**不是——标题的字是固定的、当场就能数清。实测 1,502,956 B 的 KeBenSong 在首页只服务于 26 个不同的字（「上帝之國」「创刊号」「档案馆」「河的第三条岸」这类），为了几个字形下 1.5 MB。
+上面那套 3629 字用字集是按「以后可能写出什么字」准备的，适合会变的动态内容；但**标题**不是——标题的字是固定的、当场就能数清。实测 1,502,956 B 的 KeBenSong 在首页只服务于 26 个不同的字（「上帝之國」「创刊号」「档案馆」「河的第三条岸」这类），为了几个字形下 1.5 MB。
 
 所以根目录这份自包含的 `index.html` 里，标题字体拆成两档：
 
@@ -412,38 +412,6 @@ python -m fontTools.subset AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2
 **验收口径**（盯「丢了什么」，不是「省了多少」）：`tools/charset-title.txt` 里每个字的码位都必须在新 woff2 的 cmap 里，缺字数为 0；浏览器侧则要求 `document.fonts` 里 `KeBenSong` 为 `loaded` 而 `KeBenSongFull` 保持 `unloaded`。
 
 > Node / Workers 版**没动**，仍用 `public/fonts/` 下的整包 KeBenSong。那两版渲染的是数据库里的任意文章标题，不适合按页面用字裁剪；要提速得走另一条路（按 `unicode-range` 把整包切成分片，浏览器只下有字的那些片）。
-
-### 正文用字再收窄一层（同前，只作用于 GitHub Pages 静态副本）
-
-标题之外还有一头更大的：正文那 789 KB 的 `ShanHaiJi`——正文里每一个汉字都要问它，
-于是**每次访问都要下完 789 KB**，而这份静态副本里会渲染出来的字其实只有 765 个。
-同一套两档办法照搬：
-
-| 档位 | 文件 | 字形数 | 体积 | `font-display` | 何时被下载 |
-|---|---|---|---|---|---|
-| ① 首屏正文级 | `ShanHaiJi-WebBody.woff2` | 765 | **150,868 B** | `swap` | 首次渲染正文时 |
-| ② 兜底级 | `ShanHaiJiGuSongKe-JianFan/…-2.woff2` | 3629 | 789,084 B | `swap` | 正文出现 ① 覆盖不到的字才下；本页今天为 **0 字节** |
-
-字体栈因此是 `--font-body: 'LoveLetter', 'ShanHaiJi', 'ShanHaiJiFull', serif`。
-① 刻意**不 preload**：150 KB 去抢带宽会把 70 KB 的首图（LCP）往后挤；而 `swap` 语义下
-正文在字体到达之前就已经用系统宋体画出来了，本来就没有空窗可抢。
-
-**用字集**：`tools/charset-body-page.txt`，765 字 = 去掉 `<style>`（CSS 里的汉字全在注释里，
-不渲染）与 HTML 注释之后的标签文本 ∪ `<script>` 里的界面文案，再与原始 cmap 求交，
-另补一份 ASCII。
-
-**再生成**（Windows 下写成一行）：
-
-```bash
-python -m fontTools.subset ShanHaiJiGuSongKe-JianFan/ShanHaiJiGuSongKe-JianFan-2.ttf --text-file=tools/charset-body-page.txt --flavor=woff2 --layout-features='*' --output-file=ShanHaiJi-WebBody.woff2
-```
-
-**什么时候要重跑**：静态副本里新增/改写了页面文案或界面提示，且新字不在 ① 里时——那个字会落到 ②（先用系统宋体，等 789 KB 到齐再换）。把新字追加进 `tools/charset-body-page.txt` 重跑即可（765 → 800 字只多几 KB）。
-
-**验收口径**：`tools/charset-body-page.txt` 里每个字的码位都必须在新 woff2 的 cmap 里，缺字数为 0（本次实测 0）；浏览器侧则要求 `document.fonts` 里 `ShanHaiJi`（①）为 `loaded`。
-
-> Node / Workers 版同样**没动**：`public/fonts/` 下的 ShanHaiJi 仍是整包。那两版渲染的是数据库里的任意文章正文，按页面用字裁剪会让新文章掉进系统宋体。
-
 
 ## 已知取舍
 

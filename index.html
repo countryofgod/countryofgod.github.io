@@ -42,36 +42,6 @@
       font-display: swap;
     }
 
-    /* 正文字体同样拆两档：789 KB 的 ShanHaiJi 是每次访问都要下的大头（正文到处都在用它），
-       而这份静态副本里会渲染出来的字只有 765 个。
-       ① ShanHaiJi —— 只包住这 765 字，150,868 B，是整包 789,084 B 的 19.1%。
-          用字集来源：去掉 <style>（CSS 里的汉字全在注释里，不渲染）与 HTML 注释之后，
-          剩下的标签文本 + <script> 里的界面文案，再与原始字形的 cmap 求交
-          （字体供不出的字本来就落回系统字体，收进来只白涨体积），另补一份 ASCII。
-       ② ShanHaiJiFull —— 仍是 3629 字的整包，font-display: swap，排在 ① 之后。
-          动态取回来的文章正文里出现 ① 之外的字（例如日后新写的文章）才轮到它。
-          两档的语义与上面标题那两档完全一致：页面自己的字立刻到位，其他的先兜底、慢慢加载。
-       ① 不做 preload：它 150 KB，且 swap 语义下正文早已用系统宋体画出来了，
-          提前抢占带宽只会把首图（LCP，70 KB）往后挤。标题那 16 KB 值得 preload，这个不值得。
-       用字集与再生成命令见 tools/charset-body-page.txt 与 README「正文用字再收窄一层」。
-       注：Node / Workers 版（public/css/site.css）没有动，仍用整包——那两版渲染的是
-       数据库里的任意文章，收集不了用字，收窄了就会让新文章掉进系统宋体 */
-    @font-face {
-      font-family: 'ShanHaiJi';
-      src: url('ShanHaiJi-WebBody.woff2') format('woff2');
-      font-weight: normal;
-      font-style: normal;
-      font-display: swap;
-    }
-
-    @font-face {
-      font-family: 'ShanHaiJiFull';
-      src: url('ShanHaiJiGuSongKe-JianFan/ShanHaiJiGuSongKe-JianFan-2.woff2') format('woff2');
-      font-weight: normal;
-      font-style: normal;
-      font-display: swap;
-    }
-
     *, *::before, *::after {
       margin: 0;
       padding: 0;
@@ -88,7 +58,7 @@
       --gray-5: #666666;
       --gray-6: #333333;
       --font-title: 'LoveLetter', 'KeBenSong', 'KeBenSongFull', serif;
-      --font-body: 'LoveLetter', 'ShanHaiJi', 'ShanHaiJiFull', serif;
+      --font-body: 'LoveLetter', serif;
       /* 首屏"一屏高"所依据的视口高度。
          桌面端浏览器没有可伸缩工具栏，svh / lvh / dvh 与 vh 完全相等，
          所以默认值写 100vh——与改动前逐字等同，桌面端的计算结果一字节都不会变。

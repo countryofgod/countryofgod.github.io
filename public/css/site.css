@@ -14,14 +14,6 @@
   font-display: swap;
 }
 
-@font-face {
-  font-family: 'ShanHaiJi';
-  src: url('/fonts/ShanHaiJiGuSongKe-JianFan/ShanHaiJiGuSongKe-JianFan-2.woff2') format('woff2');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
 *, *::before, *::after {
   margin: 0;
   padding: 0;
@@ -38,7 +30,7 @@
   --gray-5: #666666;
   --gray-6: #333333;
   --font-title: 'LoveLetter', 'KeBenSong', serif;
-  --font-body: 'LoveLetter', 'ShanHaiJi', serif;
+  --font-body: 'LoveLetter', serif;
   /* 首屏"一屏高"所依据的视口高度。
      桌面端浏览器没有可伸缩工具栏，svh / lvh / dvh 与 vh 完全相等，
      所以默认值写 100vh——与改动前逐字等同，桌面端的计算结果一字节都不会变。
