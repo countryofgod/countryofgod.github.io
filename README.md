@@ -428,6 +428,11 @@ python -m fontTools.subset AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2
 python -m fontTools.subset AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2.ttf --text-file=tools/charset-title.txt --flavor=woff2 --layout-features='*' --output-file=AaGuDianKeBenSong-WebTitles.woff2
 ```
 
+**每日标题的字**：右栏的文题／诗题／曲名是运行时 fetch `daily/*.txt` 得来的，不在这 60 个静态字里——
+缺字会掉到 1.5 MB 的 `KeBenSongFull`（`font-display: swap`），在它下载完之前那个字显示成系统宋体，
+看上去就是"标题里某一个字跟别的字不一样"。跑 `npm run titlefont` 会把最近 60 天（前端往回找的上限）
+daily/ 里会出现在标题位上的字并进字集并重生成 woff2；每天的标题换字后跑一次即可。
+
 **什么时候要重跑**：静态副本里新增/改写了标题，且新标题出现了字表外的字。此时①不含该字 → 自动落到②，那个标题会「先用系统宋体、等 1.5 MB 到齐再换」。想让新标题也立刻用上目标字体，把新字追加进 `tools/charset-title.txt` 重跑上面这条命令即可（60 字 → 70 字只多几百字节）。
 
 **验收口径**（盯「丢了什么」，不是「省了多少」）：`tools/charset-title.txt` 里每个字的码位都必须在新 woff2 的 cmap 里，缺字数为 0；浏览器侧则要求 `document.fonts` 里 `KeBenSong` 为 `loaded` 而 `KeBenSongFull` 保持 `unloaded`。

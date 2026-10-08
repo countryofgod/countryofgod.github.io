@@ -11,6 +11,7 @@
     "daily": "node tools/publish-daily.mjs",
 
     "templates": "node worker/build-templates.mjs",
+    "titlefont": "node tools/build-title-font.mjs",
     "gray": "python tools/grayscale.py",
     "preflight": "node worker/preflight.mjs",
     "check": "node worker/dev-check.mjs",

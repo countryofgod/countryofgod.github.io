@@ -252,6 +252,11 @@ if (dailyGrid) {
     return d.getFullYear() + '_' + (d.getMonth() + 1) + '_' + d.getDate() + '.txt';
   };
 
+  /** 当天配图：与 txt 同名、只换扩展名（daily/music/2026_10_9.jpg）。
+      图片沿用"文件名即发布日期"那套：push 一张同名的 jpg，等于给那天的歌配图。
+      路径与 fetch 一样走相对地址，三种部署（Pages / Node / Workers）都指向同一份文件 */
+  const dailyImageName = (daysAgo) => 'daily/music/' + dailyFileName(daysAgo).replace(/\.txt$/, '.jpg');
+
   /** 某一天的文件；404 回 null（那天没有），网络不通抛错交给调用方 */
   const probeDaily = async (category, daysAgo) => {
     // no-store：push 当天文件后刷新就能看到，不在浏览器里留住旧的 404
@@ -365,15 +370,22 @@ if (dailyGrid) {
   let musicFound;         // undefined = 还没找过；找过了则是 { tracks }
 
   const loadMusic = async () => {
-    if (musicFound !== undefined) return musicFound;
+    // musicTracks 在这里就要带上：进 music 屏（showDailyCategory）走的是 loadMusic，
+    // 而它只看 musicTracks——不给的话屏内会一直显示"没有歌单"，
+    // 直到用户按下播放（那条路经 ensureMusic 才赋值）才突然冒出曲名
+    if (musicFound !== undefined) { musicTracks = musicFound.tracks; return musicFound; }
     let tracks = [];
+    let image = '';
     try {
       const hit = await findDaily('music');
-      if (hit) tracks = parseMusic(hit.text);
+      // 配图跟着"找到的那一天"走，不是跟着今天：歌单回退到前几天的旧文件时，
+      // 出现的也是那天的图，不会出现"昨天的歌配今天的图"
+      if (hit) { tracks = parseMusic(hit.text); image = dailyImageName(hit.daysAgo); }
     } catch {
       // 网络不通：当作没有歌单；刷新页面会重试
     }
-    musicFound = { tracks };
+    musicFound = { tracks, image };
+    musicTracks = tracks;
     return musicFound;
   };
 

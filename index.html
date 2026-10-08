@@ -2823,7 +2823,10 @@
       let musicFound;         // undefined = 还没找过；null = 找过了、没有
 
       const loadMusic = async () => {
-        if (musicFound !== undefined) return musicFound;
+        // musicTracks 在这里就要带上：进 music 屏（showDailyCategory）走的是 loadMusic，
+        // 而它只看 musicTracks——不给的话屏内会一直显示"没有歌单"，
+        // 直到用户按下播放（那条路经 ensureMusic 才赋值）才突然冒出曲名
+        if (musicFound !== undefined) { musicTracks = musicFound.tracks; return musicFound; }
         let tracks = [];
         try {
           const hit = await findDaily('music');
@@ -2832,6 +2835,7 @@
           // 网络不通：当作没有歌单；刷新页面会重试
         }
         musicFound = { tracks };
+        musicTracks = tracks;
         return musicFound;
       };
 
