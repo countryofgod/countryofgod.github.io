@@ -26,8 +26,8 @@ router.get('/', (req, res, next) => {
       notes: listGuestbook({ limit: config.guestbookSsrLimit }),
       submitMail: process.env.SUBMIT_MAIL || 'afterrainnn@outlook.com',
       admin: isAdmin(req),
-      // 「每日」右栏的内容：今天这一条（没有就渲染成空栏）
-      daily: getDailyByDate(todayIso()),
+      // 「每日」右栏不再由服务端渲染：内容来自仓库里的 daily/<分类>/*.txt，
+      // 由前端按当天日期取（见 public/js/site.js 的 Daily 段）
     });
   } catch (err) {
     next(err);

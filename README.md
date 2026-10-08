@@ -70,8 +70,10 @@ public/                 静态资源，两套运行时 + Workers [assets] 共用
 ├─ img/                 795.jpg / archive.jpg / lamp.webp / logo.png
 └─ fonts/               三套被引用的字体
 
+daily/                  每日内容（article / poem 两类），文件名即发布日期 —— 见「每日内容」
 tools/font-charset-cn.txt  中文字体子集化的用字集（见「字体子集」）
 tools/grayscale.py         图片黑白化脚本（灰度用 BT.709，与 CSS filter 同一套矩阵）
+tools/sync-daily.mjs       把 daily/ 的内容同步进 public/（Workers 部署前自动跑，见「每日内容」）
 wrangler.jsonc          Workers / D1 / R2 / 静态资源的绑定配置
 data/                   Node 版的 SQLite 库、口令与会话密钥（不入库）
 index.legacy.html       重构前的单文件页，留作回滚参照
@@ -176,9 +178,10 @@ npx wrangler secret put SESSION_SECRET     # 任意长随机串；不设则回�
 npm run deploy
 ```
 
-`npm run deploy` 实际是三步，任何一步失败都会停住：
+`npm run deploy` 实际是四步（第一步由 npm 的 `predeploy` 自动触发），任何一步失败都会停住：
 
 ```
+npm run predeploy   # 把 daily/ 的内容同步进 public/（Workers 的静态目录只有 public/）
 npm run preflight   # 自检：D1 id 是否填了、模板有没有过期、引用的资源在不在
 npm run templates   # EJS → worker/src/html.js（Workers 禁用 new Function，必须预编译）
 wrangler deploy
@@ -230,8 +233,10 @@ curl https://<你的域名>/healthz     # → {"ok":true,"articles":1}
 **5. 连 GitHub 自动部署**
 
 - 方式一（最省事）：Cloudflare 面板 → Workers & Pages → Create → 选 "Import from GitHub"，
-  授权 `countryofgod` 组织，选中本仓库，构建命令填 `npm run templates && npm run deploy`
-  （或 `npx wrangler deploy`），之后推 `main` 就自动上线。
+  授权 `countryofgod` 组织，选中本仓库，构建命令填 `npm run templates && npm run deploy`，
+  之后推 `main` 就自动上线。
+  **不要只填 `npx wrangler deploy`**：`daily/` 内容靠 `npm run deploy` 里的 `predeploy` 同步进
+  `public/`，跳过它线上 `/daily/…` 会 404（见「每日内容」）。
 - 方式二：用仓库里已备好的 `.github/workflows/deploy.yml`，
   在 GitHub 仓库 Settings → Secrets 里加 `CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID`、`ADMIN_PASSWORD`。
 
@@ -248,6 +253,36 @@ curl https://<你的域名>/healthz     # → {"ok":true,"articles":1}
 - `data/` 目录是唯一有状态的东西，备份/迁移只需搬这一个目录（含 `.db` 与口令文件）。
 - 公网部署请置于 HTTPS 反向代理之后，并把 `COOKIE_SECURE=1`。
 - 进程会以 SIGINT / SIGTERM 优雅退出并关闭数据库。
+
+## 每日内容（daily/）
+
+首页「每日」右栏的 article / poem 两类内容**不在数据库里，而是仓库里的纯文本文件**：
+
+```
+daily/article/2026_10_8.txt     # 文章
+daily/poem/2026_10_8.txt        # 诗
+```
+
+- **文件名就是发布日期**：`年_月_日`，月、日不补前导零（`2026_10_8`，不是 `2026_10_08`）。
+  push 一个文件 = 发布那一天的那一篇；要改内容就改原文件。
+- **格式**：第一行是标题（占右栏的标题位），其余行是正文，换行原样保留。
+- **取哪一篇**：页面按「今天」取当天的文件；当天没有就**往前逐天找最近的一篇**（最多往回 60 天）。
+  60 天以内一篇都没有时，右栏空着。
+- **切换**：iPod 菜单里的 `article` / `poem` 决定看哪一类，默认 `article`。
+
+三种部署读到的是同一份文件，路径都是 `/daily/<分类>/<文件名>`：
+
+| 部署 | 怎么读到的 |
+|---|---|
+| GitHub Pages | 文件就在仓库根，前端按相对路径直接取到 |
+| Node 版 | `server/app.js` 把 `/daily` 映射回仓库根的 `daily/`（只做静态托管） |
+| Workers | 部署前 `tools/sync-daily.mjs` 把 `daily/` 复制进 `public/`（`npm run deploy` / `npm run dev` 会自动跑） |
+
+> 推送到 GitHub 时务必走 npm 脚本（`npm run deploy`），别直接 `npx wrangler deploy`——
+> 后者跳过同步，线上 `/daily/…` 会 404。`public/daily/` 是生成物，不入库。
+
+与 `/admin` 的「本日 Daily」面板是两回事：那套（`daily_entries` 表 + `GET /api/daily`）保留着，
+但首页右栏已经不再读它。
 
 ## 五种核心机制
 

@@ -21,6 +21,9 @@ jobs:
 
       - run: npm ci
 
+      # 每日内容在仓库根的 daily/，Workers 的静态目录只有 public/：先同步一份进去
+      - run: node tools/sync-daily.mjs
+
       # EJS 在 Workers 里跑不了（禁用 new Function），先把模板编译成普通 JS 再打包
       - run: npm run templates
 

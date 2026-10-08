@@ -73,8 +73,8 @@ on('GET', '/', async (req, env) => {
       archive: await db.getArchive(env),
       notes: await db.listGuestbook(env, { limit }),
       submitMail: env.SUBMIT_MAIL || DEFAULT_MAIL,
-      // 「每日」右栏的内容：今天这一条（没有就渲染成空栏）
-      daily: await db.getDailyByDate(env, db.todayIso()),
+      // 「每日」右栏不再由服务端渲染：内容来自仓库里的 daily/<分类>/*.txt
+      // （部署时由 tools/sync-daily.mjs 同步进 public/），由前端按当天日期取
     })
   );
 });

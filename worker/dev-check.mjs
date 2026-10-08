@@ -149,9 +149,11 @@ const otherCookie = ((await call('/')).headers.get('set-cookie') || '').split(';
 check('换设备就是新身份', otherCookie.startsWith('gc_dev=') && otherCookie !== devCookie);
 
 // 同时起一份 Node 版（Express + node:sqlite），两边渲染结果必须逐 token 相同
+// 用 localhost 连而不是 127.0.0.1：个别环境（本机这台 Windows 就是）IPv4 回环地址不可用
+// （connect EADDRNOTAVAIL），IPv6 的 localhost 正常；在双栈正常的机器上两种写法等价
 process.env.PORT = '3114';
 await import('../server/app.js');
-const nodeHomeRes = await fetch('http://127.0.0.1:3114/');
+const nodeHomeRes = await fetch('http://localhost:3114/');
 const nodeHome = await nodeHomeRes.text();
 check('Node 版同样登记设备', (nodeHomeRes.headers.getSetCookie() || []).some((c) => c.startsWith('gc_dev=')));
 const vsNode = diffTokens(tokenize(bodyOf(nodeHome)), tokenize(bodyOf(homeHtml)));

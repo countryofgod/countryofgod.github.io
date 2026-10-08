@@ -11,8 +11,12 @@ document.querySelectorAll('.daily-ipod-btn[data-ipod="menu"]').forEach(btn => {
 // 屏内视图切换：点 music 是在这块屏幕里换一屏，不跳 URL、不换页面。
 // 用 pushState 记一层，MENU 才能靠 history.back() 退回上一个视图；
 // 浏览器前进／后退触发 popstate，再把视图同步回来。
-// 没有对应视图的菜单项（目前是 article / poem）点了不响应——它们的视图还没做。
+// article / poem 不是屏幕里的视图：它们是"右栏显示哪一类当天内容"的开关（见下面 Daily 段）。
 const ipodScreen = document.querySelector('.daily-ipod-screen');
+
+/** 切右栏看 article 还是 poem；由下面的 Daily 段赋值（页面里没有 Daily 区块时保持空函数） */
+let showDailyCategory = () => {};
+
 if (ipodScreen) {
   const ipodViews = Array.from(ipodScreen.querySelectorAll('[data-ipod-view]'));
 
@@ -69,7 +73,11 @@ if (ipodScreen) {
 
   const enterIpodView = (target) => {
     if (!target) return;
-    // 没有对应视图的项（目前是 article / poem）按了不响应——视图还没做
+    // article / poem 不进屏幕视图：切的是右栏显示哪一类的当天内容
+    if (target === 'article' || target === 'poem') {
+      showDailyCategory(target);
+      return;
+    }
     if (!ipodViews.some((v) => v.dataset.ipodView === target)) return;
     if (target === currentIpodView()) return;
     history.pushState({ ipod: target }, '', '#ipod-' + target);
@@ -151,9 +159,15 @@ if (ipodScreen) {
   showIpodView(currentIpodView());
 }
 
-// Daily 右栏：默认只露到机身底边那一条线，点 ↓ 展开。
-// 折叠线取机身实测高度：图片按比例缩放，写死会在窄屏或换图后错位。
-// 箭头只在"真的被裁住了"时显示——否则会留一个点了没反应的 ↓ 挂在那儿。
+/* ---------- Daily 右栏：当天的 article / poem ----------
+   内容不在数据库里，是仓库里的纯文本文件：
+     daily/article/2026_10_8.txt（article 类）
+     daily/poem/2026_10_8.txt   （poem 类）
+   文件名就是发布日期：年_月_日，月、日不补前导零；push 一个文件 = 发布那一天那一篇。
+   页面按"今天"取当天的文件，当天没有就往前逐天找最近的一篇（最多往回 60 天）。
+   文件第一行是标题，其余行是正文；正文的换行原样保留（.daily-body 是 pre-line）。
+   iPod 菜单里的 article / poem 决定看哪一类，默认 article。
+   文本一律走 textContent：拼 HTML 会把文件里的尖括号当标签执行。 */
 const dailyGrid = document.querySelector('.daily-grid');
 if (dailyGrid) {
   // 被裁的是 .daily-fold（视窗），不是正文那层——正文那层必须保持普通块盒，
@@ -161,7 +175,11 @@ if (dailyGrid) {
   const dailyFold = dailyGrid.querySelector('.daily-fold');
   const dailyToggle = dailyGrid.querySelector('[data-daily-toggle]');
   const dailyIpod = dailyGrid.querySelector('.daily-ipod');
+  const dailyRoot = dailyGrid.querySelector('.daily-content');
 
+  // 右栏默认只露到机身底边那一条线，点 ↓ 展开。折叠线取机身实测高度：
+  // 图片按比例缩放，写死会在窄屏或换图后错位；箭头只在"真的被裁住了"时显示——
+  // 否则会留一个点了没反应的 ↓ 挂在那儿
   const syncDailyFold = () => {
     if (!dailyFold || !dailyIpod) return;
     const fold = dailyIpod.getBoundingClientRect().height;
@@ -181,8 +199,94 @@ if (dailyGrid) {
     });
   }
 
-  syncDailyFold();
   window.addEventListener('resize', syncDailyFold);
+  syncDailyFold();
+
+  /* —— 找文件：今天没有就往前逐天找 —— */
+  const DAILY_FALLBACK_DAYS = 60; // 最多往回找多少天
+  const DAILY_BATCH = 7;          // 一批并发探几个日期：都是小文件，并发比逐个问快
+  const dailyCache = {};          // article / poem → { title, body } 或 null（找过了、没有）
+
+  const dailyFileName = (daysAgo) => {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    return d.getFullYear() + '_' + (d.getMonth() + 1) + '_' + d.getDate() + '.txt';
+  };
+
+  /** 某一天的文件；404 回 null（那天没有），网络不通抛错交给调用方 */
+  const probeDaily = async (category, daysAgo) => {
+    // no-store：push 当天文件后刷新就能看到，不在浏览器里留住旧的 404
+    const res = await fetch('daily/' + category + '/' + dailyFileName(daysAgo), { cache: 'no-store' });
+    if (!res.ok) return null;
+    const text = (await res.text()).replace(/^\uFEFF/, '');
+    return text.trim() ? { daysAgo, text } : null; // 空文件当成没有
+  };
+
+  const findDaily = async (category) => {
+    for (let start = 0; start < DAILY_FALLBACK_DAYS; start += DAILY_BATCH) {
+      const batch = [];
+      for (let d = start; d < Math.min(start + DAILY_BATCH, DAILY_FALLBACK_DAYS); d++) {
+        batch.push(probeDaily(category, d));
+      }
+      const hit = (await Promise.all(batch)).filter(Boolean).sort((a, b) => a.daysAgo - b.daysAgo)[0];
+      if (hit) return hit;
+    }
+    return null;
+  };
+
+  /** 第一行是标题（跳过开头的空行），其余是正文 */
+  const splitDaily = (text) => {
+    const lines = text.split(/\r?\n/);
+    let i = 0;
+    while (i < lines.length && !lines[i].trim()) i++;
+    return {
+      title: (lines[i] || '').trim(),
+      body: lines.slice(i + 1).join('\n').replace(/^\n+/, '').replace(/\s+$/, ''),
+    };
+  };
+
+  const renderDaily = (entry) => {
+    dailyRoot.textContent = '';
+    if (entry) {
+      const title = document.createElement('h3');
+      title.className = 'daily-title';
+      title.textContent = entry.title;
+      dailyRoot.appendChild(title);
+      if (entry.body) {
+        const body = document.createElement('div');
+        body.className = 'daily-body';
+        body.textContent = entry.body;
+        dailyRoot.appendChild(body);
+      }
+    }
+    // 字数变了：折叠线与展开箭头都要按新高度重量一次
+    syncDailyFold();
+  };
+
+  const loadDaily = async (category) => {
+    if (dailyCache[category] !== undefined) return dailyCache[category];
+    let entry = null;
+    try {
+      const hit = await findDaily(category);
+      if (hit) entry = splitDaily(hit.text);
+    } catch {
+      // 网络不通：当作没有，右栏保持空；刷新页面会重试
+    }
+    dailyCache[category] = entry;
+    return entry;
+  };
+
+  let dailySeq = 0;
+  showDailyCategory = (category) => {
+    const seq = ++dailySeq;
+    loadDaily(category).then((entry) => {
+      if (seq !== dailySeq) return; // 期间又切了分类：这次结果作废
+      renderDaily(entry);
+    });
+  };
+
+  // 默认显示 article
+  showDailyCategory('article');
 }
 
 // 跟随鼠标的反色圆：移动只改 transform，避免逐帧触发布局；

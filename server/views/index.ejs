@@ -58,17 +58,18 @@
                  走过一个循环就把位移减掉一个循环，内容每 3 行重复一次，接缝不可见。
                  只有第一份（data-ipod-base）是"原项"，脚本靠它判断当前选中；后两份是副本，
                  只为让上下都接得上，读屏与 Tab 都跳过。
-                 注：副本里 music 仍带 data-ipod-go，鼠标点到它也能进 music -->
+                 music 进的是屏内视图；article / poem 切的是右栏显示哪一类当天内容（见 site.js）。
+                 注：副本里同样带 data-ipod-go，鼠标点到它也有对应行为 -->
             <div class="daily-tags-track">
               <button class="daily-tag" type="button" data-ipod-base data-ipod-go="music">music</button>
-              <button class="daily-tag" type="button" data-ipod-base>article</button>
-              <button class="daily-tag" type="button" data-ipod-base>poem</button>
+              <button class="daily-tag" type="button" data-ipod-base data-ipod-go="article">article</button>
+              <button class="daily-tag" type="button" data-ipod-base data-ipod-go="poem">poem</button>
               <button class="daily-tag" type="button" data-ipod-go="music" aria-hidden="true" tabindex="-1">music</button>
-              <button class="daily-tag" type="button" aria-hidden="true" tabindex="-1">article</button>
-              <button class="daily-tag" type="button" aria-hidden="true" tabindex="-1">poem</button>
+              <button class="daily-tag" type="button" data-ipod-go="article" aria-hidden="true" tabindex="-1">article</button>
+              <button class="daily-tag" type="button" data-ipod-go="poem" aria-hidden="true" tabindex="-1">poem</button>
               <button class="daily-tag" type="button" data-ipod-go="music" aria-hidden="true" tabindex="-1">music</button>
-              <button class="daily-tag" type="button" aria-hidden="true" tabindex="-1">article</button>
-              <button class="daily-tag" type="button" aria-hidden="true" tabindex="-1">poem</button>
+              <button class="daily-tag" type="button" data-ipod-go="article" aria-hidden="true" tabindex="-1">article</button>
+              <button class="daily-tag" type="button" data-ipod-go="poem" aria-hidden="true" tabindex="-1">poem</button>
             </div>
             <!-- 固定选中框：钉在窗口正中，永远不随文字移动 -->
             <div class="daily-menu-band" aria-hidden="true"></div>
@@ -90,22 +91,17 @@
           <button class="daily-ipod-btn is-center" type="button" data-ipod="center" aria-label="确认，进入选中项"></button>
         </div>
       </div>
-      <!-- 右栏：今天的每日推荐。内容来自后端（daily_entries，一天一条），
-           在 /admin 的「本日 Daily」面板里维护；当天没有条目时这一栏就空着 -->
-      <div class="daily-content">
-<% if (daily) { %>
-        <h3 class="daily-title"><%= daily.title %></h3>
-<% if (daily.body) { %>
-        <div class="daily-body"><%= daily.body %></div>
-<% } %>
-<% } %>
-      </div>
+      <!-- 右栏：当天的 article / poem，内容来自仓库里的文本文件，不由服务端渲染——
+           daily/article/ 或 daily/poem/ 下的「2026_10_8.txt」这种名字（年_月_日），
+           第一行是标题、其余是正文；页面按当天日期取，没有就往前找最近的一篇。
+           文件名就是发布日期：push 一个文件，等于发布那一天那一篇。
+           iPod 菜单里的 article / poem 切换看哪一类，默认 article。取数逻辑在 /js/site.js -->
+      <div class="daily-content"></div>
       </div><!-- /折叠视窗 .daily-fold：越线的正文在这里被裁住 -->
-<% if (daily) { %>
       <!-- 展开箭头：与文章卡片上那枚同款。默认只露到机身底边那一条线，点它把越线的续文放出来
-           （那部分落在浮动之外，自动按整栏宽铺开）。当天没有条目就不渲染这个按钮 -->
-      <button class="daily-toggle" type="button" data-daily-toggle aria-expanded="false">↓</button>
-<% } %>
+           （那部分落在浮动之外，自动按整栏宽铺开）。初始隐藏，右栏内容真的超出折叠线时
+           由脚本显出来（没超线就没有这个按钮） -->
+      <button class="daily-toggle" type="button" data-daily-toggle aria-expanded="false" hidden>↓</button>
     </div>
   </section>
 

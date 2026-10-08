@@ -14,9 +14,11 @@
     "preflight": "node worker/preflight.mjs",
     "check": "node worker/dev-check.mjs",
 
+    "predev": "node tools/sync-daily.mjs",
     "dev": "wrangler dev",
+    "predeploy": "node tools/sync-daily.mjs",
     "deploy": "npm run preflight && npm run templates && wrangler deploy",
-    "deploy:skip-check": "wrangler deploy",
+    "deploy:skip-check": "node tools/sync-daily.mjs && wrangler deploy",
     "tail": "wrangler tail",
 
     "d1:create": "wrangler d1 create gods-country",

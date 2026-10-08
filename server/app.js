@@ -38,6 +38,14 @@ app.use((req, _res, next) => {
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 
+// 每日内容：内容源是仓库根的 daily/（GitHub Pages 直接服务仓库根，前端按
+// daily/<分类>/<年>_<月>_<日>.txt 取文件）。这里把 /daily 映射到那份目录，
+// 让 Node 版读的也是同一份文件——只做静态托管，没有任何业务逻辑。
+// fallthrough:false 是必需的：public/daily/ 是部署给 Workers 的旧副本，
+// 若这里找不到就放行，请求会被后面的 public 静态目录接住、把旧副本端出来
+// （表现为"根目录里删掉的文件在页面上还在"）。找不到就在这里 404。
+app.use('/daily', express.static(join(projectRoot, 'daily'), { fallthrough: false }));
+
 // 静态资源：字体与图片内容不可变，强缓存一年。
 // 目录放在项目根的 public/，与 Cloudflare Workers 的 [assets] 共用同一份
 app.use(

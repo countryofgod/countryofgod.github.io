@@ -59,7 +59,7 @@ const parts = [
   compile(read('partials/article-item.ejs'), 'articleItem', '{ article }'),
   compile(read('partials/archive-group.ejs'), 'archiveGroup', '{ group, open }'),
   compile(read('partials/guest-note.ejs'), 'guestNote', '{ note }'),
-  compile(read('index.ejs'), 'renderHome', '{ articles, archive, notes, submitMail, daily }'),
+  compile(read('index.ejs'), 'renderHome', '{ articles, archive, notes, submitMail }'),
   compile(read('article.ejs'), 'renderArticle', '{ article, archived, readable, echoes }'),
   compile(
     read('admin.ejs'),
