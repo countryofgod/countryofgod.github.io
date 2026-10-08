@@ -74,13 +74,22 @@
             <!-- 固定选中框：钉在窗口正中，永远不随文字移动 -->
             <div class="daily-menu-band" aria-hidden="true"></div>
           </nav>
+          <!-- 屏内播放器：曲名 → 进度时间 → 进度条，自上而下三行，都在脚本里写。
+               这里**没有任何可拖动的控件**：进度条是纯 div，宽度按百分比改——
+               摆一个看起来能拖、实际拖不动的滑块，比不摆更糟。
+               播放器本体（<audio>）不在这里：它挂在屏幕之外，切屏与切栏目都不会把它销毁 -->
           <div class="daily-ipod-view" data-ipod-view="music" hidden>
-            <p class="daily-ipod-note">音乐内容，后续设计。</p>
+            <div class="daily-music">
+              <p class="daily-music-name"></p>
+              <p class="daily-music-time"></p>
+              <div class="daily-music-bar"><i class="daily-music-fill"></i></div>
+            </div>
           </div>
         </div>
         <!-- 转盘上的四个按钮：按 .daily-ipod-wheel 的实测位置摆四块透明热区，
              图标在底下、热区盖在上面（z-index 高于白底框那层）。
-             MENU 接 history.back()（见 /js/site.js），另三个键的行为待定，暂不接 -->
+             MENU 回上一屏；左／右在 music 屏切上一首、下一首（在菜单屏仍是滚列表）；
+             下=播放／暂停；正中那枚是 center 确认键，与播放键无关（见 /js/site.js） -->
         <div class="daily-ipod-wheel">
           <button class="daily-ipod-btn is-menu" type="button" data-ipod="menu" aria-label="MENU，回到上一页"></button>
           <button class="daily-ipod-btn is-prev" type="button" data-ipod="prev" aria-label="上一首"></button>
@@ -91,13 +100,20 @@
           <button class="daily-ipod-btn is-center" type="button" data-ipod="center" aria-label="确认，进入选中项"></button>
         </div>
       </div>
-      <!-- 右栏：当天的 article / poem，内容来自仓库里的文本文件，不由服务端渲染——
-           daily/article/ 或 daily/poem/ 下的「2026_10_8.txt」这种名字（年_月_日），
-           第一行是标题、其余是正文；页面按当天日期取，没有就往前找最近的一篇。
+      <!-- 右栏：当天的 article / poem / music，内容来自仓库里的文本文件，不由服务端渲染——
+           daily/article/、daily/poem/、daily/music/ 下的「2026_10_8.txt」这种名字（年_月_日），
+           第一行是标题、其余是正文（music 那类是歌单，格式见 README）；
+           页面按当天日期取，没有就往前找最近的一篇。
            文件名就是发布日期：push 一个文件，等于发布那一天那一篇。
-           iPod 菜单里的 article / poem 切换看哪一类，默认 article。取数逻辑在 /js/site.js -->
+           iPod 菜单里的三个条目切换看哪一类，默认 article。取数逻辑在 /js/site.js -->
       <div class="daily-content"></div>
       </div><!-- /折叠视窗 .daily-fold：越线的正文在这里被裁住 -->
+      <!-- 播放器本体：**故意**放在 .daily-ipod-screen 之外、也不属于任何 [data-ipod-view]。
+           换屏只改视图的 hidden、切栏目只改右栏，这个元素从头到尾不被销毁，
+           所以"切到 article / poem 音乐照放"是结构决定的，不靠脚本事后补救。
+           display:none（见 site.css）不占版面；preload=none：进页面不预下载，
+           按下播放键才开始拉数据——访客不点音乐，就不为音乐付流量。 -->
+      <audio class="daily-audio" preload="none"></audio>
       <!-- 展开箭头：与文章卡片上那枚同款。默认只露到机身底边那一条线，点它把越线的续文放出来
            （那部分落在浮动之外，自动按整栏宽铺开）。初始隐藏，右栏内容真的超出折叠线时
            由脚本显出来（没超线就没有这个按钮） -->

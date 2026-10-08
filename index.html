@@ -59,6 +59,12 @@
       --gray-6: #333333;
       --font-title: 'LoveLetter', 'KeBenSong', 'KeBenSongFull', serif;
       --font-body: 'LoveLetter', serif;
+      /* 版心宽度：.section / .archive-head / .archive-inner / .footer-inner 四处共用，
+         一处改、四处同步，标题与正文、页脚永远落在同一条左右对齐线上。
+         两侧各留 48px 内边距，所以正文净宽 = 本值 − 96px（960 → 864px）。
+         2026-10-09：由 800px 放宽到 960px——用户要求"页面显示部分宽一点"；
+         要再调宽窄只改这一个数字 */
+      --page-w: 960px;
       /* 首屏"一屏高"所依据的视口高度。
          桌面端浏览器没有可伸缩工具栏，svh / lvh / dvh 与 vh 完全相等，
          所以默认值写 100vh——与改动前逐字等同，桌面端的计算结果一字节都不会变。
@@ -277,7 +283,7 @@
     .section {
       position: relative;
       padding: 120px 48px;
-      max-width: 800px;
+      max-width: var(--page-w);
       margin: 0 auto;
     }
 
@@ -569,14 +575,65 @@
       display: none;
     }
 
-    /* 视图里的占位说明。内容还没定，先只放一行灰字，不往里添任何东西 */
-    .daily-ipod-note {
-      font-family: var(--font-body);
-      font-size: 15px;
-      line-height: 1.9;
-      color: var(--gray-5);
-      text-align: center;
+    /* ---- music 视图里的播放器 ----
+       屏内可用面积只有约 184.5 × 227.4 CSS px，三行（曲名 / 时间 / 进度条）就占满了，
+       不往里添第四行。字号沿用屏内既有量级（15px 级），字体沿用全站正文那套
+       （--font-body），不引入新字体 */
+    .daily-music {
       padding: 0 12px;
+      text-align: center;
+      font-family: var(--font-body);
+      color: var(--black);
+    }
+
+    .daily-music-name {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.4;
+      /* 曲名来自仓库里的文本文件，长度不受控：允许词内断行，宁可折两行也不横向溢出 */
+      overflow-wrap: anywhere;
+    }
+
+    .daily-music-time {
+      margin: 7px 0 0;
+      font-size: 11px;
+      line-height: 1;
+      letter-spacing: 0.5px;
+      color: var(--gray-4);
+    }
+
+    /* 进度条是纯 div，宽度按百分比重写（见脚本）。不做可拖动控件：
+       看起来能拖、实际拖不动，比不给控件更糟 */
+    .daily-music-bar {
+      margin: 6px 0 0;
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(0, 0, 0, 0.12);
+      overflow: hidden;
+    }
+
+    .daily-music-fill {
+      display: block;
+      width: 0;
+      height: 100%;
+      background: var(--black);
+    }
+
+    /* 没歌单 / 直链打不开：只留一句提示。时间与进度条都收掉——
+       它们此刻显示的是空数据，摆着只会误导 */
+    .daily-music.is-error .daily-music-time,
+    .daily-music.is-error .daily-music-bar {
+      display: none;
+    }
+
+    .daily-music.is-error .daily-music-name {
+      color: var(--gray-5);
+    }
+
+    /* 播放器本体不占版面。它挂在屏幕之外（见标记处的注释）：
+       进了 [data-ipod-view] 就会被切屏的 hidden 一起收走，那它就不再是"换屏也不停"的那一个 */
+    .daily-audio {
+      display: none;
     }
 
     /* 固定行高而不是 flex:1 均分——均分会把这几行铺满整块屏幕，上下就不留白了 */
@@ -932,7 +989,7 @@
        max-width / margin / padding 三项与 .archive-inner 完全一致，标题与下方内容保持同一条左对齐线 */
     .archive-head {
       position: relative;
-      max-width: 800px;
+      max-width: var(--page-w);
       margin: 0 auto;
       padding: 0 48px;
     }
@@ -952,7 +1009,7 @@
     .archive-inner {
       position: relative;
       z-index: 1;
-      max-width: 800px;
+      max-width: var(--page-w);
       margin: 0 auto;
       padding: 0 48px;
     }
@@ -1180,7 +1237,7 @@
     }
 
     .footer-inner {
-      max-width: 800px;
+      max-width: var(--page-w);
       margin: 0 auto;
     }
 
@@ -1356,11 +1413,12 @@
       max-height: 1200px;
     }
 
-    /* 展开区宽度 ≈ 上面文章卡片的 60%：卡片在 800px 容器里两侧各退 48px 内边距 = 704px，
-       其 60% ≈ 424px。用 60% 起步、424px 封顶，窄窗口下随容器同比例收窄 */
+    /* 展开区宽度 ≈ 上面文章卡片的 60%：卡片在 --page-w（960px）容器里两侧各退 48px 内边距 = 864px，
+       其 60% ≈ 518px。用 60% 起步、518px 封顶，窄窗口下随容器同比例收窄
+       （版心放宽时这个封顶值要跟着 --page-w 一起改，否则比例关系就断了） */
     .footer-guestbook-inner {
       width: 60%;
-      max-width: 424px;
+      max-width: 518px;
       margin: 0 auto;
       padding-top: 8px;
     }
@@ -1665,7 +1723,7 @@
       .article-title {
         font-size: 18px;
       }
-      /* 卡片的 32/36 内边距是按桌面 704px 卡宽定的；手机屏宽只有三百多，
+      /* 卡片的 32/36 内边距是按桌面 864px 卡宽定的（--page-w 减两侧内边距）；手机屏宽只有三百多，
          两边各让 36px 会把正文挤成很窄的一条，收到 20px 把宽度还给文字 */
       .article-item {
         padding: 24px 20px;
@@ -1903,13 +1961,22 @@
             <!-- 固定选中框：钉在窗口正中，永远不随文字移动 -->
             <div class="daily-menu-band" aria-hidden="true"></div>
           </nav>
+          <!-- 屏内播放器：曲名 → 进度时间 → 进度条，自上而下三行，都在脚本里写。
+               这里**没有任何可拖动的控件**：进度条是纯 div，宽度按百分比改——
+               摆一个看起来能拖、实际拖不动的滑块，比不摆更糟。
+               播放器本体（<audio>）不在这里：它挂在屏幕之外，切屏与切栏目都不会把它销毁 -->
           <div class="daily-ipod-view" data-ipod-view="music" hidden>
-            <p class="daily-ipod-note">音乐内容，后续设计。</p>
+            <div class="daily-music">
+              <p class="daily-music-name"></p>
+              <p class="daily-music-time"></p>
+              <div class="daily-music-bar"><i class="daily-music-fill"></i></div>
+            </div>
           </div>
         </div>
         <!-- 转盘上的四个按钮：按 .daily-ipod-wheel 的实测位置摆四块透明热区，
              图标在底下、热区盖在上面（z-index 高于白底框那层）。
-             MENU 接 history.back()（见页内脚本），另三个键的行为待定，暂不接 -->
+             MENU 回上一屏；左／右在 music 屏切上一首、下一首（在菜单屏仍是滚列表）；
+             下=播放／暂停；正中那枚是 center 确认键，与播放键无关（见页内脚本） -->
         <div class="daily-ipod-wheel">
           <button class="daily-ipod-btn is-menu" type="button" data-ipod="menu" aria-label="MENU，回到上一页"></button>
           <button class="daily-ipod-btn is-prev" type="button" data-ipod="prev" aria-label="上一首"></button>
@@ -1927,6 +1994,12 @@
            iPod 菜单里的 article / poem 切换看哪一类，默认 article。取数逻辑在页尾脚本 -->
       <div class="daily-content"></div>
       </div><!-- /折叠视窗 .daily-fold：越线的正文在这里被裁住 -->
+      <!-- 播放器本体：**故意**放在 .daily-ipod-screen 之外、也不属于任何 [data-ipod-view]。
+           换屏只改视图的 hidden、切栏目只改右栏，这个元素从头到尾不被销毁，
+           所以"切到 article / poem 音乐照放"是结构决定的，不靠脚本事后补救。
+           display:none（见 CSS）不占版面；preload=none：进页面不预下载，
+           按下播放键才开始拉数据——访客不点音乐，就不为音乐付流量。 -->
+      <audio class="daily-audio" preload="none"></audio>
       <!-- 展开箭头：与文章卡片上那枚同款。默认只露到机身底边那一条线，点它把越线的续文放出来
            （那部分落在浮动之外，自动按整栏宽铺开）。初始隐藏，右栏内容真的超出折叠线时
            由脚本显出来（没超线就没有这个按钮） -->
@@ -1939,7 +2012,7 @@
     <div class="article-list">
       <!-- 这里原先有一串内联几何值（width: 704.01px / height: 376.189px / transform: translateY(16.111px)）。
            它们是可视化工具或保存页面时的运行期快照，不是设计意图：height 会把卡片钉死、
-           展开长文时盒子长不高；width 写死后窄屏（内容宽 < 704px）会横向溢出。
+           展开长文时盒子长不高；width 写死后窄屏（内容宽 < 864px）会横向溢出。
            已整段移除，尺寸交回 CSS（.article-item 随容器自适应）。它带来的那 16px 下移
            已在 .article-list 上用 padding-top 补回，卡片位置不变 -->
       <article class="article-item">
@@ -2096,24 +2169,17 @@
   <div class="cursor-invert" aria-hidden="true" style="transform: translate3d(792px, 1px, 0px) translate(-50%, -50%);"></div>
 
   <script>
-    // iPod 转盘：MENU 回到上一页（真机就是返回键）。
-    // 已经在菜单那一屏时没有上一屏可退，这时回站点首页。
-    // 上一首／下一首／播放暂停三个键已定位并可点，具体行为待定，先不接。
-    document.querySelectorAll('.daily-ipod-btn[data-ipod="menu"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (history.length > 1) history.back();
-        else location.href = '/';
-      });
-    });
-
     // 屏内视图切换：点 music 是在这块屏幕里换一屏，不跳 URL、不换页面。
     // 用 pushState 记一层，MENU 才能靠 history.back() 退回上一个视图；
     // 浏览器前进／后退触发 popstate，再把视图同步回来。
     // article / poem 不是屏幕里的视图：它们是"右栏显示哪一类当天内容"的开关（见下面 Daily 段）。
     const ipodScreen = document.querySelector('.daily-ipod-screen');
 
-    /** 切右栏看 article 还是 poem；由下面的 Daily 段赋值（页面里没有 Daily 区块时保持空函数） */
+    /** 切右栏看 article / poem / music；由下面的 Daily 段赋值（页面里没有 Daily 区块时保持空函数） */
     let showDailyCategory = () => {};
+
+    /** 音乐转盘的三个动作：'prev' | 'next' | 'play'；同样由 Daily 段赋值 */
+    let musicControl = () => {};
 
     if (ipodScreen) {
       const ipodViews = Array.from(ipodScreen.querySelectorAll('[data-ipod-view]'));
@@ -2131,6 +2197,23 @@
         const m = location.hash.match(/^#ipod-(.+)$/);
         return m && ipodViews.some((v) => v.dataset.ipodView === m[1]) ? m[1] : 'menu';
       };
+
+      // MENU = 真机上的返回键：只在「我们自己 pushState 压进去的子屏」里才回退。
+      // 判据必须是 history.state.ipod（enterIpodView 每次都写），不能用 history.length——
+      // 它只说明浏览器有历史（从别的站点点进来同样是 2），在菜单屏按它会一路退出站点。
+      // 菜单屏没有上一层可退：真机按 MENU 也不响应，这里就不响应。
+      document.querySelectorAll('.daily-ipod-btn[data-ipod="menu"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (currentIpodView() === 'menu') return;
+          if (history.state && history.state.ipod) { history.back(); return; }
+          // 深链直接落在子屏（别人分享 #ipod-music 打开的）：没有我们压的那层可退，
+          // 就地回菜单并把 hash 抹掉——绝不 back()，那会退到站点外
+          history.replaceState(null, '', location.pathname + location.search);
+          showIpodView('menu');
+        });
+      });
+
+      // 转盘上余下三个键（上一首／下一首／播放暂停）留待音乐视图接线
 
       // 这是一个循环列表：选中框永远固定在窗口正中（中槽），上下键滚的是列表本身，
       // 不是"选中项上下走"。
@@ -2171,11 +2254,11 @@
 
       const enterIpodView = (target) => {
         if (!target) return;
-        // article / poem 不进屏幕视图：切的是右栏显示哪一类的当天内容
-        if (target === 'article' || target === 'poem') {
-          showDailyCategory(target);
-          return;
-        }
+        // 三个条目都决定"右栏显示什么"：
+        //   article / poem → 当天的文章或诗，屏幕不动，只换右栏
+        //   music          → 当前这一曲的歌词，同时把屏幕换成播放器
+        if (target === 'article' || target === 'poem') { showDailyCategory(target); return; }
+        if (target === 'music') showDailyCategory('music');
         if (!ipodViews.some((v) => v.dataset.ipodView === target)) return;
         if (target === currentIpodView()) return;
         history.pushState({ ipod: target }, '', '#ipod-' + target);
@@ -2231,11 +2314,25 @@
       applyIpodTransform();
       syncIpodActive();
 
+      // 左／右两键是"一个键两种身份"：站在 music 屏里切歌，站在菜单屏里滚列表。
+      // 这个分叉必须放在这里判——两屏都用同一对物理键，没有第二个入口
       document.querySelectorAll('.daily-ipod-btn[data-ipod="prev"]').forEach(btn => {
-        btn.addEventListener('click', () => scrollIpodList(-1));
+        btn.addEventListener('click', () => {
+          if (currentIpodView() === 'music') { musicControl('prev'); return; }
+          scrollIpodList(-1);
+        });
       });
       document.querySelectorAll('.daily-ipod-btn[data-ipod="next"]').forEach(btn => {
-        btn.addEventListener('click', () => scrollIpodList(1));
+        btn.addEventListener('click', () => {
+          if (currentIpodView() === 'music') { musicControl('next'); return; }
+          scrollIpodList(1);
+        });
+      });
+
+      // 下键＝播放／暂停。这一键**不看当前在第几屏**：真机的播放键本来就是全局走带键，
+      // 而且"按播放键开/关音乐"正是用户要的行为，回菜单就失灵反倒像坏了
+      document.querySelectorAll('.daily-ipod-btn[data-ipod="play"]').forEach(btn => {
+        btn.addEventListener('click', () => musicControl('play'));
       });
 
       // 转盘正中那个白圆 = 确认键：进入当前选中项（中间那一行）对应的视图
@@ -2253,8 +2350,16 @@
         enterIpodView(btn.dataset.ipodGo);
       });
 
-      window.addEventListener('popstate', () => showIpodView(currentIpodView()));
-      showIpodView(currentIpodView());
+      // 视图同步只此一处：初始化、浏览器前进后退、MENU 的 history.back() 最终都落到这里。
+      // 落到 music 屏时右栏要跟着显示歌词——深链（别人分享的 #ipod-music）也走这条路，
+      // 只在 enterIpodView 里切右栏的话，直接开深链就会屏幕是音乐、右栏还是文章
+      const syncIpodView = () => {
+        const name = currentIpodView();
+        showIpodView(name);
+        if (name === 'music') showDailyCategory('music');
+      };
+      window.addEventListener('popstate', syncIpodView);
+      syncIpodView();
     }
 
     // 跟随鼠标的反色圆：移动只改 transform，避免逐帧触发布局；
@@ -2559,6 +2664,13 @@
       const dailyToggle = dailyGrid.querySelector('[data-daily-toggle]');
       const dailyIpod = dailyGrid.querySelector('.daily-ipod');
       const dailyRoot = dailyGrid.querySelector('.daily-content');
+      // 音乐那几块：播放器本体 + 屏内三行。都在 .daily-grid 里，
+      // 播放器本体故意不在屏幕内（见标记处注释），所以换屏不会把它一起收掉
+      const dailyAudio = dailyGrid.querySelector('.daily-audio');
+      const dailyMusicEl = dailyGrid.querySelector('.daily-music');
+      const dailyMusicName = dailyGrid.querySelector('.daily-music-name');
+      const dailyMusicTime = dailyGrid.querySelector('.daily-music-time');
+      const dailyMusicFill = dailyGrid.querySelector('.daily-music-fill');
 
       /* 默认只露到机身底边那一条线（--daily-fold），点 ↓ 展开；越线的那部分落在浮动之外，
          自动按整栏宽铺开。折叠线取机身实测高度：图片按比例缩放，写死会在窄屏或换图后错位。
@@ -2630,6 +2742,35 @@
         };
       };
 
+      /* 歌单是"块式"的（格式见 README「每日内容」/ PRD §14.3）：
+           第 1 行         —— 歌单标题，屏里不显示，只用来说明这份文件是什么
+           空行            —— 分块
+           每块第 1 行     —— 「曲名|mp3直链」，第一个 | 分界
+           每块其余行      —— 该曲歌词（静态原样，不解析 [00:12] 这类时间码）
+         只有「曲名|直链」一行、后面没有内容的块 = 该曲没有歌词，右栏就只显示曲名。
+         没有直链的块直接丢掉：缺了直链的"歌"在播放器里只是一个按下去没反应的死条目 */
+      const parseMusic = (text) => {
+        const lines = text.split(/\r?\n/);
+        let i = 0;
+        while (i < lines.length && !lines[i].trim()) i++;
+        const blocks = [];
+        let cur = null;
+        for (i = i + 1; i < lines.length; i++) {
+          if (!lines[i].trim()) { cur = null; continue; }
+          if (!cur) { cur = []; blocks.push(cur); }
+          cur.push(lines[i].replace(/\s+$/, ''));
+        }
+        return blocks.map((block) => {
+          const head = block[0];
+          const cut = head.indexOf('|');
+          return {
+            name: (cut >= 0 ? head.slice(0, cut) : head).trim(),
+            src: (cut >= 0 ? head.slice(cut + 1) : '').trim(),
+            lyrics: block.slice(1).join('\n').replace(/^\n+|\s+$/g, ''),
+          };
+        }).filter((track) => track.src);
+      };
+
       const renderDaily = (entry, category) => {
         dailyRoot.textContent = '';
         if (entry) {
@@ -2672,9 +2813,160 @@
         return entry;
       };
 
+      /* —— music：屏内播放器 + 右栏歌词 ——
+         歌单文件与 article / poem 同一套查找规则（daily/music/<日期>.txt），
+         所以"发布"仍然只是 push 一个文本文件，不需要后端、不需要进数据库。
+         播放器本体（dailyAudio）在屏幕之外，它只被这里读写，与视图切换完全无关。 */
+      let musicTracks = [];
+      let musicIndex = -1;   // -1 = 还没选过任何一首
+      let musicError = false; // 直链打不开：屏内显示提示，切到下一首即清掉
+      let musicFound;         // undefined = 还没找过；null = 找过了、没有
+
+      const loadMusic = async () => {
+        if (musicFound !== undefined) return musicFound;
+        let tracks = [];
+        try {
+          const hit = await findDaily('music');
+          if (hit) tracks = parseMusic(hit.text);
+        } catch {
+          // 网络不通：当作没有歌单；刷新页面会重试
+        }
+        musicFound = { tracks };
+        return musicFound;
+      };
+
+      /** 秒 → m:ss；时长还没拿到（preload=none，没按下播放前一无所知）就是 --:-- */
+      const clock = (sec) => {
+        if (!isFinite(sec) || sec < 0) return '--:--';
+        return Math.floor(sec / 60) + ':' + String(Math.floor(sec % 60)).padStart(2, '0');
+      };
+
+      /** 把当前曲目写进屏内三行。这是唯一会碰屏内 DOM 的函数，时间／进度都走它 */
+      const renderMusic = () => {
+        if (!dailyMusicEl) return;
+        const track = musicTracks[musicIndex] || null;
+        if (musicError || !track) {
+          dailyMusicEl.classList.add('is-error');
+          dailyMusicName.textContent = musicError ? '无法播放' : '没有歌单';
+          dailyMusicTime.textContent = '';
+          dailyMusicFill.style.width = '0%';
+          return;
+        }
+        dailyMusicEl.classList.remove('is-error');
+        dailyMusicName.textContent = track.name;
+        dailyMusicTime.textContent = clock(dailyAudio.currentTime) + ' / ' + clock(dailyAudio.duration);
+        const ratio = dailyAudio.duration ? dailyAudio.currentTime / dailyAudio.duration : 0;
+        dailyMusicFill.style.width = (Math.min(1, Math.max(0, ratio)) * 100).toFixed(2) + '%';
+      };
+
+      /** 右栏换成当前曲目的歌词。用 .daily-title / .daily-body 那套样式，
+          与 article、poem 的观感一致，只是标题位放曲名 */
+      const renderLyrics = () => {
+        dailyRoot.textContent = '';
+        const track = musicTracks[musicIndex] || null;
+        if (!track) return;
+        const name = document.createElement('h3');
+        name.className = 'daily-title';
+        name.textContent = track.name;
+        dailyRoot.appendChild(name);
+        if (track.lyrics) {
+          const body = document.createElement('div');
+          body.className = 'daily-body';
+          body.textContent = track.lyrics; // textContent：歌词里的尖括号不会被当标签执行
+          dailyRoot.appendChild(body);
+        }
+        syncDailyFold();
+      };
+
+      /** 切到当前这一首。withLyrics=false 用于"在菜单屏按了播放"——
+          那种情况下右栏还停在别的栏目上，不该被歌词抢走 */
+      const applyMusicTrack = (withLyrics) => {
+        musicError = false;
+        const track = musicTracks[musicIndex] || null;
+        const src = track ? track.src : '';
+        // 同一首不重写 src：给 .src 赋值会重新走一遍加载算法，正在放的那首会被拉回开头
+        if (dailyAudio.getAttribute('src') !== src) dailyAudio.setAttribute('src', src);
+        renderMusic();
+        if (withLyrics) renderLyrics();
+      };
+
+      const playMusic = () => {
+        // 直链打不开（404 / 跨域 / 编码不支持）都会走到这里；只改标志位，不去动 musicIndex，
+        // 用户切下一首就自然恢复
+        dailyAudio.play().catch(() => { musicError = true; renderMusic(); });
+      };
+
+      /** 曲目没载入时先载入；返回是否真的准备好了 */
+      const ensureMusic = async () => {
+        if (!musicFound) await loadMusic();
+        musicTracks = musicFound.tracks;
+        if (!musicTracks.length) return false;
+        if (musicIndex < 0 || musicIndex >= musicTracks.length) musicIndex = 0;
+        return true;
+      };
+
+      const toggleMusic = async () => {
+        if (!await ensureMusic()) { renderMusic(); return; }
+        const needSrc = dailyAudio.getAttribute('src') !== musicTracks[musicIndex].src;
+        if (needSrc || dailyAudio.paused) {
+          if (needSrc) applyMusicTrack(false);
+          playMusic();
+        } else {
+          dailyAudio.pause();
+        }
+      };
+
+      /** 上一首／下一首。到两端就不动——真机也是到端即止，不回头绕一圈。
+          autoplay：切之前本来在放就接着放，本来停着就停在暂停态（用户按下播放才算数） */
+      const switchMusic = (dir, autoplay) => {
+        const next = musicIndex + dir;
+        if (next < 0 || next >= musicTracks.length) return;
+        musicIndex = next;
+        applyMusicTrack(true);
+        if (autoplay) playMusic();
+      };
+
+      musicControl = (action) => {
+        if (action === 'play') { toggleMusic(); return; }
+        // 左右键只在 music 屏切歌（菜单屏那头由调用方继续滚列表，不在这里兜）。
+        // 歌单还没取到就没有"上一首/下一首"可言，直接不动
+        if (!musicTracks.length) return;
+        switchMusic(action === 'prev' ? -1 : 1, !dailyAudio.paused);
+      };
+
+      if (dailyAudio) {
+        // 进度与时长都直接读元素，不另存一份——存一份就要自己管同步，反而容易走偏
+        dailyAudio.addEventListener('timeupdate', renderMusic);
+        dailyAudio.addEventListener('durationchange', renderMusic);
+        dailyAudio.addEventListener('loadedmetadata', renderMusic);
+        dailyAudio.addEventListener('play', renderMusic);
+        dailyAudio.addEventListener('pause', renderMusic);
+        dailyAudio.addEventListener('error', () => { musicError = true; renderMusic(); });
+        // 放完自动顺到下一首；已经是最后一首就停在末尾，不循环（PRD §14.2 不做循环）
+        dailyAudio.addEventListener('ended', () => {
+          if (musicIndex + 1 < musicTracks.length) switchMusic(1, true);
+          else renderMusic();
+        });
+      }
+
       let dailySeq = 0;
       showDailyCategory = (category) => {
         const seq = ++dailySeq;
+        if (category === 'music') {
+          loadMusic().then(() => {
+            if (seq !== dailySeq) return; // 期间又切了分类：这次结果作废
+            const ready = musicTracks.length > 0;
+            if (ready) {
+              if (musicIndex < 0 || musicIndex >= musicTracks.length) musicIndex = 0;
+              applyMusicTrack(true);
+            } else {
+              musicIndex = -1;
+              renderMusic();
+              renderLyrics();
+            }
+          });
+          return;
+        }
         loadDaily(category).then((entry) => {
           if (seq !== dailySeq) return; // 期间又切了分类：这次结果作废
           renderDaily(entry, category);

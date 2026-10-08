@@ -31,6 +31,12 @@
   --gray-6: #333333;
   --font-title: 'LoveLetter', 'KeBenSong', serif;
   --font-body: 'LoveLetter', serif;
+  /* 版心宽度：.section / .archive-head / .archive-inner / .footer-inner 四处共用，
+     一处改、四处同步，标题与正文、页脚永远落在同一条左右对齐线上。
+     两侧各留 48px 内边距，所以正文净宽 = 本值 − 96px（960 → 864px）。
+     2026-10-09：由 800px 放宽到 960px——用户要求"页面显示部分宽一点"；
+     要再调宽窄只改这一个数字 */
+  --page-w: 960px;
   /* 首屏"一屏高"所依据的视口高度。
      桌面端浏览器没有可伸缩工具栏，svh / lvh / dvh 与 vh 完全相等，
      所以默认值写 100vh——与改动前逐字等同，桌面端的计算结果一字节都不会变。
@@ -249,7 +255,7 @@ body {
 .section {
   position: relative;
   padding: 120px 48px;
-  max-width: 800px;
+  max-width: var(--page-w);
   margin: 0 auto;
 }
 
@@ -542,14 +548,65 @@ body {
   display: none;
 }
 
-/* 视图里的占位说明。内容还没定，先只放一行灰字，不往里添任何东西 */
-.daily-ipod-note {
-  font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.9;
-  color: var(--gray-5);
-  text-align: center;
+/* ---- music 视图里的播放器 ----
+   屏内可用面积只有约 184.5 × 227.4 CSS px，三行（曲名 / 时间 / 进度条）就占满了，
+   不往里添第四行。字号沿用屏内既有量级（15px 级），字体沿用全站正文那套
+   （--font-body），不引入新字体 */
+.daily-music {
   padding: 0 12px;
+  text-align: center;
+  font-family: var(--font-body);
+  color: var(--black);
+}
+
+.daily-music-name {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.4;
+  /* 曲名来自仓库里的文本文件，长度不受控：允许词内断行，宁可折两行也不横向溢出 */
+  overflow-wrap: anywhere;
+}
+
+.daily-music-time {
+  margin: 7px 0 0;
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.5px;
+  color: var(--gray-4);
+}
+
+/* 进度条是纯 div，宽度按百分比重写（见 js/site.js）。不做可拖动控件：
+   看起来能拖、实际拖不动，比不给控件更糟 */
+.daily-music-bar {
+  margin: 6px 0 0;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+.daily-music-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--black);
+}
+
+/* 没歌单 / 直链打不开：只留一句提示。时间与进度条都收掉——
+   它们此刻显示的是空数据，摆着只会误导 */
+.daily-music.is-error .daily-music-time,
+.daily-music.is-error .daily-music-bar {
+  display: none;
+}
+
+.daily-music.is-error .daily-music-name {
+  color: var(--gray-5);
+}
+
+/* 播放器本体不占版面。它挂在屏幕之外（见 index.ejs 标记处的注释）：
+   进了 [data-ipod-view] 就会被切屏的 hidden 一起收走，那它就不再是"换屏也不停"的那一个 */
+.daily-audio {
+  display: none;
 }
 
 /* 固定行高而不是 flex:1 均分——均分会把这几行铺满整块屏幕，上下就不留白了 */
@@ -906,7 +963,7 @@ body {
    max-width / margin / padding 三项与 .archive-inner 完全一致，标题与下方内容保持同一条左对齐线 */
 .archive-head {
   position: relative;
-  max-width: 800px;
+  max-width: var(--page-w);
   margin: 0 auto;
   padding: 0 48px;
 }
@@ -945,7 +1002,7 @@ body {
 .archive-inner {
   position: relative;
   z-index: 1;
-  max-width: 800px;
+  max-width: var(--page-w);
   margin: 0 auto;
   padding: 0 48px;
 }
@@ -1173,7 +1230,7 @@ body {
 }
 
 .footer-inner {
-  max-width: 800px;
+  max-width: var(--page-w);
   margin: 0 auto;
 }
 
@@ -1351,11 +1408,12 @@ body {
   max-height: 1280px;
 }
 
-/* 展开区宽度 ≈ 上面文章卡片的 60%：卡片在 800px 容器里两侧各退 48px 内边距 = 704px，
-   其 60% ≈ 424px。用 60% 起步、424px 封顶，窄窗口下随容器同比例收窄 */
+/* 展开区宽度 ≈ 上面文章卡片的 60%：卡片在 --page-w（960px）容器里两侧各退 48px 内边距 = 864px，
+   其 60% ≈ 518px。用 60% 起步、518px 封顶，窄窗口下随容器同比例收窄
+   （版心放宽时这个封顶值要跟着 --page-w 一起改，否则比例关系就断了） */
 .footer-guestbook-inner {
   width: 60%;
-  max-width: 424px;
+  max-width: 518px;
   margin: 0 auto;
   padding-top: 8px;
 }
@@ -1698,7 +1756,7 @@ body {
   .article-title {
     font-size: 18px;
   }
-  /* 卡片的 32/36 内边距是按桌面 704px 卡宽定的；手机屏宽只有三百多，
+  /* 卡片的 32/36 内边距是按桌面 864px 卡宽定的（--page-w 减两侧内边距）；手机屏宽只有三百多，
      两边各让 36px 会把正文挤成很窄的一条，收到 20px 把宽度还给文字 */
   .article-item {
     padding: 24px 20px;

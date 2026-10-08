@@ -6,8 +6,9 @@
  *   npm run daily -- --dry-run     # 只显示"将要做什么"，什么都不动
  *   npm run daily -- --no-deploy   # 提交 + push；跳过本地部署（等 CI 自动部署）
  *
- * 每天往 daily/article 或 daily/poem 里写一个 txt（文件名 = 发布日期，如 2026_10_9.txt；
- * 第一行标题、其余正文），然后跑这一条命令。它会：
+ * 每天往 daily/article、daily/poem 或 daily/music 里写一个 txt（文件名 = 发布日期，
+ * 如 2026_10_9.txt；article/poem 第一行标题、其余正文，music 见 README「每日内容」），
+ * 然后跑这一条命令。它会：
  *   1. 校验文件名与内容——写错名字（如 2026_10_08，月日多补了零）或空文件会被挡下：
  *      这两种情况前端都只是静默不显示，先挡比事后上线了才发现快；
  *   2. git add -A daily/ 并提交，提交信息取标题；
@@ -43,7 +44,7 @@ log(`今天 ${today.getFullYear()}.${today.getMonth() + 1}.${today.getDate()}（
 /* ---------- 1. 看 daily/ 下有什么改动 ---------- */
 const statusRaw = gitOut('status', '--porcelain', '--', 'daily');
 if (!statusRaw.trim()) {
-  log('daily/ 下没有改动——先写好 daily/article 或 daily/poem 里的 txt，再跑本命令');
+  log('daily/ 下没有改动——先写好 daily/article、daily/poem 或 daily/music 里的 txt，再跑本命令');
   process.exit(0);
 }
 
@@ -65,16 +66,24 @@ const changes = statusRaw
 /* ---------- 2. 校验新增/修改的 txt，标题留作提交信息 ---------- */
 const touched = []; // 新增 / 修改：{ category, name, num, title, path }
 const removed = [];
+const assets = []; // 自托管的音频：daily/music/*.mp3，不参与标题校验，但要一起提交
 for (const c of changes) {
   if (c.code.startsWith('D')) {
     removed.push(c.path);
     continue;
   }
   if (c.path.endsWith('.gitkeep')) continue; // 占位文件，忽略
-  if (!c.path.endsWith('.txt')) fail(`daily/ 下只放 .txt 内容文件：${c.path}`);
+  // 歌单可以自托管音频：这些文件没有"标题行"，跳过下面那套 txt 校验，
+  // 但仍要进提交（歌单里写的 /daily/music/xxx.mp3 指的就是它们）
+  if (/\.(mp3|m4a|ogg|oga|opus|wav|flac)$/i.test(c.path)) {
+    if (!c.path.startsWith('daily/music/')) fail(`音频文件只放在 daily/music/ 下：${c.path}`);
+    assets.push(c.path);
+    continue;
+  }
+  if (!c.path.endsWith('.txt')) fail(`daily/ 下只放 .txt 内容文件（音频只放 daily/music/）：${c.path}`);
 
-  const m = c.path.match(/^daily\/(article|poem)\/(.+)\.txt$/);
-  if (!m) fail(`路径不对：${c.path}（应为 daily/article/… 或 daily/poem/…）`);
+  const m = c.path.match(/^daily\/(article|poem|music)\/(.+)\.txt$/);
+  if (!m) fail(`路径不对：${c.path}（应为 daily/article/… 、daily/poem/… 或 daily/music/…）`);
   const category = m[1];
   const name = m[2];
 
@@ -99,7 +108,7 @@ for (const c of changes) {
   touched.push({ category, name, num: dayNum(y, mo, d), title, path: c.path });
 }
 
-if (!touched.length && !removed.length) {
+if (!touched.length && !removed.length && !assets.length) {
   log('daily/ 下没有要发布的内容改动（只有占位文件）');
   process.exit(0);
 }
@@ -112,6 +121,10 @@ for (const t of touched) {
   log(`  + daily/${t.category}/${t.name}.txt  「${t.title}」${future}`);
 }
 for (const p of removed) log(`  - ${p}（删除）`);
+for (const p of assets) {
+  const kb = Math.max(1, Math.round(readFileSync(join(root, p)).byteLength / 1024));
+  log(`  + ${p}（自托管音频，${kb} KB）`);
+}
 
 /* ---------- 4. 提交 ---------- */
 const headline = touched.length
