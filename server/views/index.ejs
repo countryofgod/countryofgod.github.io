@@ -41,7 +41,10 @@
     <div class="daily-grid">
       <div class="daily-ipod">
         <!-- ipod-clean.jpg 与 ipod.jpeg 同尺寸，机身左右边界（实测 x 38..917）之外已置纯白 -->
-        <img class="daily-ipod-body" src="/img/ipod-clean.jpg" alt="iPod nano 4th gen">
+        <!-- ipod-clean.webp：显示宽度 230px 的 2 倍（460×1015），17KB；原 jpg 是 955×2107 / 507KB。
+             width/height 写在标签上，浏览器先占好位置，图片到位时不跳版 -->
+        <img class="daily-ipod-body" src="/img/ipod-clean.webp" width="460" height="1015"
+             decoding="async" alt="iPod nano 4th gen">
         <div class="daily-ipod-screen">
           <!-- 屏内视图：menu 是菜单本身，music 是点 music 后在同一块屏幕里换上来的内容。
                两个视图都带 data-ipod-view，脚本靠它切换；没有对应视图的菜单项点了不响应 -->
@@ -199,12 +202,14 @@
                  再把整组复制一遍（后面那组只作无缝循环的替身） -->
             <div class="guest-film">
               <div class="guest-film-track">
-                <figure class="guest-film-frame" style="--aspect: 1.3333"><img src="/img/lamp.webp" alt="一盏蒂芙尼台灯"></figure>
-                <figure class="guest-film-frame" style="--aspect: 1.3241"><img src="/img/still-1.jpg" alt="黑白剧照：咖啡馆对谈"></figure>
-                <figure class="guest-film-frame" style="--aspect: 1.25"><img src="/img/still-2.jpg" alt="黑白剧照：病房相见"></figure>
-                <figure class="guest-film-frame" style="--aspect: 1.3333" aria-hidden="true"><img src="/img/lamp.webp" alt=""></figure>
-                <figure class="guest-film-frame" style="--aspect: 1.3241" aria-hidden="true"><img src="/img/still-1.jpg" alt=""></figure>
-                <figure class="guest-film-frame" style="--aspect: 1.25" aria-hidden="true"><img src="/img/still-2.jpg" alt=""></figure>
+                <!-- 胶片带的图在页脚、默认还是收起的：一律懒加载；width/height 写出来是为了
+                     让三帧先按比例占好位，图片到位时轨道与高度都不会跳 -->
+                <figure class="guest-film-frame" style="--aspect: 1.3333"><img src="/img/lamp.webp" width="660" height="495" loading="lazy" decoding="async" alt="一盏蒂芙尼台灯"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3241"><img src="/img/still-1.webp" width="660" height="498" loading="lazy" decoding="async" alt="黑白剧照：咖啡馆对谈"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.25"><img src="/img/still-2.webp" width="660" height="528" loading="lazy" decoding="async" alt="黑白剧照：病房相见"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3333" aria-hidden="true"><img src="/img/lamp.webp" width="660" height="495" loading="lazy" decoding="async" alt=""></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3241" aria-hidden="true"><img src="/img/still-1.webp" width="660" height="498" loading="lazy" decoding="async" alt=""></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.25" aria-hidden="true"><img src="/img/still-2.webp" width="660" height="528" loading="lazy" decoding="async" alt=""></figure>
               </div>
             </div>
           </div>

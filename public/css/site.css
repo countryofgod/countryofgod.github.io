@@ -415,8 +415,17 @@ body {
   top: 5.89%;
   width: 80.21%;
   height: 44.8%;
-  /* 屏幕内底色 #B4C3DF：用户本轮指定（此前迭代过 #FBF9F5 暖纸白等），以本条为准 */
-  background: #B4C3DF;
+  /* 屏幕内底色：由纯色 #B4C3DF 换成用户本轮给的 ipod_background.webp（原图 1609×1207，
+     已按 2 倍显示尺寸压到 640×480 / 2.6KB（原先 1609×1207 / 42KB：这张图是渐变天空，
+     多出来的像素全是浪费）。
+     用 居中 + cover：屏幕框是竖的（230px 宽机身 → 屏幕约 184×227 CSS px，比例 0.81），
+     图是横的，cover 按原比例放大到"盖满"整块框，多出来的左右两侧交给上面的 overflow: hidden
+     裁掉——既不拉伸变形，也不会像 contain 那样在上下留出空带。图是一整片天空，
+     被裁的两侧几乎没有变化，看不出裁切痕迹。
+     圆角与外框照旧：border-radius + 那道内阴影不动，仍是原来的圆角矩形边框。
+     #B4C3DF 降级为兜底色：图片未加载完或加载失败时屏幕仍是原来那块淡蓝，
+     不会变成透明、透出底下机身照片的屏幕区域。 */
+  background: #B4C3DF url('/img/ipod_background.webp') center / cover no-repeat;
   border-radius: 6px;
   box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, 0.55);
   display: flex;

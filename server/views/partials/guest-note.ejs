@@ -1,5 +1,6 @@
               <div class="guest-note" data-id="<%= note.id %>">
                 <p class="guest-note-head"><span class="guest-note-name"><%= note.name %></span><span><%= note.date %></span></p>
 <% if (note.body) { %>                <p class="guest-note-text"><%= note.body %></p>
-<% } %><% if (note.imageUrl) { %>                <img class="guest-note-img" alt="<%= note.name %> 上传的图片" src="<%= note.imageUrl %>">
+<% } %><% if (note.imageUrl) { %>                <!-- 留言照片走图床，体积不可控：至少让它懒加载，别挡住首屏 -->
+                <img class="guest-note-img" alt="<%= note.name %> 上传的图片" src="<%= note.imageUrl %>" loading="lazy" decoding="async">
 <% } %>              </div>

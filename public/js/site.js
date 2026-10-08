@@ -265,6 +265,9 @@ function renderNote(item) {
     const img = document.createElement('img');
     img.className = 'guest-note-img';
     img.alt = (item.name || '匿名') + ' 上传的图片';
+    // 留言照片走图床，体积不可控：懒加载 + 异步解码，别拖住首屏
+    img.loading = 'lazy';
+    img.decoding = 'async';
     img.src = item.imageUrl;
     note.appendChild(img);
   }
