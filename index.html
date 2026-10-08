@@ -480,13 +480,23 @@
       top: 5.89%;
       width: 80.21%;
       height: 44.8%;
-      /* 屏幕内底色：由纯色 #B4C3DF 换成用户本轮给的 ipod_background.webp。
+      /* 屏幕内底色：原来是纯色，现换成用户给的 ipod_background.webp。
          本文件是自包含副本，图片路径与上面 archive.webp 一样是相对的（根目录同名文件）。
          居中 + cover：屏幕框是竖的（比例 0.81），图是横的，cover 按原比例放大到盖满整块框，
          多出的左右两侧被 overflow: hidden 裁掉——不拉伸变形，也不像 contain 那样上下留空带。
          圆角与外框（border-radius + 内阴影）原样保留。
-         #B4C3DF 降级为兜底色：图未加载完或加载失败时屏幕仍是原来那块淡蓝，不会透出机身照片。 */
-      background: #B4C3DF url('ipod_background.webp') center / cover no-repeat;
+         兜底色是纯白 #FFF（用户指定）：图未加载完或加载失败时屏幕是一块纯白，不会透出机身照片。
+
+         叠在最上面的那层是手绘边框壁纸 ipod_screen_frame.webp（本副本的路径同样是相对的）：
+         在 549×787 原图上扫描出手绘边框外接矩形（上 y 24–33、下 y 747–755、左 x 28–37、
+         右 x 506–514），按矩形裁到 487×732，再按屏幕比例导出 2 倍图 369×455。
+         size 用 100% 100%：四边各自拉伸到屏幕边界，手绘框线正落在屏幕边上；用 cover 会裁掉
+         框线，用 contain 会在四边留空带。笔迹深蓝 #123A78、30% 不透明，天空能透过来。
+         背景层"先写的盖在上面"，故它排在前面——压在 ipod_background 之上、屏内内容之下。
+         越过框线的笔迹尖梢（约 3.6%）由上面的 overflow: hidden 裁掉。 */
+      background:
+        url('ipod_screen_frame.webp') center / 100% 100% no-repeat,
+        #FFF url('ipod_background.webp') center / cover no-repeat;
       border-radius: 6px;
       box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, 0.55);
       display: flex;

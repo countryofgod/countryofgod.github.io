@@ -468,7 +468,7 @@ body {
   top: 5.89%;
   width: 80.21%;
   height: 44.8%;
-  /* 屏幕内底色：由纯色 #B4C3DF 换成用户本轮给的 ipod_background.webp（原图 1609×1207，
+  /* 屏幕内底色：原来是纯色，现换成用户给的 ipod_background.webp（原图 1609×1207，
      已按 2 倍显示尺寸压到 640×480 / 2.6KB（原先 1609×1207 / 42KB：这张图是渐变天空，
      多出来的像素全是浪费）。
      用 居中 + cover：屏幕框是竖的（230px 宽机身 → 屏幕约 184×227 CSS px，比例 0.81），
@@ -476,9 +476,22 @@ body {
      裁掉——既不拉伸变形，也不会像 contain 那样在上下留出空带。图是一整片天空，
      被裁的两侧几乎没有变化，看不出裁切痕迹。
      圆角与外框照旧：border-radius + 那道内阴影不动，仍是原来的圆角矩形边框。
-     #B4C3DF 降级为兜底色：图片未加载完或加载失败时屏幕仍是原来那块淡蓝，
-     不会变成透明、透出底下机身照片的屏幕区域。 */
-  background: #B4C3DF url('/img/ipod_background.webp') center / cover no-repeat;
+     兜底色是纯白 #FFF（用户指定；先前那版是淡蓝 #B4C3DF）：图片未加载完或加载失败时
+     屏幕就是一块纯白，不会变成透明、透出底下机身照片的屏幕区域。
+
+     叠在最上面的那层是用户给的手绘边框壁纸（ipod_screen_frame.webp）：
+     先在 549×787 的原图上像素扫描出手绘边框的外接矩形（上 y 24–33、下 y 747–755、
+     左 x 28–37、右 x 506–514，笔画约 10px 宽），按外接矩形裁到 487×732，
+     再按屏幕比例导出 2 倍图 369×455。size 用 100% 100%（不是 cover）：四边各自拉伸到
+     屏幕边界，手绘的框线才正落在屏幕边上——比例差 1.22 倍，手绘线条本身粗细就在变，
+     这点横向拉伸看不出来；用 cover 会把框线裁掉一截，用 contain 又会在四边留下空带。
+     笔迹是深蓝 #123A78、整体 30% 不透明（用户定稿值），所以 ipod_background 的天空能透过来。
+     背景层是"先写的盖在上面"，故它排在 ipod_background 之前——正好压在天上、又在
+     屏内所有内容（.daily-ipod-view / .daily-tags 三栏）之下，不需要额外的 DOM 层级。
+     笔迹越过手绘框线的部分（约 3.6%，都是笔画尖梢）会被上面的 overflow: hidden 裁掉。 */
+  background:
+    url('/img/ipod_screen_frame.webp') center / 100% 100% no-repeat,
+    #FFF url('/img/ipod_background.webp') center / cover no-repeat;
   border-radius: 6px;
   box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, 0.55);
   display: flex;
