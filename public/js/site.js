@@ -1,3 +1,156 @@
+// iPod 转盘：MENU 回到上一页（真机就是返回键）。
+// 已经在菜单那一屏时没有上一屏可退，这时回站点首页。
+// 上一首／下一首／播放暂停三个键已定位并可点，具体行为待定，先不接。
+document.querySelectorAll('.daily-ipod-btn[data-ipod="menu"]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (history.length > 1) history.back();
+    else location.href = '/';
+  });
+});
+
+// 屏内视图切换：点 music 是在这块屏幕里换一屏，不跳 URL、不换页面。
+// 用 pushState 记一层，MENU 才能靠 history.back() 退回上一个视图；
+// 浏览器前进／后退触发 popstate，再把视图同步回来。
+// 没有对应视图的菜单项（目前是 article / poem）点了不响应——它们的视图还没做。
+const ipodScreen = document.querySelector('.daily-ipod-screen');
+if (ipodScreen) {
+  const ipodViews = Array.from(ipodScreen.querySelectorAll('[data-ipod-view]'));
+
+  const showIpodView = (name) => {
+    ipodViews.forEach((view) => {
+      const on = view.dataset.ipodView === name;
+      view.hidden = !on;
+      view.classList.toggle('is-current', on);
+    });
+  };
+
+  // 当前该显示哪个视图：URL 上没有 #ipod-xxx 就显示菜单
+  const currentIpodView = () => {
+    const m = location.hash.match(/^#ipod-(.+)$/);
+    return m && ipodViews.some((v) => v.dataset.ipodView === m[1]) ? m[1] : 'menu';
+  };
+
+  // 这是一个循环列表：选中框永远固定在窗口正中（中槽），上下键滚的是列表本身，
+  // 不是"选中项上下走"。
+  // 做法：轨道里排 3 份相同内容（每份 3 行），滑动只改 translateY、从不改任何 DOM 节点。
+  // 走过一个循环（3 行）就把位移整体减掉一个循环——内容每 3 行重复一次，
+  // 回退前后每一像素都相同，所以看不到接缝，也不存在"清空一帧再补回来"的过程。
+  const ipodMenuEl = ipodScreen.querySelector('[data-ipod-view="menu"]');
+  const ipodTrackEl = ipodMenuEl && ipodMenuEl.querySelector('.daily-tags-track');
+  const IPOD_ROW = 32;              // 须与 .daily-tag 的 flex-basis 一致
+  const IPOD_CYCLE = IPOD_ROW * 3;  // 一个循环 = 3 行；轨道里共 3 份 = 9 行
+
+  // 只有第一份（data-ipod-base）是原项，副本不参与选中判断
+  const ipodItems = () => (ipodTrackEl ? Array.from(ipodTrackEl.querySelectorAll('[data-ipod-base]')) : []);
+
+  // 当前选中 = 固定中槽压住的那一行。只按位移推算，不去改任何元素的 class
+  const ipodSelected = () => {
+    const items = ipodItems();
+    if (!items.length) return null;
+    // 轨道默认上移一个循环，所以静止时窗口顶行是第 3 行、中槽压的是第 4 行
+    const bandRow = items.length + 1 - Math.round(ipodOffset / IPOD_ROW);
+    return items[((bandRow % items.length) + items.length) % items.length];
+  };
+
+  // 选中项变黑：颜色跟着"中槽此刻压住的那一行"走，选中框本身依旧不动。
+  // 只在所在行发生变化时才碰 classList——逐帧写 class 会反复打断 color 过渡，颜色会闪
+  let ipodActiveEl = null;
+  const syncIpodActive = () => {
+    const items = ipodItems();
+    if (!ipodTrackEl || !items.length) return;
+    // 中槽中心落在第几行：轨道基准上移了一个循环（3 行），中槽自身又在窗口正中（+1.5 行）
+    const row = Math.floor(items.length + 1.5 - ipodOffset / IPOD_ROW);
+    const el = ipodTrackEl.children[row] || null;
+    if (el === ipodActiveEl) return;
+    if (ipodActiveEl) ipodActiveEl.classList.remove('is-active');
+    if (el) el.classList.add('is-active');
+    ipodActiveEl = el;
+  };
+
+  const enterIpodView = (target) => {
+    if (!target) return;
+    // 没有对应视图的项（目前是 article / poem）按了不响应——视图还没做
+    if (!ipodViews.some((v) => v.dataset.ipodView === target)) return;
+    if (target === currentIpodView()) return;
+    history.pushState({ ipod: target }, '', '#ipod-' + target);
+    showIpodView(target);
+  };
+
+  // 用 requestAnimationFrame 逐帧写位移，不再走 CSS transition。
+  // 每帧把"离目标还差多少"吃掉固定比例，天然带缓动、收尾不生硬，也不用猜过渡何时结束。
+  let ipodOffset = 0;   // 当前位移
+  let ipodTarget = 0;   // 目标位移；连按会累加，所以不会被上一次动画挡住
+  let ipodRaf = null;
+
+  // 轨道基准位置上移一个循环（-96px），上下才各有副本可滚
+  const applyIpodTransform = () => {
+    if (!ipodTrackEl) return;
+    ipodTrackEl.style.transform = 'translateY(' + (ipodOffset - IPOD_CYCLE) + 'px)';
+  };
+
+  const ipodTick = () => {
+    ipodOffset += (ipodTarget - ipodOffset) * 0.22;
+
+    // 走过一个整循环就整体回退一个循环：位移减掉 96px，目标同时减 96px。
+    // 内容每 3 行重复一次，回退前后画面逐像素相同，所以看不到跳变；
+    // 全程不碰任何 DOM 节点，也就不存在"清空一帧再补回来"的闪烁
+    while (ipodOffset <= -IPOD_CYCLE) { ipodOffset += IPOD_CYCLE; ipodTarget += IPOD_CYCLE; }
+    while (ipodOffset > IPOD_CYCLE) { ipodOffset -= IPOD_CYCLE; ipodTarget -= IPOD_CYCLE; }
+
+    // 颜色跟着中槽走（选中框本身不动）
+    syncIpodActive();
+
+    if (Math.abs(ipodTarget - ipodOffset) < 0.5) {
+      ipodOffset = ipodTarget;
+      syncIpodActive();
+      applyIpodTransform();
+      ipodRaf = null;
+      return;
+    }
+
+    applyIpodTransform();
+    ipodRaf = window.requestAnimationFrame(ipodTick);
+  };
+
+  const scrollIpodList = (dir) => {
+    if (!ipodTrackEl || ipodItems().length < 2) return;
+    // 只有停在菜单这一屏时才滚；进了 music 视图再按上下键没有意义
+    if (currentIpodView() !== 'menu') return;
+    // dir > 0（下一首）：列表向上滚；dir < 0（上一首）：向下滚
+    ipodTarget -= dir * IPOD_ROW;
+    if (!ipodRaf) ipodRaf = window.requestAnimationFrame(ipodTick);
+  };
+
+  // 接管后先写一次 transform 与选中色：值与 CSS／标记里的静态兜底一致，不会闪
+  applyIpodTransform();
+  syncIpodActive();
+
+  document.querySelectorAll('.daily-ipod-btn[data-ipod="prev"]').forEach(btn => {
+    btn.addEventListener('click', () => scrollIpodList(-1));
+  });
+  document.querySelectorAll('.daily-ipod-btn[data-ipod="next"]').forEach(btn => {
+    btn.addEventListener('click', () => scrollIpodList(1));
+  });
+
+  // 转盘正中那个白圆 = 确认键：进入当前选中项（中间那一行）对应的视图
+  document.querySelectorAll('.daily-ipod-btn[data-ipod="center"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sel = ipodSelected();
+      enterIpodView(sel && sel.dataset.ipodGo);
+    });
+  });
+
+  // 直接点某一项也能进它的视图，等于跳过转盘点选
+  ipodScreen.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-ipod-go]');
+    if (!btn) return;
+    enterIpodView(btn.dataset.ipodGo);
+  });
+
+  window.addEventListener('popstate', () => showIpodView(currentIpodView()));
+  showIpodView(currentIpodView());
+}
+
 // 跟随鼠标的反色圆：移动只改 transform，避免逐帧触发布局；
 // 只在首屏（首页那张画）与页脚出现，其余内容区不打扰阅读；鼠标离开窗口也隐去
 const cursorInvert = document.querySelector('.cursor-invert');

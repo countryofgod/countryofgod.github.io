@@ -7,6 +7,7 @@ import {
   validateArchiveEntry,
   validateEcho,
   validateDraft,
+  validateDaily,
   IMAGE_MIME,
   errorStatus,
 } from '../../server/validators.js';
@@ -72,6 +73,8 @@ on('GET', '/', async (req, env) => {
       archive: await db.getArchive(env),
       notes: await db.listGuestbook(env, { limit }),
       submitMail: env.SUBMIT_MAIL || DEFAULT_MAIL,
+      // 「每日」右栏的内容：今天这一条（没有就渲染成空栏）
+      daily: await db.getDailyByDate(env, db.todayIso()),
     })
   );
 });
@@ -120,6 +123,15 @@ on('GET', '/admin', async (req, env) => {
       archiveEntries: authed ? await db.listArchiveEntries(env) : [],
       notes: authed ? await db.listGuestbook(env, { limit: 200 }) : [],
       stats: authed ? await db.guestbookStats(env) : null,
+      // 「本日 Daily」面板：默认填今天这一条；还没有就填一个今天的空壳，方便直接写
+      daily: authed
+        ? (await db.getDailyByDate(env, db.todayIso())) ?? {
+            date: db.todayIso(),
+            category: 'article',
+            title: '',
+            body: '',
+          }
+        : null,
     })
   );
 });
@@ -273,6 +285,17 @@ on('DELETE', '/api/archive/:id', async (req, env, params) => {
   if (denied) return denied;
   const ok = await db.deleteArchiveEntry(env, Number(params.id));
   return ok ? json({ ok: true }) : json({ error: 'not found' }, 404);
+});
+
+/**
+ * POST /api/daily —— 写入/更新某一天的 Daily（默认今天）。
+ * 一天一条（slot_date 唯一），同日再提交就是覆盖式更新，所以用 POST 而不是 PUT：
+ * 调用方不需要先知道库里有没有这一天。
+ */
+on('POST', '/api/daily', async (req, env) => {
+  const denied = await guard(env, req);
+  if (denied) return denied;
+  return json(await db.upsertDaily(env, validateDaily(await req.json())));
 });
 
 on('DELETE', '/api/guestbook/:id', async (req, env, params, ctx) => {

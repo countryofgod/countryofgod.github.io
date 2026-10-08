@@ -373,3 +373,38 @@ export function clearDraft(deviceId, slot) {
   if (!deviceId) return;
   db.prepare('DELETE FROM drafts WHERE device_id = ? AND slot = ?').run(deviceId, slot);
 }
+
+/* ---------------- 本日 Daily：首页「每日」右栏的内容 ---------------- */
+
+/** 今天（服务器本地时区，与页面其它日期同一口径） */
+export const todayIso = () => {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+
+const DAILY_COLS = 'id, slot_date, category, title, body, created_at, updated_at';
+
+const shapeDaily = (r) =>
+  r && {
+    id: r.id,
+    date: r.slot_date,
+    category: r.category,
+    title: r.title,
+    body: r.body || '',
+    updatedAt: r.updated_at,
+  };
+
+export const getDailyByDate = (date) =>
+  shapeDaily(db.prepare(`SELECT ${DAILY_COLS} FROM daily_entries WHERE slot_date = ?`).get(date));
+
+/** 按日期写入：同一天再提交就是更新（slot_date 唯一） */
+export function upsertDaily({ date, category, title, body }) {
+  const now = new Date().toISOString();
+  db.prepare(
+    `INSERT INTO daily_entries (slot_date, category, title, body, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT (slot_date) DO UPDATE SET category = ?, title = ?, body = ?, updated_at = ?`
+  ).run(date, category, title, body, now, now, category, title, body, now);
+  return getDailyByDate(date);
+}

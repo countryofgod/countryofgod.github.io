@@ -56,6 +56,16 @@ export const SCHEMA = [
      created_at   TEXT NOT NULL,
      last_seen_at TEXT NOT NULL
    )`,
+  // 本日 Daily：一天一条（slot_date 唯一），内容由 /admin 的「本日 Daily」面板维护
+  `CREATE TABLE IF NOT EXISTS daily_entries (
+     id          INTEGER PRIMARY KEY AUTOINCREMENT,
+     slot_date   TEXT    NOT NULL UNIQUE,   -- 'YYYY-MM-DD'
+     category    TEXT    NOT NULL,          -- music / article / poem
+     title       TEXT    NOT NULL,
+     body        TEXT    NOT NULL DEFAULT '',
+     created_at  TEXT    NOT NULL,
+     updated_at  TEXT    NOT NULL
+   )`,
   `CREATE INDEX IF NOT EXISTS idx_guestbook_device ON guestbook (device_id)`,
   `CREATE INDEX IF NOT EXISTS idx_articles_published ON articles (published_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_archive_year_month ON archive_entries (year, month)`,

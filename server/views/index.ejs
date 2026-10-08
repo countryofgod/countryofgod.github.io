@@ -30,6 +30,71 @@
     </div>
   </section>
 
+  <!-- Daily：每日推荐。夹在「首屏」与「文章」之间——首屏之后的第一块内容。
+       左侧是一台 iPod nano 4th gen，屏幕改成白底框 + 三栏标签；
+       右侧是巴黎评论式的信息流（封面图 + 衬线标题 + 署名 + 斜体摘要）。
+       左侧是一台 iPod nano 4th gen（ipod-clean.jpg），屏幕改成白底框 + 三栏标签，
+       转盘上的四个按钮做成可点击热区；右侧是巴黎评论式的信息流。内容后续设计 -->
+  <section class="section daily" id="daily">
+    <p class="section-label">Daily</p>
+    <h2 class="section-title">每日</h2>
+    <div class="daily-grid">
+      <div class="daily-ipod">
+        <!-- ipod-clean.jpg 与 ipod.jpeg 同尺寸，机身左右边界（实测 x 38..917）之外已置纯白 -->
+        <img class="daily-ipod-body" src="/img/ipod-clean.jpg" alt="iPod nano 4th gen">
+        <div class="daily-ipod-screen">
+          <!-- 屏内视图：menu 是菜单本身，music 是点 music 后在同一块屏幕里换上来的内容。
+               两个视图都带 data-ipod-view，脚本靠它切换；没有对应视图的菜单项点了不响应 -->
+          <nav class="daily-tags daily-ipod-view is-current" data-ipod-view="menu" aria-label="每日推荐分类">
+            <!-- 循环列表：轨道上排 3 份相同内容（每份 3 行）。滑动只改 translateY、不改 DOM；
+                 走过一个循环就把位移减掉一个循环，内容每 3 行重复一次，接缝不可见。
+                 只有第一份（data-ipod-base）是"原项"，脚本靠它判断当前选中；后两份是副本，
+                 只为让上下都接得上，读屏与 Tab 都跳过。
+                 注：副本里 music 仍带 data-ipod-go，鼠标点到它也能进 music -->
+            <div class="daily-tags-track">
+              <button class="daily-tag" type="button" data-ipod-base data-ipod-go="music">music</button>
+              <button class="daily-tag" type="button" data-ipod-base>article</button>
+              <button class="daily-tag" type="button" data-ipod-base>poem</button>
+              <button class="daily-tag" type="button" data-ipod-go="music" aria-hidden="true" tabindex="-1">music</button>
+              <button class="daily-tag" type="button" aria-hidden="true" tabindex="-1">article</button>
+              <button class="daily-tag" type="button" aria-hidden="true" tabindex="-1">poem</button>
+              <button class="daily-tag" type="button" data-ipod-go="music" aria-hidden="true" tabindex="-1">music</button>
+              <button class="daily-tag" type="button" aria-hidden="true" tabindex="-1">article</button>
+              <button class="daily-tag" type="button" aria-hidden="true" tabindex="-1">poem</button>
+            </div>
+            <!-- 固定选中框：钉在窗口正中，永远不随文字移动 -->
+            <div class="daily-menu-band" aria-hidden="true"></div>
+          </nav>
+          <div class="daily-ipod-view" data-ipod-view="music" hidden>
+            <p class="daily-ipod-note">音乐内容，后续设计。</p>
+          </div>
+        </div>
+        <!-- 转盘上的四个按钮：按 .daily-ipod-wheel 的实测位置摆四块透明热区，
+             图标在底下、热区盖在上面（z-index 高于白底框那层）。
+             MENU 接 history.back()（见 /js/site.js），另三个键的行为待定，暂不接 -->
+        <div class="daily-ipod-wheel">
+          <button class="daily-ipod-btn is-menu" type="button" data-ipod="menu" aria-label="MENU，回到上一页"></button>
+          <button class="daily-ipod-btn is-prev" type="button" data-ipod="prev" aria-label="上一首"></button>
+          <button class="daily-ipod-btn is-next" type="button" data-ipod="next" aria-label="下一首"></button>
+          <button class="daily-ipod-btn is-play" type="button" data-ipod="play" aria-label="播放或暂停"></button>
+          <!-- 正中那个白圆是确认键（真机的 center 键），不是播放键。
+               放在最后并加 z-index，才不会被上面四个扇形抢走点击 -->
+          <button class="daily-ipod-btn is-center" type="button" data-ipod="center" aria-label="确认，进入选中项"></button>
+        </div>
+      </div>
+      <!-- 右栏：今天的每日推荐。内容来自后端（daily_entries，一天一条），
+           在 /admin 的「本日 Daily」面板里维护；当天没有条目时这一栏就空着 -->
+      <div class="daily-content">
+<% if (daily) { %>
+        <h3 class="daily-title"><%= daily.title %></h3>
+<% if (daily.body) { %>
+        <div class="daily-body"><%= daily.body %></div>
+<% } %>
+<% } %>
+      </div>
+    </div>
+  </section>
+
   <!-- Latest Articles -->
   <section class="section" id="latest">
     <div class="article-list">
@@ -54,24 +119,6 @@
 
     <div class="archive-inner">
 <% archive.forEach((group, i) => { %><%- include('partials/archive-group', { group, open: i === 0 }) %><% }); %>
-    </div>
-  </section>
-
-  <!-- Daily：每日推荐。左右栏结构（左标签 / 右内容），标题规范参照档案馆。
-       右侧为每日推荐内容，后续设计——这里先放日期占位与一行说明 -->
-  <section class="section daily" id="daily">
-    <p class="section-label">Daily</p>
-    <h2 class="section-title">每日</h2>
-    <div class="daily-grid">
-      <nav class="daily-tags" aria-label="每日推荐分类">
-        <a class="daily-tag" href="#">music</a>
-        <a class="daily-tag is-active" href="#">article</a>
-        <a class="daily-tag" href="#">poem</a>
-      </nav>
-      <div class="daily-content">
-        <p class="daily-date"><%= new Date().toISOString().slice(0, 10).replace(/-/g, '.') %></p>
-        <p class="daily-placeholder">每日推荐内容，后续设计。</p>
-      </div>
     </div>
   </section>
 

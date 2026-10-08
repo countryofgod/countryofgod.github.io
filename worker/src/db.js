@@ -1,5 +1,5 @@
 import { SCHEMA } from './schema.js';
-import { seedArticle, seedArchive } from '../../server/seed-data.js';
+import { seedArticle, seedArchive, seedDaily } from '../../server/seed-data.js';
 import { Unavailable } from '../../server/validators.js';
 import { uploadToImgbb } from '../../server/imgbb.js';
 
@@ -60,6 +60,20 @@ export function bootstrap(env) {
           .run();
         // seed 出来的这篇已经在档案馆里，按"收录后不改"同样锁定
         await lockArticle(env, Number(info.meta.last_row_id));
+      }
+      // 「本日 Daily」：表里还一条都没有时种一条今天的占位（只有标题，正文等 admin 填）
+      const dailyRow = await env.DB.prepare('SELECT COUNT(*) AS n FROM daily_entries').first();
+      if (!dailyRow || dailyRow.n === 0) {
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+        const iso = now.toISOString();
+        await env.DB.prepare(
+          `INSERT INTO daily_entries (slot_date, category, title, body, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?)`
+        )
+          .bind(today, seedDaily.category, seedDaily.title, seedDaily.body, iso, iso)
+          .run();
       }
     })();
   }
@@ -427,4 +441,45 @@ export async function myGuestbook(env, deviceId) {
 export async function guestbookStats(env) {
   const row = await env.DB.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(image_bytes), 0) AS bytes FROM guestbook').first();
   return { count: row?.n ?? 0, imageBytes: row?.bytes ?? 0 };
+}
+
+/* ---------------- 本日 Daily：首页「每日」右栏的内容 ---------------- */
+
+/** 今天（与页面其它日期同一口径：服务器本地时区） */
+export const todayIso = () => {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+
+const DAILY_COLS = 'id, slot_date, category, title, body, created_at, updated_at';
+
+const shapeDaily = (r) =>
+  r && {
+    id: r.id,
+    date: r.slot_date,
+    category: r.category,
+    title: r.title,
+    body: r.body || '',
+    updatedAt: r.updated_at,
+  };
+
+export async function getDailyByDate(env, date) {
+  const row = await env.DB.prepare(`SELECT ${DAILY_COLS} FROM daily_entries WHERE slot_date = ?`)
+    .bind(date)
+    .first();
+  return shapeDaily(row);
+}
+
+/** 按日期写入：同一天再提交就是更新（slot_date 唯一） */
+export async function upsertDaily(env, { date, category, title, body }) {
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO daily_entries (slot_date, category, title, body, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT (slot_date) DO UPDATE SET category = ?, title = ?, body = ?, updated_at = ?`
+  )
+    .bind(date, category, title, body, now, now, category, title, body, now)
+    .run();
+  return getDailyByDate(env, date);
 }

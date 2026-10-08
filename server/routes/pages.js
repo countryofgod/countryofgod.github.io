@@ -11,6 +11,8 @@ import {
   randomArticle,
   isArchived,
   listEchoes,
+  getDailyByDate,
+  todayIso,
 } from '../queries.js';
 
 const router = Router();
@@ -24,6 +26,8 @@ router.get('/', (req, res, next) => {
       notes: listGuestbook({ limit: config.guestbookSsrLimit }),
       submitMail: process.env.SUBMIT_MAIL || 'afterrainnn@outlook.com',
       admin: isAdmin(req),
+      // 「每日」右栏的内容：今天这一条（没有就渲染成空栏）
+      daily: getDailyByDate(todayIso()),
     });
   } catch (err) {
     next(err);
@@ -78,6 +82,10 @@ router.get(config.adminPath, (req, res, next) => {
       archiveEntries: authed ? listArchiveEntries() : [],
       notes: authed ? listGuestbook({ limit: 200 }) : [],
       stats: authed ? guestbookStats() : null,
+      // 「本日 Daily」面板：默认填今天这一条；还没有就填一个今天的空壳，方便直接写
+      daily: authed
+        ? getDailyByDate(todayIso()) ?? { date: todayIso(), category: 'article', title: '', body: '' }
+        : null,
     });
   } catch (err) {
     next(err);

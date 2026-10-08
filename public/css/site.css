@@ -277,8 +277,6 @@ body {
 #latest {
   position: relative;
   z-index: 3;
-  padding-top: 40px;
-  margin-top: min(0px, calc(var(--vp-h) + var(--hero-fade-len) + 100px - 105.333%));
 }
 
 /* 版块标题：只放宽字距，保持左对齐——用户明确否掉了档案馆这一处的居中。
@@ -301,29 +299,215 @@ body {
 }
 
 /* ---------- Daily：每日推荐（左右栏，标题规范参照档案馆）---------- */
-/* 左标签列 + 右内容列的栅格；列宽 160px 给左栏留足小写衬线词的空间 */
+/* Daily 现在是首屏之后的第一块内容，夹在首屏与文章之间。
+   原先由 #latest 承担的「上移到首图刚好淡没那条线」的负外边距挪到这里：
+   首图高度 = 105.333% × 容器宽（aspect-ratio 3/3.16 → 高 = 宽 × 3.16/3），
+   而百分比外边距按包含块宽度解析，所以 "105.333%" 恰好等于首图高度。于是
+   margin-top = (首屏线 + 淡出长度) − 首图高度，负值即上拉距离。
+   min(0px, …) 是窄窗口兜底：那里首图高度就是 100vh，算式为正，clamp 成 0——不重叠。
+   算式与 --hero-fade-len 绑定：动了那个变量，这里同步，首图残影才不会透到 Daily 背后。
+   padding-top: 40px 沿用原约定「首块内容与封面区间距 40px」 */
+.daily {
+  position: relative;
+  z-index: 3;
+  padding-top: 40px;
+  margin-top: min(0px, calc(var(--vp-h) + var(--hero-fade-len) + 100px - 105.333%));
+}
+
+/* 左：iPod nano 4th gen。右：每日推荐内容。
+   列宽 250px 放下机器，剩下的都留给右栏 */
 .daily-grid {
   display: grid;
-  grid-template-columns: 160px 1fr;
-  gap: 48px;
+  grid-template-columns: 250px 1fr;
+  gap: 40px;
   align-items: start;
 }
 
-/* 左栏：巴黎评论式的衬线小写词，竖排、右侧一道浅分隔线 */
-.daily-tags {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  padding-right: 24px;
-  border-right: 1px solid var(--gray-2);
+.daily-ipod {
+  position: relative;
+  width: 100%;
+  /* ipod-clean.jpg 与 ipod.jpeg 同尺寸（955×2107），区别只是把机身左右边界
+     （实测 x 38..917）之外的像素置成了纯白、去掉那圈细微阴影，机身内的边缘明暗原样保留。
+     尺寸故意不裁剪：屏幕白框那组百分比是按整图算的，裁剪会让它失效。
+     230px 显示相当于 4 倍下采样，原生分辨率足够，不需要增强处理 */
+  max-width: 230px;
 }
 
+.daily-ipod-body {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* 转盘四个按钮的可点击热区。
+   转盘位置在 ipod-clean.jpg（955×2107）上做像素扫描实测：
+   圆环外接矩形 x 157..807、y 1219..1865，圆心 (482, 1542)，直径 651×647
+   → left 16.44% / top 57.85% / width 68.17% / height 30.71%
+   外层用 border-radius:50% + overflow:hidden 把四个扇形裁在转盘圆内：
+   方形热区的四角会溢出圆外，正好被裁掉（那些位置本来也在圆外）。
+   z-index 高于白底框那层，否则下半部分的"开关"热区会被它盖住 */
+.daily-ipod-wheel {
+  position: absolute;
+  left: 16.44%;
+  top: 57.85%;
+  width: 68.17%;
+  height: 30.71%;
+  border-radius: 50%;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.daily-ipod-btn {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* 四个扇形：上=MENU，左=上一首，右=下一首，下=开关（播放／暂停） */
+.daily-ipod-btn.is-menu { left: 25%; top: 0; width: 50%; height: 33.34%; }
+.daily-ipod-btn.is-prev { left: 0; top: 33.33%; width: 33.33%; height: 33.34%; }
+.daily-ipod-btn.is-next { left: 66.67%; top: 33.33%; width: 33.33%; height: 33.34%; }
+.daily-ipod-btn.is-play { left: 25%; top: 66.67%; width: 50%; height: 33.33%; }
+
+/* 转盘正中那个白圆 = 确认键（真机的 center 键）。
+   圆心实测半径 150px、直径 300×298，占转盘外接矩形（651×647）的 46.08% × 46.06%。
+   z-index 压在四个扇形之上——它整个落在扇形的包围盒里，不给层级就会被抢走点击 */
+.daily-ipod-btn.is-center {
+  left: 50%;
+  top: 50%;
+  width: 46.08%;
+  height: 46.06%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  z-index: 1;
+}
+
+/* 滚动列表：选中框固定在中槽，上下键滚的是列表本身（做法见脚本：只改 translateY，
+   走过一个循环就把位移减掉一个循环，内容每 3 行重复一次所以接缝不可见） */
+/* 滚动列表的位移由脚本逐帧写 transform（见 /js/site.js 里的 ipodTick），
+   这里**不要**再挂 transition：每帧改 transform 又带过渡，等于每帧重启一次动画，
+   浏览器每一帧都在追赶一个刚被改写的目标值——那正是"一卡一卡"的来源。
+   缓动也交给脚本里的指数逼近，不再依赖 CSS 的 easing */
+
+/* 热区完全透明、悬停不给出任何视觉反馈：真机的转盘按键本身不会亮，
+   加悬停高亮等于在机器上凭空多出一块光斑。
+   focus-visible 那道描边留着——键盘 Tab 到它时必须能看见焦点在哪 */
+.daily-ipod-btn:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.65);
+  outline-offset: -2px;
+}
+
+/* 屏幕里的白底框：位置由 ipod.jpeg 逐行扫描实测换算（屏幕区 x 95–860、y 124–1067，
+   整图 955×2107 → left 9.95%、top 5.89%、width 80.21%、height 44.80%），不靠肉眼估。
+   注：扫描时若按"整行暗像素的最左/最右"取值，会把机身两侧的暗边（x 38–44、x 911–916，
+   各只有几像素宽）误当成屏幕边缘，白框会偏宽；改取"最长连续暗段"才是屏幕真边界。
+   圆角取 6px：小弧度，只把四角收圆，不做"圆润卡片"那种观感。
+   overflow: hidden 让行与分隔线被圆角裁住，不越出到框外。
+   内阴影留一道细黑边，像屏幕玻璃的边缘 */
+.daily-ipod-screen {
+  position: absolute;
+  left: 9.95%;
+  top: 5.89%;
+  width: 80.21%;
+  height: 44.8%;
+  /* 屏幕内底色 #B4C3DF：用户本轮指定（此前迭代过 #FBF9F5 暖纸白等），以本条为准 */
+  background: #B4C3DF;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, 0.55);
+  display: flex;
+  overflow: hidden;
+}
+
+/* .daily-ipod-view 是"屏内的一个视图"：music 之类内容不是独立页面，
+   而是在这块屏幕里换一屏。所以每个视图都占满屏幕、居中，非当前的那个直接 display:none */
+.daily-ipod-view {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---- 菜单：循环列表 ----
+   窗口只露 3 行（96px），在屏幕里垂直居中。
+   轨道里排着 3 份相同内容（9 行）；脚本只改 translateY、从不改任何 DOM——
+   走过一个循环（3 行 = 96px）就把位移整体减掉一个循环，因为内容每 3 行重复一次，
+   回退前后每一像素都相同，所以接缝不可见，也不存在"清空一帧再补回来"的过程 */
+.daily-tags {
+  position: relative;
+  justify-content: flex-start;
+  height: 96px;      /* 3 行 × 32px，须与 .daily-tag 的行高一致 */
+  margin: auto 0;    /* 在屏幕里垂直居中 */
+  overflow: hidden;
+}
+
+.daily-tags-track {
+  position: relative;
+  z-index: 1;        /* 压在选中框之上，字不会被那层淡底盖住 */
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  /* 默认上移一个循环：上下各留一份副本，首尾才接得上。
+     脚本接管这个 transform（值 = -96px + 当前位移），此处是脚本失效时的静态兜底 */
+  transform: translateY(-96px);
+}
+
+/* 固定选中框：永远钉在窗口正中，不随文字移动。
+   文字从它下面滑过，滑进框里的那一行就是当前选中项 */
+.daily-menu-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 32px;      /* = 行高，须与 .daily-tag 一致 */
+  transform: translateY(-50%);
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  background: rgba(0, 0, 0, 0.04);
+  pointer-events: none;
+}
+
+.daily-ipod-view[hidden] {
+  display: none;
+}
+
+/* 视图里的占位说明。内容还没定，先只放一行灰字，不往里添任何东西 */
+.daily-ipod-note {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--gray-5);
+  text-align: center;
+  padding: 0 12px;
+}
+
+/* 固定行高而不是 flex:1 均分——均分会把这几行铺满整块屏幕，上下就不留白了 */
 .daily-tag {
-  font-family: Georgia, 'Times New Roman', var(--font-title), serif;
-  font-size: 22px;
-  letter-spacing: 0.5px;
+  flex: 0 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 三栏字体按用户指定用 Podium Sans；它装不上时回退到上一版指定的 Adobe Caslon Pro，
+     再往后才是近似衬线兜底——不要把回退链整条换掉，否则等于把上一版的字体丢掉。
+     两款都是商用字体：要让所有访客都看到，需把授权 woff2 放进 public/fonts 并补 @font-face */
+  font-family: 'Podium Sans', 'PodiumSans', 'Podium Sans Web', 'Adobe Caslon Pro', 'Adobe Caslon', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', var(--font-title), serif;
+  font-size: 18px;
   color: var(--gray-4);
   text-decoration: none;
+  /* 菜单项是 <button>（屏内切换，不跳 URL），要显式清掉按钮原生的边框、底色与内边距，
+     只保留那条底部分隔线——否则按钮的灰底和全边框会盖掉整个列表的观感 */
+  border: 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+  background: transparent;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
   transition: color 0.35s ease;
 }
 
@@ -331,45 +515,45 @@ body {
   color: var(--black);
 }
 
+/* 每一行都保留同一条底部分隔线：轨道里 3 份内容必须逐像素一致，
+   接缝处才不会因为"某一行少一条线"而露馅 */
+
+/* 选中项变黑：is-active 由脚本按"中槽此刻压住哪一行"实时挂上／摘掉（见 syncIpodActive），
+   不随 DOM 顺序写死；color 过渡在上面那条里，交接时是渐变而不是硬切 */
 .daily-tag.is-active {
   color: var(--black);
 }
 
-/* 右栏：每日推荐内容，后续设计——先放日期占位与一行说明 */
-.daily-content {
-  min-height: 120px;
+/* 右栏：每日推荐内容。今天的推荐是《河的第三条岸》——只放标题，
+   其余内容后续设计再填（此前那块占位——封面图 / 署名 / 斜体摘要——已按要求删掉，不恢复） */
+.daily-title {
+  font-family: var(--font-title);
+  font-size: 22px;
+  line-height: 1.45;
+  letter-spacing: 1px;
+  color: var(--black);
+  margin: 0;
 }
 
-.daily-date {
+/* 右栏正文：来自后端的长文。white-space: pre-line 保留作者在 admin 里敲的换行，
+   不必把每一段都拆成 <p>；行距与全站正文一致 */
+.daily-body {
+  margin-top: 14px;
   font-family: var(--font-body);
-  font-size: 12px;
-  letter-spacing: 4px;
-  text-transform: uppercase;
-  color: var(--gray-4);
-  margin-bottom: 20px;
-}
-
-.daily-placeholder {
-  font-family: var(--font-body);
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.9;
   color: var(--gray-5);
+  white-space: pre-line;
 }
 
-/* 窄屏放不下并排，左栏标签横排到内容上方，右栏接在下面 */
+/* 窄屏放不下并排：机器与内容上下堆叠，机器居中 */
 @media (max-width: 768px) {
   .daily-grid {
     grid-template-columns: 1fr;
-    gap: 28px;
+    gap: 32px;
   }
-  .daily-tags {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 14px 24px;
-    padding-right: 0;
-    padding-bottom: 16px;
-    border-right: none;
-    border-bottom: 1px solid var(--gray-2);
+  .daily-ipod {
+    margin: 0 auto;
   }
 }
 

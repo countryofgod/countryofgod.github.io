@@ -59,12 +59,12 @@ const parts = [
   compile(read('partials/article-item.ejs'), 'articleItem', '{ article }'),
   compile(read('partials/archive-group.ejs'), 'archiveGroup', '{ group, open }'),
   compile(read('partials/guest-note.ejs'), 'guestNote', '{ note }'),
-  compile(read('index.ejs'), 'renderHome', '{ articles, archive, notes, submitMail }'),
+  compile(read('index.ejs'), 'renderHome', '{ articles, archive, notes, submitMail, daily }'),
   compile(read('article.ejs'), 'renderArticle', '{ article, archived, readable, echoes }'),
   compile(
     read('admin.ejs'),
     'renderAdmin',
-    '{ authed, loginError, adminPath, articles, archiveEntries, notes, stats }'
+    '{ authed, loginError, adminPath, articles, archiveEntries, notes, stats, daily }'
   ),
 ].join('\n');
 

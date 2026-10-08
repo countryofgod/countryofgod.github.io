@@ -9,8 +9,9 @@ import {
   getArchive,
   createArchiveEntry,
   deleteArchiveEntry,
+  upsertDaily,
 } from '../queries.js';
-import { validateArticle, validateArchiveEntry, Invalid, Conflict } from '../validators.js';
+import { validateArticle, validateArchiveEntry, validateDaily, Invalid, Conflict } from '../validators.js';
 import { requireAdminApi } from '../auth.js';
 
 const router = Router();
@@ -98,6 +99,19 @@ router.delete('/api/archive/:id', requireAdminApi, (req, res, next) => {
     const ok = deleteArchiveEntry(Number(req.params.id));
     if (!ok) return res.status(404).json({ error: 'not found' });
     res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/daily —— 写入/更新某一天的 Daily（默认今天）。
+ * 一天一条（slot_date 唯一），同日再提交就是覆盖式更新，所以用 POST 而不是 PUT：
+ * 调用方不需要先知道库里有没有这一天。
+ */
+router.post('/api/daily', requireAdminApi, (req, res, next) => {
+  try {
+    res.json(upsertDaily(validateDaily(req.body ?? {})));
   } catch (err) {
     next(err);
   }

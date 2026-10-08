@@ -115,6 +115,19 @@ if (archiveForm) {
   });
 }
 
+/* ---------------- 本日 Daily ---------------- */
+
+// 一天一条：提交上去是覆盖式更新（同一天再提交就改掉那天的）。成功后整页刷新，
+// 表单里带回来的是服务端渲染的新值
+const dailyForm = $('#daily-form');
+if (dailyForm) {
+  dailyForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(dailyForm).entries());
+    mutate(() => api('POST', '/api/daily', data));
+  });
+}
+
 /* ---------------- 留言 ---------------- */
 
 document.querySelectorAll('[data-del-guest]').forEach((btn) => {

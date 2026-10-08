@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { seedIfEmpty } from './seed.js';
+import { seedDaily } from './seed-data.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const projectRoot = resolve(here, '..');
@@ -53,6 +54,16 @@ CREATE TABLE IF NOT EXISTS guestbook (
   image_mime   TEXT,
   image_bytes  INTEGER,
   created_at   TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS daily_entries (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  slot_date   TEXT    NOT NULL UNIQUE,
+  category    TEXT    NOT NULL,
+  title       TEXT    NOT NULL,
+  body        TEXT    NOT NULL DEFAULT '',
+  created_at  TEXT    NOT NULL,
+  updated_at  TEXT    NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_articles_published ON articles (published_at DESC);
@@ -108,6 +119,19 @@ CREATE TABLE IF NOT EXISTS drafts (
   PRIMARY KEY (device_id, slot)
 );
 `);
+
+// 「本日 Daily」：表里还一条都没有时种一条今天的占位——只有标题与分类，正文留空，
+// 等 /admin 的「本日 Daily」面板粘贴。此后完全由后台维护，这里不再参与
+if (db.prepare('SELECT COUNT(*) AS n FROM daily_entries').get().n === 0) {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  const today = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  const now = d.toISOString();
+  db.prepare(
+    `INSERT INTO daily_entries (slot_date, category, title, body, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(today, seedDaily.category, seedDaily.title, seedDaily.body, now, now);
+}
 
 export const seeded = seedIfEmpty(db);
 

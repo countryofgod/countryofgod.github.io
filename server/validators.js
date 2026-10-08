@@ -134,6 +134,28 @@ export function validateDraft(input) {
   };
 }
 
+/** 本日 Daily：分类白名单与首页 iPod 屏里的三个栏目一致 */
+export const DAILY_CATEGORIES = new Set(['music', 'article', 'poem']);
+
+const todayIso = () => {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+
+/** 本日 Daily：一天一条，按日期覆盖式写入（同日再提交就是更新） */
+export function validateDaily(input) {
+  const date = str(input.date).trim() || todayIso();
+  if (!DATE_RE.test(date)) throw new Invalid('日期须为 YYYY-MM-DD', 'date');
+  const category = str(input.category).trim().toLowerCase();
+  if (!DAILY_CATEGORIES.has(category)) throw new Invalid('分类只能是 music / article / poem', 'category');
+  const title = requiredText(input.title, 'title', LIMITS.title);
+  // 正文允许先留空（标题先入库、正文后补），所以不走 requiredText
+  const body = str(input.body).trim();
+  if (body.length > LIMITS.content) throw new Invalid(`正文不能超过 ${LIMITS.content} 个字符`, 'body');
+  return { date, category, title, body };
+}
+
 /** 把校验/业务异常统一映射到 HTTP 状态码 */
 export function errorStatus(err) {
   const s = err?.status;

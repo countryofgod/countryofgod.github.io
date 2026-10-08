@@ -13,3 +13,14 @@ export const seedArticle = {
 
 // 档案馆：2026 年 10 月的那一条
 export const seedArchive = { year: 2026, month: 10 };
+
+/**
+ * 「本日 Daily」的首条占位：daily_entries 表还是空的时候种这一条。
+ * 只有标题与分类，正文留空——正文由 /admin 的「本日 Daily」面板粘贴。
+ * 此后每天的推荐都在 admin 里改，这里不再参与。
+ */
+export const seedDaily = {
+  category: 'article',
+  title: '河的第三条岸',
+  body: '',
+};
