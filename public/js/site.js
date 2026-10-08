@@ -245,7 +245,7 @@ if (dailyGrid) {
     };
   };
 
-  const renderDaily = (entry) => {
+  const renderDaily = (entry, category) => {
     dailyRoot.textContent = '';
     if (entry) {
       const title = document.createElement('h3');
@@ -254,8 +254,19 @@ if (dailyGrid) {
       dailyRoot.appendChild(title);
       if (entry.body) {
         const body = document.createElement('div');
-        body.className = 'daily-body';
-        body.textContent = entry.body;
+        // 诗分两栏（CSS 见 .daily-body.is-poem）：先把正文按空行拆成节，
+        // 每节一个 <p>，分栏时整节不跨栏；节内的单换行仍靠 pre-line 保留
+        const isPoem = category === 'poem';
+        body.className = isPoem ? 'daily-body is-poem' : 'daily-body';
+        if (isPoem) {
+          entry.body.split(/\n\s*\n/).forEach((stanza) => {
+            const p = document.createElement('p');
+            p.textContent = stanza.replace(/^\n+|\n+$/g, '');
+            body.appendChild(p);
+          });
+        } else {
+          body.textContent = entry.body;
+        }
         dailyRoot.appendChild(body);
       }
     }
@@ -281,7 +292,7 @@ if (dailyGrid) {
     const seq = ++dailySeq;
     loadDaily(category).then((entry) => {
       if (seq !== dailySeq) return; // 期间又切了分类：这次结果作废
-      renderDaily(entry);
+      renderDaily(entry, category);
     });
   };
 

@@ -615,6 +615,25 @@ body {
   white-space: pre-line;
 }
 
+/* 诗：右栏里再分两栏。诗行短，单栏时右边空一大片；分两栏一眼能读完一首。
+   column-count 是栏数上限、column-width 是每栏最小宽度，两者并用 = 「最多两栏，
+   放不下就退回一栏」——窄屏不必另写媒体查询，右栏一窄自己就变回单栏。
+   节（空行分隔的部分）由脚本包成 <p class="daily-stanza">，break-inside: avoid
+   保证一节不会被劈到两栏中间 */
+.daily-body.is-poem {
+  column-count: 2;
+  column-width: 230px;
+  column-gap: 48px;
+}
+
+.daily-body.is-poem > p {
+  break-inside: avoid;
+}
+
+.daily-body.is-poem > p + p {
+  margin-top: 1.3em;
+}
+
 /* 窄屏放不下并排：机器居中、不再浮动，正文跟着占满整栏。
    折叠线在这里没有意义（机身在上方，按它的底边裁会把正文裁成零高），
    所以整块取消折叠；箭头一起收掉——CSS 与脚本两层都收，不留空转的按钮 */
