@@ -1751,7 +1751,9 @@
            之所以选这个字——它是首屏唯一的红字、还带一枚反色取景窗，本来就是"这里不一样"的记号，
            不需要再额外画一个入口；而站在刊名里它又完全不打扰读者。
            aria-label 是必需的：链接的可访问名称单看一个"之"字没有意义。
-           本页是 GitHub Pages 静态版，没有后端，点它会 404——用户已知并接受 -->
+           href 保持 /admin 不动：在 Express / Workers 版里它是真正的后端路由，
+           在本页（GitHub Pages 静态副本）里由 admin/index.html 接住、跳到 Workers 后台。
+           两版 href 因此仍是同一个值，不必为了静态副本改成绝对地址。 -->
       <p class="hero-cn">上帝<a class="hero-cn-hl" href="/admin" aria-label="进入管理台">之</a>國</p>
     </div>
   </section>

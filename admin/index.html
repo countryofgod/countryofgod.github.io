@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>管理 · 上帝之国</title>
+<link rel="canonical" href="https://gods-country.lyw2373314970.workers.dev/admin">
+<!-- 本文件是 GitHub Pages 静态副本的 /admin 落点（Pages 从仓库根目录发布，
+     所以 /admin 会命中这里的 admin/index.html）。
+     为什么需要它：静态托管没有后端，/admin 是服务端路由——Express 版在 server/routes/pages.js，
+     Workers 版在 worker/src/index.js，两边都由后端渲染登录框；静态副本里不存在这个文件，
+     不补这一页的话点刊名里的「之」就落到 GitHub 的 404 上。
+     这一页自己不含任何管理功能、不接收任何输入，只做一次跳转，真正的登录与数据都在后端。
+     后端换域名时改四处 URL：canonical、refresh、脚本 location.replace、下面那个手动链接。
+     注：Node 版 /admin 是 Express 路由，静态目录挂的是 public/，与本文件不冲突。 -->
+<meta http-equiv="refresh" content="0; url=https://gods-country.lyw2373314970.workers.dev/admin">
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: #ffffff;
+    color: #000000;
+    font-family: 'LoveLetter', 'KeBenSong', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+    font-weight: normal;
+    line-height: 1.9;
+    text-align: center;
+    padding: 24px;
+  }
+  .stub-title {
+    margin: 0;
+    font-size: 20px;
+    letter-spacing: 2px;
+  }
+  .stub-note {
+    margin: 0;
+    font-size: 15px;
+    color: #666666;
+  }
+  .stub-link {
+    color: #000000;
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+    transition: border-bottom-color 0.35s ease;
+  }
+  .stub-link:hover {
+    border-bottom-color: transparent;
+  }
+</style>
+</head>
+<body>
+
+  <p class="stub-title">上帝之国 · 管理台</p>
+  <p class="stub-note">这一版是静态副本，没有后端；正在前往真正的管理台（Cloudflare Workers）…</p>
+  <p><a class="stub-link" href="https://gods-country.lyw2373314970.workers.dev/admin">没有自动跳转？点这里进入管理台</a></p>
+
+  <script>location.replace('https://gods-country.lyw2373314970.workers.dev/admin');</script>
+</body>
+</html>
