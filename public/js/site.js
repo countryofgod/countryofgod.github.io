@@ -151,6 +151,38 @@ if (ipodScreen) {
   showIpodView(currentIpodView());
 }
 
+// Daily 右栏：默认只露到机身底边那一条线，点 ↓ 展开。
+// 折叠线取机身实测高度：图片按比例缩放，写死会在窄屏或换图后错位。
+// 箭头只在"真的被裁住了"时显示——否则会留一个点了没反应的 ↓ 挂在那儿。
+const dailyGrid = document.querySelector('.daily-grid');
+if (dailyGrid) {
+  const dailyContent = dailyGrid.querySelector('.daily-content');
+  const dailyToggle = dailyGrid.querySelector('[data-daily-toggle]');
+  const dailyIpod = dailyGrid.querySelector('.daily-ipod');
+
+  const syncDailyFold = () => {
+    if (!dailyContent || !dailyIpod) return;
+    const fold = dailyIpod.getBoundingClientRect().height;
+    dailyGrid.style.setProperty('--daily-fold', fold + 'px');
+    if (!dailyToggle) return;
+    // scrollHeight 是"被裁之前"的完整高度，与当前是否展开无关，
+    // 所以展开态下这个判断照样成立，箭头不会自己消失
+    const clipped = dailyContent.scrollHeight > fold + 2;
+    dailyToggle.hidden = !clipped;
+    if (!clipped) dailyGrid.classList.remove('expanded');
+  };
+
+  if (dailyToggle) {
+    dailyToggle.addEventListener('click', () => {
+      const expanded = dailyGrid.classList.toggle('expanded');
+      dailyToggle.setAttribute('aria-expanded', String(expanded));
+    });
+  }
+
+  syncDailyFold();
+  window.addEventListener('resize', syncDailyFold);
+}
+
 // 跟随鼠标的反色圆：移动只改 transform，避免逐帧触发布局；
 // 只在首屏（首页那张画）与页脚出现，其余内容区不打扰阅读；鼠标离开窗口也隐去
 const cursorInvert = document.querySelector('.cursor-invert');

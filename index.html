@@ -326,18 +326,68 @@
       margin-top: min(0px, calc(var(--vp-h) + var(--hero-fade-len) + 100px - 105.333%));
     }
 
-    /* 左：iPod nano 4th gen。右：每日推荐内容。
-       列宽 250px 放下机器，剩下的都留给右栏 */
+    /* 左：iPod nano 4th gen（浮动）。右：每日推荐内容（绕着机身流）。
+       用浮动而不是网格，是为了让展开后的续文能自然"绕出"右栏：
+       浮动盒只挤开它自己高度范围内的行盒——正文前 507px 走在右栏（窄），
+       机身到底之后的行自动变成整栏宽，于是"展开的部分从底部开始全栏显示、
+       不再区分左右栏"不需要任何额外结构。间距照旧：机身 230px + 60px
+       正好是原来"250px 列 + 40px gap"之后的位置 */
     .daily-grid {
-      display: grid;
-      grid-template-columns: 250px 1fr;
-      gap: 40px;
-      align-items: start;
+      /* 折叠线 = 机身底边（230px × 1015/460 ≈ 507.5px）。脚本按实测高度覆写，
+         这里只是脚本没跑时的兜底 */
+      --daily-fold: 508px;
+      /* 收住浮动，否则机身会压到下一节的文章区上 */
+      overflow: hidden;
+    }
+
+    /* 右栏默认只露到那条折叠线；越线的部分被裁掉但仍在文档里，展开时原地露出来 */
+    .daily-content {
+      max-height: var(--daily-fold);
+      overflow: hidden;
+    }
+
+    .daily-grid.expanded .daily-content {
+      max-height: none;
+    }
+
+    /* 展开箭头：与文章卡片上那枚同款（居中 ↓、展开时旋转 180°）。
+       横向只跟着右栏居中——左边让出机身宽 + 间距，箭头才落在正文那一栏的中线上 */
+    .daily-toggle {
+      display: block;
+      width: calc(100% - 290px);
+      margin: 24px 0 0 290px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      text-align: center;
+      font-family: var(--font-body);
+      font-size: 18px;
+      line-height: 1;
+      color: var(--gray-4);
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: color 0.35s ease, transform 0.3s ease;
+    }
+
+    .daily-toggle:hover {
+      color: var(--black);
+    }
+
+    /* hidden 属性要压过上面那条 display: block，否则脚本藏不掉它 */
+    .daily-toggle[hidden] {
+      display: none;
+    }
+
+    .daily-grid.expanded .daily-toggle {
+      transform: rotate(180deg);
     }
 
     .daily-ipod {
       position: relative;
+      float: left;
       width: 100%;
+      margin-right: 60px;
       /* ipod-clean.jpg 与 ipod.jpeg 同尺寸（955×2107），区别只是把机身左右边界
          （实测 x 38..917）之外的像素置成了纯白、去掉那圈细微阴影，机身内的边缘明暗原样保留。
          尺寸故意不裁剪：屏幕白框那组百分比是按整图算的，裁剪会让它失效。
@@ -563,14 +613,19 @@
       white-space: pre-line;
     }
 
-    /* 窄屏放不下并排：机器与内容上下堆叠，机器居中 */
+    /* 窄屏放不下并排：机器居中、不再浮动，正文跟着占满整栏。
+       折叠线在这里没有意义（机身在上方，按它的底边裁会把正文裁成零高），整块取消折叠；
+       箭头一起收掉——CSS 与脚本两层都收，不留空转的按钮 */
     @media (max-width: 768px) {
-      .daily-grid {
-        grid-template-columns: 1fr;
-        gap: 32px;
-      }
       .daily-ipod {
-        margin: 0 auto;
+        float: none;
+        margin: 0 auto 32px;
+      }
+      .daily-content {
+        max-height: none;
+      }
+      .daily-toggle {
+        display: none;
       }
     }
 
@@ -1820,6 +1875,9 @@
       <div class="daily-content">
         <h3 class="daily-title">河的第三条岸</h3>
       </div>
+      <!-- 展开箭头：与文章卡片上那枚同款。默认只露到机身底边那一条线，点它把越线的续文放出来
+           （那部分落在浮动之外，自动按整栏宽铺开） -->
+      <button class="daily-toggle" type="button" data-daily-toggle aria-expanded="false">↓</button>
     </div>
   </section>
 
@@ -2430,7 +2488,34 @@
        取到就换掉标题、补上正文，取不到（离线、后端挂了、今天还没写）就什么都不做——
        静态兜底原样留着，页面不会因为一个 fetch 失败而变空。
        文本一律走 textContent：拼 HTML 会把作者在 admin 里敲的尖括号当标签执行。 */
+    const dailyGrid = document.querySelector('.daily-grid');
     const dailyRoot = document.querySelector('.daily-content');
+    const dailyToggle = document.querySelector('[data-daily-toggle]');
+
+    /* 默认只露到机身底边那一条线（--daily-fold），点 ↓ 展开；越线的那部分落在浮动之外，
+       自动按整栏宽铺开。折叠线取机身实测高度：图片按比例缩放，写死会在窄屏或换图后错位。
+       箭头只在"真的被裁住了"时显示——否则会留一个点了没反应的 ↓ 挂在那儿。 */
+    const syncDailyFold = () => {
+      if (!dailyGrid || !dailyRoot) return;
+      const ipodBody = dailyGrid.querySelector('.daily-ipod');
+      if (!ipodBody) return;
+      const fold = ipodBody.getBoundingClientRect().height;
+      dailyGrid.style.setProperty('--daily-fold', fold + 'px');
+      if (!dailyToggle) return;
+      // scrollHeight 是"被裁之前"的完整高度，与当前是否展开无关，
+      // 所以展开态下这个判断照样成立，箭头不会自己消失
+      const clipped = dailyRoot.scrollHeight > fold + 2;
+      dailyToggle.hidden = !clipped;
+      if (!clipped) dailyGrid.classList.remove('expanded');
+    };
+
+    if (dailyToggle) {
+      dailyToggle.addEventListener('click', () => {
+        const expanded = dailyGrid.classList.toggle('expanded');
+        dailyToggle.setAttribute('aria-expanded', String(expanded));
+      });
+    }
+
     if (dailyRoot) {
       fetch('https://gods-country.lyw2373314970.workers.dev/api/daily')
         .then(res => (res.ok ? res.json() : null))
@@ -2447,8 +2532,14 @@
           }
           bodyEl.textContent = daily.body;
         })
-        .catch(() => {});
+        // 取不到就什么都不做：静态兜底那句标题继续留着，页面不会因此变空
+        .catch(() => {})
+        // 正文换了，折叠线与"有没有被裁"都要重量一次（远端那篇有三千多字）
+        .finally(syncDailyFold);
     }
+
+    syncDailyFold();
+    window.addEventListener('resize', syncDailyFold);
   </script>
 
 

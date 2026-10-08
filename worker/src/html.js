@@ -230,6 +230,15 @@ function renderHome({ articles, archive, notes, submitMail, daily }) {
   }
   out += `
       </div>
+`;
+  if (daily) {
+  out += `
+      <!-- 展开箭头：与文章卡片上那枚同款。默认只露到机身底边那一条线，点它把越线的续文放出来
+           （那部分落在浮动之外，自动按整栏宽铺开）。当天没有条目就不渲染这个按钮 -->
+      <button class="daily-toggle" type="button" data-daily-toggle aria-expanded="false">↓</button>
+`;
+  }
+  out += `
     </div>
   </section>
 

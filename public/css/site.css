@@ -314,18 +314,68 @@ body {
   margin-top: min(0px, calc(var(--vp-h) + var(--hero-fade-len) + 100px - 105.333%));
 }
 
-/* 左：iPod nano 4th gen。右：每日推荐内容。
-   列宽 250px 放下机器，剩下的都留给右栏 */
+/* 左：iPod nano 4th gen（浮动）。右：每日推荐内容（绕着机身流）。
+   为什么从网格换成浮动：展开后的续文要"从底部开始全栏显示、不再区分左右栏"。
+   浮动盒只挤开它自己高度范围内的行盒——正文前 507px 走在右栏（窄），
+   机身到底之后的行自动变成整栏宽。这件事由浮动本身完成，不需要把正文拆成两半，
+   也不需要第二份文本。间距照旧：机身 230px + 60px 正好是原来"250px 列 + 40px gap"之后的位置 */
 .daily-grid {
-  display: grid;
-  grid-template-columns: 250px 1fr;
-  gap: 40px;
-  align-items: start;
+  /* 折叠线 = 机身底边（230px × 1015/460 ≈ 507.5px）。脚本会按实测高度覆写，
+     这里只是脚本没跑时的兜底 */
+  --daily-fold: 508px;
+  /* 收住浮动，否则机身会压到下一节的文章区上 */
+  overflow: hidden;
+}
+
+/* 右栏默认只露到那条折叠线；越线的部分被裁掉但仍在文档里，展开时原地露出来 */
+.daily-content {
+  max-height: var(--daily-fold);
+  overflow: hidden;
+}
+
+.daily-grid.expanded .daily-content {
+  max-height: none;
+}
+
+/* 展开箭头：与文章卡片上那枚同款（居中 ↓、展开时旋转 180°）。
+   横向只跟着右栏居中——左边让出机身宽 + 间距，箭头才落在正文那一栏的中线上，
+   而不是整节的中线 */
+.daily-toggle {
+  display: block;
+  width: calc(100% - 290px);
+  margin: 24px 0 0 290px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1;
+  color: var(--gray-4);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: color 0.35s ease, transform 0.3s ease;
+}
+
+.daily-toggle:hover {
+  color: var(--black);
+}
+
+/* hidden 属性要压过上面那条 display: block，否则脚本藏不掉它 */
+.daily-toggle[hidden] {
+  display: none;
+}
+
+.daily-grid.expanded .daily-toggle {
+  transform: rotate(180deg);
 }
 
 .daily-ipod {
   position: relative;
+  float: left;
   width: 100%;
+  margin-right: 60px;
   /* ipod-clean.jpg 与 ipod.jpeg 同尺寸（955×2107），区别只是把机身左右边界
      （实测 x 38..917）之外的像素置成了纯白、去掉那圈细微阴影，机身内的边缘明暗原样保留。
      尺寸故意不裁剪：屏幕白框那组百分比是按整图算的，裁剪会让它失效。
@@ -555,14 +605,19 @@ body {
   white-space: pre-line;
 }
 
-/* 窄屏放不下并排：机器与内容上下堆叠，机器居中 */
+/* 窄屏放不下并排：机器居中、不再浮动，正文跟着占满整栏。
+   折叠线在这里没有意义（机身在上方，按它的底边裁会把正文裁成零高），
+   所以整块取消折叠；箭头一起收掉——CSS 与脚本两层都收，不留空转的按钮 */
 @media (max-width: 768px) {
-  .daily-grid {
-    grid-template-columns: 1fr;
-    gap: 32px;
-  }
   .daily-ipod {
-    margin: 0 auto;
+    float: none;
+    margin: 0 auto 32px;
+  }
+  .daily-content {
+    max-height: none;
+  }
+  .daily-toggle {
+    display: none;
   }
 }
 
