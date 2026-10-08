@@ -24,12 +24,14 @@ jobs:
       # EJS 在 Workers 里跑不了（禁用 new Function），先把模板编译成普通 JS 再打包
       - run: npm run templates
 
+      # 运行时密钥（ADMIN_PASSWORD / SESSION_SECRET / IMGBB_API_KEY）已经用
+      # `wrangler secret put` 设在 Worker 上了，CI 不需要再上传一遍。
+      # 原先这段 `secrets: |` + env 要求仓库里必须有 ADMIN_PASSWORD 这个 Actions secret，
+      # 缺了就在"上传密钥"这步直接失败、连 wrangler deploy 都走不到 —— 已移除。
+      # 要轮换口令：本地跑 `npx wrangler secret put ADMIN_PASSWORD`；若确实想让 CI 管理，
+      # 在仓库里加同名 secret 后把这段加回来。
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          secrets: |
-            ADMIN_PASSWORD
-        env:
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
