@@ -1007,10 +1007,15 @@ document.querySelectorAll('.archive-month').forEach(month => {
 document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
   const viewport = strip.querySelector('[data-museum-viewport]');
   const track = strip.querySelector('[data-museum-track]');
+  // 离散翻页的位移写在 .museum-shift 这层（轨道那份 transform 归自动漂移的 CSS 动画）。
+  // 模板没给这层时退回 track：此时漂移动画会与脚本打架，但至少不会直接报错
+  const shift = strip.querySelector('[data-museum-shift]') || track;
   const dotsBox = strip.querySelector('[data-museum-dots]');
   const prevBtn = strip.querySelector('[data-museum-prev]');
   const nextBtn = strip.querySelector('[data-museum-next]');
   if (!viewport || !track || !dotsBox || track.children.length === 0) return;
+
+  const DRIFT_SPEED = 20; // 自动漂移速度，px/秒（"缓慢"：一张卡约 12 秒走过去）
 
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const originals = Array.from(track.children);
@@ -1047,13 +1052,27 @@ document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
   // 所以不需要再夹到"最后一屏"，也不会拉出右侧空白
   const measure = () => {
     pos = cards.map((card) => card.offsetLeft);
-    if (pos.length > SET) cycle = pos[SET] - pos[0];
+    if (pos.length <= SET) return;
+    // cycle 用 getBoundingClientRect 的差值来算：所有卡都在同几个 transform 容器里，
+    // 祖先的位移相减时抵消，剩下的是精确到亚像素的一整套作品宽度。
+    // offsetLeft 会被取整，用它算 cycle 会让动画每次循环回到起点时错开一两像素（看得见接缝）
+    const r0 = cards[0].getBoundingClientRect().left;
+    const c = cards[SET].getBoundingClientRect().left - r0;
+    // 值没变就别碰 CSS 变量：measure 每次翻页都会跑，反复重写这两个变量
+    // 会让浏览器重新解析关键帧、把漂移动画的相位抖一下
+    if (c === cycle) return;
+    cycle = c;
+    // 把漂移的一个循环宽度与时长写到 .museum-strip（时长 = 距离 ÷ 速度，
+    // 于是速度恒定 px/秒，窗口变宽变窄都不影响观感）
+    strip.style.setProperty('--drift-dist', cycle + 'px');
+    strip.style.setProperty('--drift-dur', cycle / DRIFT_SPEED + 's');
   };
 
   // 读"此刻动画到哪了"：过渡进行中读到的是中间值，静止时就是当前落点。
-  // transform 还是 none（一次都没写过）时返回 null，调用方跳过平移即可
+  // 必须读 .museum-shift 而不是轨道——轨道的 transform 正被漂移动画占着。
+  // 还是 none（一次都没写过）时返回 null，调用方跳过平移即可
   const currentShift = () => {
-    const t = getComputedStyle(track).transform;
+    const t = getComputedStyle(shift).transform;
     if (!t || t === 'none') return null;
     try { return new DOMMatrixReadOnly(t).m41; } catch (_) { return null; }
   };
@@ -1064,11 +1083,11 @@ document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
   const wrapBy = (delta) => {
     const cur = currentShift();
     if (cur === null) return;
-    const keep = track.style.transition;
-    track.style.transition = 'none';
-    track.style.transform = `translateX(${cur + delta}px)`;
+    const keep = shift.style.transition;
+    shift.style.transition = 'none';
+    shift.style.transform = `translateX(${cur + delta}px)`;
     void track.offsetWidth; // 强制回流：先把"无过渡的这一帧"提交下去，交回过渡时才不会把平移也补间
-    track.style.transition = keep;
+    shift.style.transition = keep;
   };
 
   // 收敛虚拟索引：越左界 +SET、越右界 -SET，同步把位移补回一个循环，画面不动
@@ -1085,7 +1104,7 @@ document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
     if (!pos.length) return;
     // 先归位再写目标：两步在同一次同步执行里完成，中间不给浏览器插帧的机会
     normalize();
-    track.style.transform = `translateX(${-pos[v]}px)`;
+    shift.style.transform = `translateX(${-pos[v]}px)`;
 
     // 圆点 = 一套作品一张。只在"个数变了"时重建：
     // 否则悬停让落点个数一有变化就会销毁重建按钮，指针底下那个会闪
@@ -1133,7 +1152,7 @@ document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
     startX = e.clientX;
     baseShift = pos[v] || 0;
     moved = 0;
-    track.style.transition = 'none';
+    shift.style.transition = 'none';
     if (viewport.setPointerCapture) viewport.setPointerCapture(e.pointerId);
   });
 
@@ -1143,7 +1162,7 @@ document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
     const span = (pos[v + 1] || pos[v]) - pos[v];
     const raw = e.clientX - startX;
     moved = Math.max(-2 * span, Math.min(2 * span, raw));
-    track.style.transform = `translateX(${-baseShift + moved}px)`;
+    shift.style.transform = `translateX(${-baseShift + moved}px)`;
   });
 
   const endDrag = () => {
@@ -1151,7 +1170,7 @@ document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
     dragging = false;
     strip.classList.remove('is-dragging');
     // 置空 = 交回 CSS 里那条过渡（系统开了"减少动态效果"时它本身也是 none）
-    track.style.transition = prefersReduced ? 'none' : '';
+    shift.style.transition = prefersReduced ? 'none' : '';
     // 40px 阈值：太灵敏会把轻触当翻页，太钝则拖了半屏还不换
     if (moved <= -40) v += 1;
     else if (moved >= 40) v -= 1;

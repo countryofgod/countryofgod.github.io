@@ -316,6 +316,11 @@ function renderHome({ articles, archive, notes, submitMail }) {
          标题仍在上方 960 版心里 -->
     <div class="museum-strip" data-museum-strip tabindex="0" role="group" aria-label="美术馆作品横滑胶片">
       <div class="museum-viewport" data-museum-viewport>
+        <!-- 两层位移：.museum-shift 由脚本写 translateX（箭头/圆点/拖拽的离散翻页），
+             .museum-track 只有一条匀速漂移的 CSS 动画（自动缓慢右移）。
+             分成两层是因为二者要同时存在：动画会独占 transform 属性，
+             跟脚本写的 transform 抢同一个属性会互相覆盖 -->
+        <div class="museum-shift" data-museum-shift>
         <div class="museum-track" data-museum-track>
 `;
   museumItems.forEach((item, i) => {
@@ -340,6 +345,7 @@ function renderHome({ articles, archive, notes, submitMail }) {
 `;
   });
   out += `
+        </div>
         </div>
       </div>
       <div class="museum-strip-foot">

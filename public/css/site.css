@@ -555,6 +555,21 @@ body {
 .museum-viewport:active {
   cursor: grabbing;
 }
+/* 离散翻页层：脚本把 translateX 写在这一层（箭头 / 圆点 / 拖拽）。
+   过渡挂在这里而不是轨道上——轨道那份 transform 被下面的漂移动画占着，
+   两者写在同一个元素上会互相覆盖 */
+.museum-shift {
+  will-change: transform;
+  transition: transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+/* 自动漂移：整条轨道匀速向右平移【一个循环】。
+   --drift-dist / --drift-dur 由 site.js 量出真实的一套作品宽度后写到 .museum-strip 上
+   （dist = 一个循环的像素宽，dur = dist ÷ 速度），这样速度恒定、与窗口宽窄无关。
+   内容每 cycle 像素重复一次，所以动画从 +cycle 跳回 0 的那一瞬画面逐像素相同，接缝看不见 */
+@keyframes museum-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(var(--drift-dist, 0px)); }
+}
 .museum-track {
   display: flex;
   gap: 24px;
@@ -562,7 +577,14 @@ body {
      "高低交替"就没了。flex-start 让每张卡按自己的高度、顶部对齐 */
   align-items: flex-start;
   will-change: transform;
-  transition: transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  animation: museum-drift var(--drift-dur, 80s) linear infinite;
+}
+/* 悬停＝暂停漂移 + 卡片放大（放大仍走 .museum-card:hover）。
+   只认视口区域：底部圆点／箭头在 .museum-strip-foot 里，不在 .museum-viewport 内，
+   鼠标挪到控件上不会把漂移也停掉 */
+.museum-viewport:hover .museum-track,
+.museum-strip.is-dragging .museum-track {
+  animation-play-state: paused;
 }
 
 /* ---------- 卡片 ---------- */
@@ -681,9 +703,12 @@ body {
 }
 
 /* ---------- 响应式 ---------- */
-/* 尊重系统「减少动态效果」：轨道的位移过渡关掉，直接就位 */
+/* 尊重系统「减少动态效果」：漂移停掉、离散翻页的过渡也关掉，直接就位 */
 @media (prefers-reduced-motion: reduce) {
   .museum-track {
+    animation: none;
+  }
+  .museum-shift {
     transition: none;
   }
 }
