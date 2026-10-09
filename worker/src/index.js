@@ -39,13 +39,30 @@ const redirect = (location, headers = {}) =>
  * 并回 Allow-Credentials —— 设备号在 Cookie 里，必须带凭据才认得出是谁。
  * 代价是线上 Cookie 的 SameSite 改成了 None（见 auth.js），跨站请求也会带上身份，
  * 所以写操作额外校验 Origin，挡住借用户身份的跨站伪造请求。 */
+// 基线放行名单：github.io 静态镜像（跨域调本站接口，见 build-ghpages.mjs 注入的
+// __API_BASE__）与本站 workers.dev 源。既允许用 env.CORS_ORIGINS 追加自定义源
+// （如自定义域名），也始终保留这两个基线源——避免有人把 CORS_ORIGINS 配成单值时，
+// 反过来把静态镜像或主站挡在门外（那样留言就会报「不允许的来源」）。
+const DEFAULT_CORS_ORIGINS = [
+  'https://countryofgod.github.io',
+  'https://gods-country.countryofgod.workers.dev',
+];
 const corsOrigin = (env, req) => {
   const origin = req.headers.get('Origin');
-  const allowed = (env.CORS_ORIGINS || 'https://countryofgod.github.io')
+  if (!origin) return null; // 同源请求不带 Origin，交给后面逻辑原样放行
+  const configured = (env.CORS_ORIGINS || '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
-  return origin && allowed.includes(origin) ? origin : null;
+  const allowed = [...new Set([...configured, ...DEFAULT_CORS_ORIGINS])];
+  // 额外兜底：Origin 的 host 与请求自身 host 一致（自定义域名指回本站也属同源）一并放行
+  let hostMatches = false;
+  try {
+    hostMatches = new URL(origin).host === new URL(req.url).host;
+  } catch {
+    /* 非法 URL 直接忽略，走白名单判断 */
+  }
+  return allowed.includes(origin) || hostMatches ? origin : null;
 };
 
 const corsHeaders = (origin, extra = {}) => ({
