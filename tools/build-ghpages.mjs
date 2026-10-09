@@ -39,6 +39,18 @@ html = html
   .replace(/(src|href)="\/fonts\//g, '$1="/public/fonts/')
   .replace(/(src|href)="\/daily\//g, '$1="/public/daily/');
 
+// 5) 留言图片、/random、文章页都是 Worker 的路由，静态页上没有，指回 Worker
+html = html
+  .replace(/(src|href)="\/api\//g, `$1="${BASE}/api/`)
+  .replace(/href="\/random"/g, `href="${BASE}/random"`)
+  .replace(/href="\/article\//g, `href="${BASE}/article/`);
+
+// 6) 静态页没有后端：告诉 site.js 把留言接口指回 Worker（跨域 + 带凭据，见 worker/src/index.js 的 CORS 段）
+html = html.replace(
+  '<script src="/public/js/site.js"></script>',
+  `<script>window.__API_BASE__='${BASE}';window.__DAILY_BASE__='/public/daily/';</script>\n  <script src="/public/js/site.js"></script>`
+);
+
 await writeFile(new URL('../index.html', import.meta.url), html, 'utf8');
 
 console.log('已生成 index.html');

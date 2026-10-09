@@ -2340,7 +2340,7 @@ body.cursor-hidden * {
       <h2 class="section-title">档案馆</h2>
       <!-- 唯一的发现入口：不看时间、不看热度，随机翻一篇。
            旧文过了半年就不再摆在架子外面，这里是能碰到它们的门 -->
-      <p class="archive-random"><a class="archive-random-link" href="/random">random →</a></p>
+      <p class="archive-random"><a class="archive-random-link" href="https://gods-country.lyw2373314970.workers.dev/random">random →</a></p>
     </div>
 
     <div class="archive-inner">
@@ -2442,10 +2442,9 @@ body.cursor-hidden * {
             </form>
 
             <div class="guest-wall">
-              <div class="guest-note" data-id="8">
-                <p class="guest-note-head"><span class="guest-note-name">链路自检</span><span>2026.10.09</span></p>
-                <p class="guest-note-text">backend-link-test-do-not-keep</p>
-              </div>
+
+              <p class="guest-wall-empty">还没有留言</p>
+
             </div>
 
             <!-- 照片流：向左缓慢滚动、悬停暂停、两端淡出到黑。
@@ -2483,5 +2482,6 @@ body.cursor-hidden * {
   <div class="cursor-invert" aria-hidden="true" style="transform: translate3d(792px, 1px, 0px) translate(-50%, -50%);"></div>
 
   <!-- 同步加载、不加 defer：拆字脚本必须在首屏绘制前跑完，否则字距会跳一次 -->
+  <script>window.__API_BASE__='https://gods-country.lyw2373314970.workers.dev';window.__DAILY_BASE__='/public/daily/';</script>
   <script src="/public/js/site.js"></script>
 </body></html>

@@ -90,7 +90,9 @@ export async function ensureDevice(env, req) {
   const parts = [
     `${DEVICE_COOKIE}=${await deviceToken(env, id)}`,
     'HttpOnly',
-    'SameSite=Lax',
+    // 跨域（github.io 静态页调本站留言接口）时浏览器要肯带上这个 Cookie，所以线上用 None；
+    // None 必须配 Secure，本地 http 只能退回 Lax，否则浏览器直接把 Cookie 丢掉
+    secure ? 'SameSite=None' : 'SameSite=Lax',
     'Path=/',
     `Max-Age=${DEVICE_MAX_AGE}`,
   ];

@@ -34,6 +34,37 @@ const page = (body, status = 200) =>
 const redirect = (location, headers = {}) =>
   new Response(null, { status: 303, headers: { Location: location, ...headers } });
 
+/* ---------------- 跨域：给 github.io 的静态镜像用 ----------------
+ * github.io 是纯静态托管，留言墙只能跨域调本站接口。这里只对名单里的源放行，
+ * 并回 Allow-Credentials —— 设备号在 Cookie 里，必须带凭据才认得出是谁。
+ * 代价是线上 Cookie 的 SameSite 改成了 None（见 auth.js），跨站请求也会带上身份，
+ * 所以写操作额外校验 Origin，挡住借用户身份的跨站伪造请求。 */
+const corsOrigin = (env, req) => {
+  const origin = req.headers.get('Origin');
+  const allowed = (env.CORS_ORIGINS || 'https://countryofgod.github.io')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return origin && allowed.includes(origin) ? origin : null;
+};
+
+const corsHeaders = (origin, extra = {}) => ({
+  'Access-Control-Allow-Origin': origin,
+  'Access-Control-Allow-Credentials': 'true',
+  Vary: 'Origin',
+  ...extra,
+});
+
+const withCors = (res, env, req) => {
+  const origin = corsOrigin(env, req);
+  if (!origin) return res;
+  const headers = new Headers(res.headers);
+  headers.set('Access-Control-Allow-Origin', origin);
+  headers.set('Access-Control-Allow-Credentials', 'true');
+  headers.set('Vary', 'Origin');
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+};
+
 /* ---------------- 极简路由 ---------------- */
 
 const routes = [];
@@ -398,18 +429,44 @@ export default {
       return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
     };
 
+    // 预检：跨域的 POST / PUT / DELETE 浏览器会先发一个 OPTIONS 来问一句
+    if (request.method === 'OPTIONS' && path.startsWith('/api/')) {
+      const origin = corsOrigin(env, request);
+      if (!origin) return new Response(null, { status: 403 });
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders(origin, {
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Max-Age': '86400',
+        }),
+      });
+    }
+
+    // 写操作防跨站伪造：线上 Cookie 是 SameSite=None，跨站请求也会带上身份，
+    // 所以只放行名单里的源。浏览器一定会带 Origin；
+    // 不带 Origin 的是 curl / 服务端调用这类，放行。
+    if (path.startsWith('/api/') && ['POST', 'PUT', 'DELETE'].includes(request.method)) {
+      if (request.headers.get('Origin') && !corsOrigin(env, request)) {
+        return json({ error: '不允许的来源' }, 403);
+      }
+    }
+
+    // 接口响应统一补 CORS 头；同源请求没有 Origin，withCors 会原样返回
+    const finish = (res) => withCors(withCookie(res), env, request);
+
     for (const r of routes) {
       if (r.method !== request.method) continue;
       const params = match(r.pattern, path);
       if (!params) continue;
       try {
-        return withCookie(await r.handler(request, env, params, { deviceId: dev.id }));
+        return finish(await r.handler(request, env, params, { deviceId: dev.id }));
       } catch (err) {
         const status = err instanceof Invalid ? 400 : errorStatus(err);
         if (status >= 500) console.error('[error]', request.method, path, err);
         // 只有"没预料到的错误"才泛化成一句笼统的话；
         // Unavailable 这类是专门写给用户的提示（比如 R2 没开通），要原样传出去
-        return withCookie(
+        return finish(
           json({ error: status === 500 ? '服务器内部错误' : err.message, field: err.field ?? null }, status)
         );
       }

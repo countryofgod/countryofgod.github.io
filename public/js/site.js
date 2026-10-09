@@ -1,3 +1,9 @@
+// github.io 只是静态镜像，没有后端：那个页面会注入 __API_BASE__ / __DAILY_BASE__，
+// 把留言接口和「每日」内容指回本站；本站（Worker）没有这两个变量，就走同源相对路径。
+// 设备号在 Cookie 里，跨域请求必须带上凭据才认得出是谁。
+const API_BASE = window.__API_BASE__ || '';
+const DAILY_BASE = window.__DAILY_BASE__ || 'daily/';
+
 // 屏内视图切换：点 music 是在这块屏幕里换一屏，不跳 URL、不换页面。
 // 用 pushState 记一层，MENU 才能靠 history.back() 退回上一个视图；
 // 浏览器前进／后退触发 popstate，再把视图同步回来。
@@ -255,12 +261,12 @@ if (dailyGrid) {
   /** 当天配图：与 txt 同名、只换扩展名（daily/music/2026_10_9.jpg）。
       图片沿用"文件名即发布日期"那套：push 一张同名的 jpg，等于给那天的歌配图。
       路径与 fetch 一样走相对地址，三种部署（Pages / Node / Workers）都指向同一份文件 */
-  const dailyImageName = (daysAgo) => 'daily/music/' + dailyFileName(daysAgo).replace(/\.txt$/, '.jpg');
+  const dailyImageName = (daysAgo) => DAILY_BASE + 'music/' + dailyFileName(daysAgo).replace(/\.txt$/, '.jpg');
 
   /** 某一天的文件；404 回 null（那天没有），网络不通抛错交给调用方 */
   const probeDaily = async (category, daysAgo) => {
     // no-store：push 当天文件后刷新就能看到，不在浏览器里留住旧的 404
-    const res = await fetch('daily/' + category + '/' + dailyFileName(daysAgo), { cache: 'no-store' });
+    const res = await fetch(DAILY_BASE + category + '/' + dailyFileName(daysAgo), { cache: 'no-store' });
     if (!res.ok) return null;
     const text = (await res.text()).replace(/^\uFEFF/, '');
     return text.trim() ? { daysAgo, text } : null; // 空文件当成没有
@@ -749,7 +755,7 @@ if (guestForm && guestWall) {
 
     if (guestSubmit) guestSubmit.disabled = true;
     try {
-      const res = await fetch('/api/guestbook', { method: 'POST', body: payload });
+      const res = await fetch(API_BASE + '/api/guestbook', { method: 'POST', body: payload, credentials: 'include' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || '留言没有发出去');
 
@@ -765,7 +771,7 @@ if (guestForm && guestWall) {
         guestPreview.removeAttribute('src');
       }
       // 留成了，草稿没用了
-      fetch('/api/drafts?slot=guestbook', { method: 'DELETE' }).catch(() => {});
+      fetch(API_BASE + '/api/drafts?slot=guestbook', { method: 'DELETE', credentials: 'include' }).catch(() => {});
     } catch (err) {
       // 失败时保留已填内容，只给出提示
       showGuestHint(err.message || '留言没有发出去，请稍后再试。');
@@ -790,7 +796,7 @@ function markMyNotes(ids) {
     btn.textContent = '撤回';
     btn.addEventListener('click', async () => {
       if (!confirm('撤回这条留言？')) return;
-      const res = await fetch('/api/guestbook/' + note.dataset.id, { method: 'DELETE' });
+      const res = await fetch(API_BASE + '/api/guestbook/' + note.dataset.id, { method: 'DELETE', credentials: 'include' });
       if (!res.ok) return;
       note.remove();
       if (!guestWall.querySelector('.guest-note')) {
@@ -805,7 +811,7 @@ function markMyNotes(ids) {
 }
 
 if (guestWall) {
-  fetch('/api/guestbook/mine')
+  fetch(API_BASE + '/api/guestbook/mine', { credentials: 'include' })
     .then((r) => (r.ok ? r.json() : null))
     .then((data) => {
       if (!data) return;
@@ -831,17 +837,18 @@ if (guestForm) {
       const body = gText ? gText.value : '';
       const name = gName ? gName.value : '';
       if (!body.trim() && !name.trim()) return;
-      fetch('/api/drafts', {
+      fetch(API_BASE + '/api/drafts', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slot: 'guestbook', name, body }),
+        credentials: 'include',
       }).catch(() => {});
     }, 800);
   };
   if (gText) gText.addEventListener('input', saveDraft);
   if (gName) gName.addEventListener('input', saveDraft);
 
-  fetch('/api/drafts?slot=guestbook')
+  fetch(API_BASE + '/api/drafts?slot=guestbook', { credentials: 'include' })
     .then((r) => (r.ok ? r.json() : null))
     .then((data) => {
       const d = data && data.draft;
