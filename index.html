@@ -1,17 +1,2988 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
+<html lang="zh-CN"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>上帝之国 — Einmal ist keinmal</title>
-  <!-- github.io 只是一份旧静态快照，没有后端；真正的站点跑在 Cloudflare Workers 上，
-       留言墙的登录 Cookie / 身份 / 撤回都依赖同源，静态页跨域拿不到。
-       所以这里只做跳转，打开 github.io 即看到当前完整站点（含美术馆、能落库的留言墙）。 -->
-  <meta http-equiv="refresh" content="0; url=https://gods-country.lyw2373314970.workers.dev/">
-  <link rel="canonical" href="https://gods-country.lyw2373314970.workers.dev/">
+  <title>Einmal ist keinmal — 上帝之国</title>
+  <!-- 提前发起标题字体：它只有 16KB，但首屏刊名「上帝之國」就要用它。
+       不 preload 的话，浏览器要先解析完这一千多行内联 CSS、走到 @font-face 才知道有这个文件，
+       白白晚起步一两秒。crossorigin 不能省——字体预加载一律走 CORS 模式，
+       少了它这里预载的和后面 @font-face 取的就成了两次请求。 -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="AaGuDianKeBenSong-WebTitles.woff2">
+  <style>
+    @font-face {
+      font-family: 'LoveLetter';
+      src: url('love-letter-tw/Lovelt__.woff2') format('woff2');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    /* 标题字体拆成两份，解决「标题字要等 1.5MB 才换过来」：
+       ① KeBenSong —— 只包住本页真正会用它的 60 个字形（网站标题、栏目大标题、文章标题、数字与标点），
+          16,496 B，是整包 1,502,956 B 的 1.1%。它由 <head> 里的 <link rel="preload"> 提前发起，
+          并配 font-display: block —— 宁可让标题多等零点几秒，也不要先闪一遍系统宋体再换字
+          （这是用户明确要的：「固定的标题先显示目标字体」）。
+       ② KeBenSongFull —— 仍是原本的整包 3625 字形，font-display: swap，排在 KeBenSong 之后。
+          只有当标题里出现了 ① 覆盖不到的字（例如日后新写的文章标题）才轮到它，
+          语义即「其他的先兜底、慢慢加载」。本页所有标题字都在 ① 里，所以它今天的下载量是 0 字节。
+       用字集、再生成命令与触发条件见 tools/charset-title.txt 与 README「标题字体子集」。 */
+    @font-face {
+      font-family: 'KeBenSong';
+      src: url('AaGuDianKeBenSong-WebTitles.woff2') format('woff2');
+      font-weight: normal;
+      font-style: normal;
+      font-display: block;
+    }
+
+    @font-face {
+      font-family: 'KeBenSongFull';
+      src: url('AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2.woff2') format('woff2');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --white: #ffffff;
+      --black: #000000;
+      --gray-1: #f5f5f5;
+      --gray-2: #e5e5e5;
+      --gray-3: #cccccc;
+      --gray-4: #999999;
+      --gray-5: #666666;
+      --gray-6: #333333;
+      --font-title: 'LoveLetter', 'KeBenSong', 'KeBenSongFull', serif;
+      --font-body: 'LoveLetter', serif;
+      /* 版心宽度：.section / .archive-head / .archive-inner / .footer-inner 四处共用，
+         一处改、四处同步，标题与正文、页脚永远落在同一条左右对齐线上。
+         两侧各留 48px 内边距，所以正文净宽 = 本值 − 96px（960 → 864px）。
+         2026-10-09：由 800px 放宽到 960px——用户要求"页面显示部分宽一点"；
+         要再调宽窄只改这一个数字 */
+      --page-w: 960px;
+      /* 首屏"一屏高"所依据的视口高度。
+         桌面端浏览器没有可伸缩工具栏，svh / lvh / dvh 与 vh 完全相等，
+         所以默认值写 100vh——与改动前逐字等同，桌面端的计算结果一字节都不会变。
+         移动端那一份在下面的媒体查询里换成 100svh（理由见 .hero 处的说明），
+         首屏高度、标题居中、刊名位置、首图淡出起点四处一起跟着走 */
+      --vp-h: 100vh;
+      /* 首图下沿"淡出为透明"走完所需的高度：以首屏线（100vh）为起点，
+         往下这一段内把图片自身的不透明度从 1 降到 0，再往下图片完全不显示（露出页面底色）。
+         文章区会相应地上移到"图片刚好淡没的那条线"（见 #latest 的负外边距）。
+         一个数字管两处，改这里两处同步——否则文章区会挪到图片还没淡没的位置，
+         首图残影就从文章背后透出来 */
+      --hero-fade-len: 240px;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--white);
+      color: var(--black);
+      font-family: var(--font-body);
+      font-weight: normal;
+      line-height: 1.9;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ---------- Hero ---------- */
+    /* 首屏即图片：至少一屏高，比例随宽度缩放，任何窗口下首页都是这张画 */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      aspect-ratio: 3 / 3.16;
+      overflow: hidden;
+    }
+
+    .hero-crop {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    /* cover 撑满容器，纵向裁切；靠底对齐 → 只从顶部裁掉空白墙，画框下沿完整保留。
+       下沿"渐隐"由这里的 mask 负责：自 100vh（首屏线）起，在 --hero-fade-len 内把
+       图片自身的不透明度从 1 降到 0——**是图片淡出为透明，不是在图片上盖一层白**。
+       这两种做法叠在纯白页面上的灰阶算出来一样，但盖白是一层"不透明的东西"：
+       它不随图片走，图片像素之外它照样在，观感上就成了一块白而不是"图淡出去了"。
+       mask 写在图片自己身上，图片淡到哪，白就从哪开始，两者不可能各自为政 */
+    .hero-image {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center bottom;
+      filter: grayscale(100%) contrast(1.05);
+      -webkit-mask-image: linear-gradient(to bottom,
+          #000 0,
+          #000 var(--vp-h),
+          rgba(0, 0, 0, 0) calc(var(--vp-h) + var(--hero-fade-len)));
+      mask-image: linear-gradient(to bottom,
+          #000 0,
+          #000 var(--vp-h),
+          rgba(0, 0, 0, 0) calc(var(--vp-h) + var(--hero-fade-len)));
+    }
+
+    /* 首页那一屏保持清晰；越过首屏、需要下滑才看到的部分渐糊 */
+    .hero-blur {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      backdrop-filter: blur(32px);
+      -webkit-backdrop-filter: blur(32px);
+      -webkit-mask-image: linear-gradient(to bottom,
+          transparent 0,
+          transparent 100vh,
+          rgba(0, 0, 0, 0.5) calc(100vh + 18vh),
+          #000 calc(100vh + 40vh));
+      mask-image: linear-gradient(to bottom,
+          transparent 0,
+          transparent 100vh,
+          rgba(0, 0, 0, 0.5) calc(100vh + 18vh),
+          #000 calc(100vh + 40vh));
+    }
+
+    /* 这里原来有一个 .hero-fade：一层铺满首屏线以下的白色渐变遮罩，用来"把首图盖成白"。
+       用户明确否掉它——"不要把它做成白色渐变，而是做成透明渐变"，要的是首图自身淡出为透明。
+       改法已上移到 .hero-image 的 mask-image（见上）。留此记录，不要再把白色遮罩加回来 */
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.3);
+      z-index: 1;
+    }
+
+    /* 标题仍锁定在首屏内居中，不随图片变高而下移 */
+    .hero-inner {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--vp-h);
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 48px;
+    }
+
+    .hero-text {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+      max-width: 1200px;
+      width: 100%;
+      text-align: left;
+    }
+
+    .hero-title {
+      font-family: var(--font-title);
+      font-size: clamp(48px, 7vw, 96px);
+      line-height: 1.05;
+      letter-spacing: 1px;
+      font-weight: normal;
+    }
+
+    .hero-title .line {
+      display: block;
+    }
+
+    /* 英文刊名里的「ist」：红字 + 身后背景反色。
+       反色取景窗靠 backdrop-filter 实现，它需要一块独立的滤镜区域，
+       纯内联盒上会落空，所以这里保留 display: inline-block */
+    .hero-title .line-highlight {
+      display: inline-block;
+      color: #660000;
+      line-height: 1;
+      backdrop-filter: invert(1);
+      -webkit-backdrop-filter: invert(1);
+    }
+
+    /* 首页右下角的中文刊名（繁体），钉在首屏右下角做"署名"。
+       绝对定位，不参与 .hero-inner 的 flex 居中，免得把英文大标题挤偏。
+       字号与英文大标题同级（同一串 clamp），line-height 也跟它对齐 1.05——
+       否则继承 body 的 1.9，行框下沿会空出半个行距，同样写 bottom: 48px，文字看着比 48px 高一截。
+       右边的留白要与英文标题左边的留白相等，屏幕上才左右对称：
+       英文标题的左偏移 = max(48px, (视口 − 1200px) / 2)——48 是 .hero-inner 的左右内边距，
+       1200 是 .hero-text 的 max-width；本元素的包含块正是 .hero-inner，所以 100% 就等于视口宽，
+       同一个算式写进 right 即可（窄窗口下算出来是负数，被 max 兜回 48px） */
+    .hero-cn {
+      position: absolute;
+      right: max(48px, calc((100% - 1200px) / 2));
+      bottom: 48px;
+      font-family: var(--font-title);
+      font-size: clamp(48px, 7vw, 96px);
+      line-height: 1.05;
+      letter-spacing: 6px;
+      /* 字距会在末字右侧再多留一格，右对齐时整串看着不贴边；抵消掉才对得齐 48px 边距 */
+      margin-right: -6px;
+      color: var(--black);
+    }
+
+    /* 刊名里的「之」：红字 + 身后一枚圆形反色取景窗。
+       负反色本来由字盒自己承担，但字盒是 1em×1.05em（宽还含字距 6px），
+       直接给它 border-radius: 50% 得到的是椭圆而不是圆——所以反色改由 ::before 承担：
+       1.05em 的正方形 + 50% 圆角 = 正圆。
+       水平圆心钉在"字面中心"而不是"盒中心"：汉字宽 1em，字面中心在字符左沿起 0.5em 处；
+       若写 left: 50%，那是盒宽的一半，会把末尾 6px 字距也算进去，圆心右偏 3px。
+       垂直取行盒中心再下移 0.03em：行盒上下留白并不对称（字体下伸部小于上伸部），
+       纯 50% 圆心会略偏上，补一点点才落在字的视觉重心上；再用 translate(-50%,-50%) 抵消自身尺寸。
+       z-index: -1 让它在文字之下；上一层 .hero-inner 自带堆叠上下文（z-index: 2），
+       所以这个负层级不会漏到首图下面，只会待在首屏之内、文字底下。
+       另外它同时是管理台的入口（见正文里的 <a class="hero-cn-hl">），
+       所以下面这几条是给「链接」加的，不是给「字」加的。
+       注意：此页是 GitHub Pages 的静态版，没有后端，点它会 404——这是用户已知并接受的 */
+    .hero-cn-hl {
+      position: relative;
+      display: inline-block;
+      /* 去掉默认下划线。全局 reset 只有 margin/padding/box-sizing，
+         没有 a 的 text-decoration，这一条不能省 */
+      text-decoration: none;
+    }
+
+    /* 颜色必须写成两条选择器：a:visited 优先级 (0,1,1) 高于 .hero-cn-hl (0,1,0)，
+       只写一条的话，点过一次之后「之」会被浏览器染成紫色 */
+    .hero-cn-hl,
+    .hero-cn-hl:visited {
+      color: #660000;
+    }
+
+    /* 键盘 Tab 到它时给一个可见焦点框；鼠标点击时不出现（:focus-visible 的语义） */
+    .hero-cn-hl:focus-visible {
+      outline: 2px solid #660000;
+      outline-offset: 6px;
+    }
+
+    .hero-cn-hl::before {
+      content: '';
+      position: absolute;
+      left: 0.5em;
+      top: calc(50% + 0.03em);
+      width: 1.05em;
+      height: 1.05em;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      backdrop-filter: invert(1);
+      -webkit-backdrop-filter: invert(1);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* ---------- Section common ---------- */
+    .section {
+      position: relative;
+      padding: 120px 48px;
+      max-width: var(--page-w);
+      margin: 0 auto;
+    }
+
+    /* 文章区上移到"首图刚好淡没"的那条线：首屏线 + --hero-fade-len。
+       要先知道首图有多高才能算出要往回拉多少：首图高度 = 105.333% × 容器宽
+       （aspect-ratio 3/3.16 → 高 = 宽 × 3.16/3），而百分比外边距正是按包含块宽度解析的，
+       所以 "105.333%" 在此恰好等于首图高度。于是
+       margin-top = (首屏线 + 淡出长度) − 首图高度，负值即需要上拉的距离。
+       min(0px, …) 是窄窗口的兜底：那里首图高度就是 100vh（min-height 生效），
+       算式为正，被 clamp 成 0——不上移、不重叠，文章自然接在首图之后。
+       注意本式与 --hero-fade-len 是绑定的：动了那个变量，这里同步，文章才不会挪到图片还没淡没的地方。
+       末尾的 + 100px 是"创刊号往下让一让"的手动余量：图片刚好淡没的那条线太贴着首篇了，
+       让文章区从那条线再落 100px，上方多留一段纯白呼吸位。要调幅度就改这一个数字。
+       （2026-10-08：由 60px 调到 100px——换上子集字体后用户觉得创刊号仍贴着首图，要求再往下让一点。
+       历史注记：本注释曾误写成 120px、而代码当时一直是 60px，一切以本行的算式为准）
+       padding-top: 40px 是既有约定"首篇文章与封面区间距 40px"，此处保留 */
+    /* 每日推荐（.daily）现在接在「首屏」与「文章」之间，所以原先由 #latest 承担的
+       「上移到首图刚好淡没那条线」的负外边距，已经挪到 .daily 上（算式与理由见 .daily 的注释）。
+       #latest 退回普通 .section 的间距——它不再紧贴首图下方，那条线归 Daily 了 */
+    #latest {
+      position: relative;
+      z-index: 3;
+    }
+
+    /* 版块标题：只放宽字距，保持左对齐——用户明确否掉了档案馆这一处的居中。
+       放宽字距取自 fauux 站那种"松"的排法；卡片内的文章标题仍居中，那才是用户要的"标题居中" */
+    .section-label {
+      font-family: var(--font-body);
+      font-size: 11px;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: var(--gray-4);
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-family: var(--font-title);
+      font-size: 42px;
+      font-weight: normal;
+      margin-bottom: 56px;
+      letter-spacing: 4px;
+    }
+
+    /* ---------- Daily：每日推荐（左右栏，标题规范参照档案馆）---------- */
+    /* Daily 现在是首屏之后的第一块内容，夹在首屏与文章之间。
+       原先由 #latest 承担的「上移到首图刚好淡没那条线」的负外边距挪到这里：
+       首图高度 = 105.333% × 容器宽（aspect-ratio 3/3.16 → 高 = 宽 × 3.16/3），
+       而百分比外边距按包含块宽度解析，所以 "105.333%" 恰好等于首图高度。于是
+       margin-top = (首屏线 + 淡出长度) − 首图高度，负值即上拉距离。
+       min(0px, …) 是窄窗口兜底：那里首图高度就是 100vh，算式为正，clamp 成 0——不重叠。
+       算式与 --hero-fade-len 绑定：动了那个变量，这里同步，首图残影才不会透到 Daily 背后。
+       padding-top: 40px 沿用原约定「首块内容与封面区间距 40px」。
+       padding-bottom 另压到 40px：Daily 与下面的文章原本隔着
+       「本块 120px + 文章区 120px」共 240px，远得离谱，两边各收到 40px → 合计 80px */
+    .daily {
+      position: relative;
+      z-index: 3;
+      padding-top: 40px;
+      padding-bottom: 40px;
+      margin-top: min(0px, calc(var(--vp-h) + var(--hero-fade-len) + 100px - 105.333%));
+    }
+
+    /* 左：iPod nano 4th gen（浮动）。右：每日推荐内容（绕着机身流）。
+       用浮动而不是网格，是为了让展开后的续文能自然"绕出"右栏：
+       浮动盒只挤开它自己高度范围内的行盒——正文前 507px 走在右栏（窄），
+       机身到底之后的行自动变成整栏宽，于是"展开的部分从底部开始全栏显示、
+       不再区分左右栏"不需要任何额外结构。间距照旧：机身 230px + 60px
+       正好是原来"250px 列 + 40px gap"之后的位置 */
+    .daily-grid {
+      /* 折叠线 = 机身底边（230px × 1015/460 ≈ 507.5px）。脚本按实测高度覆写，
+         这里只是脚本没跑时的兜底 */
+      --daily-fold: 508px;
+    }
+
+    /* 折叠视窗：机身与正文都包在它里面，裁切由它负责。
+       为什么必须分两层：overflow: hidden 会建立 BFC，而 BFC 块盒会整体躲开浮动
+       （规范要求它的边框盒不与浮动重叠）——第一版把 overflow 挂在正文那层，
+       于是整块正文永远待在机身右侧，展开后仍只有半栏。
+       现在的分法：视窗负责裁切并收住浮动，正文自己是普通块盒、宽整栏，
+       行盒在机身范围内变窄、机身以下自动整栏宽 */
+    .daily-fold {
+      max-height: var(--daily-fold);
+      overflow: hidden;
+    }
+
+    .daily-grid.expanded .daily-fold {
+      max-height: none;
+    }
+
+    /* 展开箭头：与文章卡片上那枚同款（居中 ↓、展开时旋转 180°）。
+       横向只跟着右栏居中——左边让出机身宽 + 间距，箭头才落在正文那一栏的中线上 */
+    .daily-toggle {
+      display: block;
+      width: calc(100% - 290px);
+      margin: 24px 0 0 290px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      text-align: center;
+      font-family: var(--font-body);
+      font-size: 18px;
+      line-height: 1;
+      color: var(--gray-4);
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: color 0.35s ease, transform 0.3s ease;
+    }
+
+    .daily-toggle:hover {
+      color: var(--black);
+    }
+
+    /* hidden 属性要压过上面那条 display: block，否则脚本藏不掉它 */
+    .daily-toggle[hidden] {
+      display: none;
+    }
+
+    .daily-grid.expanded .daily-toggle {
+      transform: rotate(180deg);
+    }
+
+    .daily-ipod {
+      position: relative;
+      float: left;
+      width: 100%;
+      margin-right: 60px;
+      /* ipod-clean.jpg 与 ipod.jpeg 同尺寸（955×2107），区别只是把机身左右边界
+         （实测 x 38..917）之外的像素置成了纯白、去掉那圈细微阴影，机身内的边缘明暗原样保留。
+         尺寸故意不裁剪：屏幕白框那组百分比是按整图算的，裁剪会让它失效。
+         230px 显示相当于 4 倍下采样，原生分辨率足够，不需要增强处理 */
+      max-width: 230px;
+    }
+
+    .daily-ipod-body {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    /* 转盘四个按钮的可点击热区。
+       转盘位置在 ipod-clean.jpg（955×2107）上做像素扫描实测：
+       圆环外接矩形 x 157..807、y 1219..1865，圆心 (482, 1542)，直径 651×647
+       → left 16.44% / top 57.85% / width 68.17% / height 30.71%
+       外层用 border-radius:50% + overflow:hidden 把四个扇形裁在转盘圆内：
+       方形热区的四角会溢出圆外，正好被裁掉（那些位置本来也在圆外）。
+       z-index 高于白底框那层，否则下半部分的"开关"热区会被它盖住 */
+    .daily-ipod-wheel {
+      position: absolute;
+      left: 16.44%;
+      top: 57.85%;
+      width: 68.17%;
+      height: 30.71%;
+      border-radius: 50%;
+      overflow: hidden;
+      z-index: 2;
+    }
+
+    .daily-ipod-btn {
+      position: absolute;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    /* 四个扇形：上=MENU，左=上一首，右=下一首，下=开关（播放／暂停） */
+    .daily-ipod-btn.is-menu { left: 25%; top: 0; width: 50%; height: 33.34%; }
+    .daily-ipod-btn.is-prev { left: 0; top: 33.33%; width: 33.33%; height: 33.34%; }
+    .daily-ipod-btn.is-next { left: 66.67%; top: 33.33%; width: 33.33%; height: 33.34%; }
+    .daily-ipod-btn.is-play { left: 25%; top: 66.67%; width: 50%; height: 33.33%; }
+
+    /* 转盘正中那个白圆 = 确认键（真机的 center 键）。
+       圆心实测半径 150px、直径 300×298，占转盘外接矩形（651×647）的 46.08% × 46.06%。
+       z-index 压在四个扇形之上——它整个落在扇形的包围盒里，不给层级就会被抢走点击 */
+    .daily-ipod-btn.is-center {
+      left: 50%;
+      top: 50%;
+      width: 46.08%;
+      height: 46.06%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      z-index: 1;
+    }
+
+    /* 滚动列表：选中框固定在中槽，上下键滚的是列表本身（做法见脚本：只改 translateY，
+       走过一个循环就把位移减掉一个循环，内容每 3 行重复一次所以接缝不可见） */
+/* 滚动列表的位移由脚本逐帧写 transform（见脚本里的 ipodTick），
+       这里**不要**再挂 transition：每帧改 transform 又带过渡，等于每帧重启一次动画，
+       浏览器每一帧都在追赶一个刚被改写的目标值——那正是"一卡一卡"的来源。
+       缓动也交给脚本里的指数逼近，不再依赖 CSS 的 easing */
+
+    /* 热区完全透明、悬停不给出任何视觉反馈：真机的转盘按键本身不会亮，
+       加悬停高亮等于在机器上凭空多出一块光斑。
+       focus-visible 那道描边留着——键盘 Tab 到它时必须能看见焦点在哪 */
+    .daily-ipod-btn:focus-visible {
+      outline: 1px solid rgba(255, 255, 255, 0.65);
+      outline-offset: -2px;
+    }
+
+    /* 屏幕里的白底框：位置由 ipod.jpeg 逐行扫描实测换算（屏幕区 x 95–860、y 124–1067，
+       整图 955×2107 → left 9.95%、top 5.89%、width 80.21%、height 44.80%），不靠肉眼估。
+       注：扫描时若按"整行暗像素的最左/最右"取值，会把机身两侧的暗边（x 38–44、x 911–916，
+       各只有几像素宽）误当成屏幕边缘，白框会偏宽；改取"最长连续暗段"才是屏幕真边界。
+       圆角取 6px：小弧度，只把四角收圆，不做"圆润卡片"那种观感。
+       overflow: hidden 让行与分隔线被圆角裁住，不越出到框外。
+       内阴影留一道细黑边，像屏幕玻璃的边缘 */
+    .daily-ipod-screen {
+      position: absolute;
+      left: 9.95%;
+      top: 5.89%;
+      width: 80.21%;
+      height: 44.8%;
+      /* 屏幕内底色：原来是纯色，现换成用户给的 ipod_background.webp。
+         本文件是自包含副本，图片路径与上面 archive.webp 一样是相对的（根目录同名文件）。
+         居中 + cover：屏幕框是竖的（比例 0.81），图是横的，cover 按原比例放大到盖满整块框，
+         多出的左右两侧被 overflow: hidden 裁掉——不拉伸变形，也不像 contain 那样上下留空带。
+         圆角与外框（border-radius + 内阴影）原样保留。
+         兜底色是纯白 #FFF（用户指定）：图未加载完或加载失败时屏幕是一块纯白，不会透出机身照片。
+
+         叠在最上面的那层是手绘边框壁纸 ipod_screen_frame.webp（本副本的路径同样是相对的）：
+         在 549×787 原图上扫描出手绘边框外接矩形（上 y 24–33、下 y 747–755、左 x 28–37、
+         右 x 506–514），按矩形裁到 487×732，再按屏幕比例导出 2 倍图 369×455。
+         size 用 100% 100%：四边各自拉伸到屏幕边界，手绘框线正落在屏幕边上；用 cover 会裁掉
+         框线，用 contain 会在四边留空带。笔迹深蓝 #123A78、30% 不透明，天空能透过来。
+         背景层"先写的盖在上面"，故它排在前面——压在 ipod_background 之上、屏内内容之下。
+         越过框线的笔迹尖梢（约 3.6%）由上面的 overflow: hidden 裁掉。 */
+      background:
+        url('ipod_screen_frame.webp') center / 100% 100% no-repeat,
+        #FFF url('ipod_background.webp') center / cover no-repeat;
+      border-radius: 6px;
+      box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, 0.55);
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* .daily-ipod-view 是"屏内的一个视图"：music 之类内容不是独立页面，
+       而是在这块屏幕里换一屏。所以每个视图都占满屏幕、居中，非当前的那个直接 display:none */
+    .daily-ipod-view {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ---- 菜单：循环列表 ----
+       窗口只露 3 行（96px），在屏幕里垂直居中。
+       轨道里排着 3 份相同内容（9 行）；脚本只改 translateY、从不改任何 DOM——
+       走过一个循环（3 行 = 96px）就把位移整体减掉一个循环，因为内容每 3 行重复一次，
+       回退前后每一像素都相同，所以接缝不可见，也不存在"清空一帧再补回来"的过程 */
+    .daily-tags {
+      position: relative;
+      justify-content: flex-start;
+      height: 96px;      /* 3 行 × 32px，须与 .daily-tag 的行高一致 */
+      margin: auto 0;    /* 在屏幕里垂直居中 */
+      overflow: hidden;
+    }
+
+    .daily-tags-track {
+      position: relative;
+      z-index: 1;        /* 压在选中框之上，字不会被那层淡底盖住 */
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      /* 默认上移一个循环：上下各留一份副本，首尾才接得上。
+         脚本接管这个 transform（值 = -96px + 当前位移），此处是脚本失效时的静态兜底 */
+      transform: translateY(-96px);
+    }
+
+    /* 固定选中框：永远钉在窗口正中，不随文字移动。
+       文字从它下面滑过，滑进框里的那一行就是当前选中项 */
+    .daily-menu-band {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 32px;      /* = 行高，须与 .daily-tag 一致 */
+      transform: translateY(-50%);
+      border: 1px solid rgba(0, 0, 0, 0.16);
+      background: rgba(0, 0, 0, 0.04);
+      pointer-events: none;
+    }
+
+    .daily-ipod-view[hidden] {
+      display: none;
+    }
+
+    /* ---- music 视图里的播放器 ----
+       屏内可用面积只有约 184.5 × 227.4 CSS px，三行（曲名 / 时间 / 进度条）就占满了，
+       不往里添第四行。字号沿用屏内既有量级（15px 级），字体沿用全站正文那套
+       （--font-body），不引入新字体 */
+    .daily-music {
+      padding: 0 12px;
+      text-align: center;
+      font-family: var(--font-body);
+      color: var(--black);
+    }
+
+    .daily-music-name {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.4;
+      /* 曲名来自仓库里的文本文件，长度不受控：允许词内断行，宁可折两行也不横向溢出 */
+      overflow-wrap: anywhere;
+    }
+
+    .daily-music-time {
+      margin: 7px 0 0;
+      font-size: 11px;
+      line-height: 1;
+      letter-spacing: 0.5px;
+      color: var(--gray-4);
+    }
+
+    /* 进度条是纯 div，宽度按百分比重写（见脚本）。不做可拖动控件：
+       看起来能拖、实际拖不动，比不给控件更糟 */
+    .daily-music-bar {
+      margin: 6px 0 0;
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(0, 0, 0, 0.12);
+      overflow: hidden;
+    }
+
+    .daily-music-fill {
+      display: block;
+      width: 0;
+      height: 100%;
+      background: var(--black);
+    }
+
+    /* 没歌单 / 直链打不开：只留一句提示。时间与进度条都收掉——
+       它们此刻显示的是空数据，摆着只会误导 */
+    .daily-music.is-error .daily-music-time,
+    .daily-music.is-error .daily-music-bar {
+      display: none;
+    }
+
+    .daily-music.is-error .daily-music-name {
+      color: var(--gray-5);
+    }
+
+    /* 播放器本体不占版面。它挂在屏幕之外（见标记处的注释）：
+       进了 [data-ipod-view] 就会被切屏的 hidden 一起收走，那它就不再是"换屏也不停"的那一个 */
+    .daily-audio {
+      display: none;
+    }
+
+    /* 固定行高而不是 flex:1 均分——均分会把这几行铺满整块屏幕，上下就不留白了 */
+    .daily-tag {
+      flex: 0 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      /* 三栏字体按用户指定用 Podium Sans；它装不上时回退到上一版指定的 Adobe Caslon Pro，
+       再往后才是近似衬线兜底——不要把回退链整条换掉，否则等于把上一版的字体丢掉。
+       两款都是商用字体：要让所有访客都看到，需把授权 woff2 放进 public/fonts 并补 @font-face */
+      font-family: 'Podium Sans', 'PodiumSans', 'Podium Sans Web', 'Adobe Caslon Pro', 'Adobe Caslon', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', var(--font-title), serif;
+      font-size: 18px;
+      color: var(--gray-4);
+      text-decoration: none;
+      /* 菜单项是 <button>（屏内切换，不跳 URL），要显式清掉按钮原生的边框、底色与内边距，
+         只保留那条底部分隔线——否则按钮的灰底和全边框会盖掉整个列表的观感 */
+      border: 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+      background: transparent;
+      margin: 0;
+      padding: 0;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: color 0.35s ease;
+    }
+
+    .daily-tag:hover {
+      color: var(--black);
+    }
+
+    /* 每一行都保留同一条底部分隔线：轨道里 3 份内容必须逐像素一致，
+       接缝处才不会因为"某一行少一条线"而露馅 */
+
+    /* 选中项变黑：is-active 由脚本按"中槽此刻压住哪一行"实时挂上／摘掉（见 syncIpodActive），
+       不随 DOM 顺序写死；color 过渡在上面那条里，交接时是渐变而不是硬切 */
+    .daily-tag.is-active {
+      color: var(--black);
+    }
+
+    /* 右栏：每日推荐内容。字号与文章卡片对齐（用户本轮指定）：
+       创刊号那边的标题 25px、正文 18px 是内联写在这份副本的卡片上的，
+       这里跟着同一个值，两处看起来才一样大——不要把 22px / 16px 的旧值改回来 */
+    .daily-title {
+      font-family: var(--font-title);
+      font-size: 25px;
+      line-height: 1.45;
+      letter-spacing: 1px;
+      color: var(--black);
+      margin: 0;
+    }
+
+    /* 右栏正文：来自后端的长文。white-space: pre-line 保留作者在 admin 里敲的换行，
+       不必把每一段都拆成 <p>；行距与全站正文一致（1.9 两处本来就相同） */
+    .daily-body {
+      margin-top: 14px;
+      font-family: var(--font-body);
+      font-size: 18px;
+      line-height: 1.9;
+      color: var(--gray-5);
+      white-space: pre-line;
+    }
+
+    /* 诗：右栏里再分两栏。诗行短，单栏时右边空一大片；分两栏一眼能读完一首。
+       column-count 是栏数上限、column-width 是每栏最小宽度，两者并用 = 「最多两栏，
+       放不下就退回一栏」——窄屏不必另写媒体查询，右栏一窄自己就变回单栏。
+       节（空行分隔的部分）由脚本包成 <p class="daily-stanza">，break-inside: avoid
+       保证一节不会被劈到两栏中间 */
+    .daily-body.is-poem {
+      column-count: 2;
+      column-width: 230px;
+      column-gap: 48px;
+    }
+
+    .daily-body.is-poem > p {
+      break-inside: avoid;
+    }
+
+    .daily-body.is-poem > p + p {
+      margin-top: 1.3em;
+    }
+
+    /* 窄屏放不下并排：机器居中、不再浮动，正文跟着占满整栏。
+       折叠线在这里没有意义（机身在上方，按它的底边裁会把正文裁成零高），整块取消折叠；
+       箭头一起收掉——CSS 与脚本两层都收，不留空转的按钮 */
+    @media (max-width: 768px) {
+      .daily-ipod {
+        float: none;
+        margin: 0 auto 32px;
+      }
+      .daily-fold {
+        max-height: none;
+      }
+      .daily-toggle {
+        display: none;
+      }
+    }
+
+    /* ---------- Latest articles ---------- */
+    .article-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      /* 补回卡片被清掉的内联 transform: translateY(16.111px) 所产生的视觉位移。
+         那串内联几何值（width/height/transform）是工具快照，不能留着——height 会把卡片钉死、
+         展开长文时不长高；但它的"往下挪 16px"是用户已经看习惯的位置，所以改在这里用
+         一条普通内边距把首张卡片推回原处：布局参与排布（不再是脱离文档流的浮动位移），
+         且不去动 #latest 那两处有名义的间距（padding-top 40px 的约定、margin-top 的 100px 余量） */
+      padding-top: 16px;
+    }
+
+    .article-item {
+      /* 不透明纯白。曾试过 rgba(255,255,255,0.55)（想让首屏的白场透过卡片连下来），
+         用户看后决定改回纯白，故不要在"半透明"上再试：
+         一是 background-color 过渡里不带 alpha，不会与别的管线不同步；
+         二是给 logo 的 mix-blend-mode 一个确定的混合基准——半透明底会让混合结果
+         取决于卡片背后是什么，而不是卡片最终显示的颜色。 */
+      background: #ffffff;
+      /* 把混合关在卡片里面：logo 只跟卡片自己的底色混合，不会穿出去跟页面、首图混 */
+      isolation: isolate;
+      /* 常态透明，不是没有边框 —— 边框的宽度仍然占 1px，卡片盒子尺寸与原先完全一致，
+         所以"框消失"不会让文字位置挪动半像素；变的只有颜色：静止时看不见，
+         悬停/展开时才由 border-color 过渡把它染成黑。
+         若写成 border: none 或 0，盒子会比现在小 2px，展开前后会跳一下 */
+      border: 1px solid transparent;
+      padding: 32px 36px;
+      cursor: pointer;
+    }
+
+    /* 反色渐显渐隐：底色、描边、文字同步过渡 */
+    .article-item,
+    .article-meta,
+    .article-author,
+    .article-title,
+    .article-excerpt,
+    .article-full {
+      transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+    }
+
+    /* 悬停反色：与档案馆年份行同一套交互语言 */
+    .article-item:hover:not(.expanded) {
+      background: var(--black);
+      border-color: var(--black);
+    }
+
+    .article-item:hover:not(.expanded) .article-meta {
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    .article-item:hover:not(.expanded) .article-author {
+      color: rgba(255, 255, 255, 0.75);
+    }
+
+    .article-item:hover:not(.expanded) .article-title {
+      color: var(--white);
+    }
+
+    .article-item:hover:not(.expanded) .article-excerpt {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .article-item:hover:not(.expanded) .article-toggle {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* 悬停时刊徽一并反相：灰度图在黑底上仍保持原样的话，深色笔画会糊掉，
+       与文字同翻才维持得住"整块反色"的观感。
+       这里不写 filter，只对调两张同源图的透明度——理由见下方 .article-logo 的注释 */
+    .article-item:hover:not(.expanded) .article-logo .logo-base {
+      opacity: 0;
+    }
+
+    .article-item:hover:not(.expanded) .article-logo .logo-inv {
+      opacity: 1;
+    }
+
+    /* 展开后回到白底，保证长文可读 */
+    .article-item.expanded {
+      border-color: var(--black);
+    }
+
+    /* 卡片顶部的刊徽：用项目里的 logo.png。
+       两张同源图叠在同一个网格单元里——原图一张、反相一张，各自带一个混合模式。
+       为什么不用 filter 过渡：filter 作用在元素自己的画布像素上，而卡片的 background-color
+       走绘制期的颜色插值，两条管线中途不保证逐帧对齐，卡面变黑时会闪出一圈矩形边。
+       为什么也不用"两张图纯 opacity 交叉淡入"（试过，更糟）：两张都不透明的图叠着淡入，
+       上层的半透明会挡掉下层，中途的合成值并不等于两端的平均——
+       算下来线稿那块会比卡面暗 32 级左右，闪得更凶。
+       所以真正的解法不是"让两段动画同步"（那要求两条管线逐帧对齐，没有规范保证），
+       而是让底色根本不参与动画——用混合模式把它变成卡面颜色的函数：
+       原图那张 multiply：白底 × 卡面 = 卡面（**任何瞬间都恒等**），黑线 × 任何色仍是黑；
+       反相那张 screen：黑底与卡面做 screen 同样恒等于卡面，白线恒为白。
+       于是不论卡片当时是白、是灰、是黑，logo 的底色都严丝合缝等于卡面——
+       不是"同步得好"，而是数学上不可能不同；线稿则从黑经灰平滑淡到白。
+       display: grid + width: max-content + 左右 auto 外边距 = 自成一块并水平居中；
+       两图 grid-area 同格叠放，格子尺寸自动取较大者，不必写死比例（原图比例未知，写死会把图拉变形） */
+    .article-logo {
+      display: grid;
+      width: max-content;
+      margin: 0 auto 18px;
+    }
+
+    .article-logo img {
+      grid-area: 1 / 1;
+      height: 48px;
+      width: auto;
+      /* 全站是黑白画廊风，彩色刊徽会跳出来，所以先转灰度；
+         过渡时长与卡片的反色过渡（0.35s）对齐，悬停时才不会各走各的 */
+      filter: grayscale(100%);
+      transition: opacity 0.35s ease;
+    }
+
+    /* 原图那张：白底乘法融进卡面，黑线不变 */
+    .article-logo .logo-base {
+      mix-blend-mode: multiply;
+    }
+
+    /* 反相那张：灰度之后再反相（白底变黑、黑线变白），静止时完全透明只占位 */
+    .article-logo .logo-inv {
+      filter: grayscale(100%) invert(1);
+      mix-blend-mode: screen;
+      opacity: 0;
+    }
+
+    /* 卡片内的三层元信息：标题 / 作者 / 日期各占一行，居中并放宽字距
+       （取自 fauux 站"标题—作者—日期"三层松散的排法）。
+       正文段落仍然左对齐——中文长段落居中会伤阅读节奏 */
+    .article-title {
+      font-family: var(--font-title);
+      font-size: 22px;
+      font-weight: normal;
+      color: var(--black);
+      margin-bottom: 14px;
+      line-height: 1.5;
+      letter-spacing: 2px;
+      text-align: center;
+    }
+
+    .article-author {
+      font-family: var(--font-body);
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: var(--gray-5);
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .article-meta {
+      font-family: var(--font-body);
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--gray-4);
+      text-align: center;
+      /* 元信息从标题上方挪到了标题下方，它下面接的是正文，间距要比原先大一些 */
+      margin-bottom: 26px;
+      text-transform: uppercase;
+    }
+
+    .article-content {
+      overflow: hidden;
+    }
+
+    .article-excerpt {
+      font-size: 15px;
+      color: var(--gray-5);
+      line-height: 1.8;
+    }
+
+    .article-full {
+      font-size: 15px;
+      color: var(--gray-6);
+      line-height: 1.9;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .article-item.expanded .article-excerpt {
+      display: none;
+    }
+
+    .article-item.expanded .article-full {
+      display: block;
+    }
+
+    .article-toggle {
+      display: block;
+      margin-top: 24px;
+      text-align: center;
+      font-family: var(--font-body);
+      font-size: 18px;
+      line-height: 1;
+      color: var(--gray-4);
+      transition: color 0.35s ease, transform 0.3s ease;
+    }
+
+    .article-item.expanded .article-toggle {
+      transform: rotate(180deg);
+    }
+
+    /* ---------- Archive ---------- */
+    .archive {
+      background: var(--gray-1);
+      max-width: none;
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    /* 档案馆照片层：黑白常显；提高对比与压暗，让灰阶更沉。
+       照片之上压着一层 rgba(245,245,245,0.18) 的白纱（#f5f5f5 属白系，等于整块提亮 18%）。
+       本轮曾把它撤掉并改底色为黑（误把"顶部的白"当成这里来的），
+       后经用户澄清——他要改的是**首图**（.hero-image 的淡出方式），不是档案馆——故按原样还原。
+       注：上一轮的 dither 噪点层没有一并还原，因为它已被用户实测"根本没变化"，
+       撤除不改变画面，留着反而会被误当成有效手段（理由见 .archive::after 注释） */
+    .archive::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(245, 245, 245, 0.18) 0%, rgba(245, 245, 245, 0.18) 100%),
+        url('archive.webp') center / cover no-repeat fixed;
+      filter: grayscale(100%) contrast(1.3) brightness(0.88);
+      pointer-events: none;
+    }
+
+    /* 档案馆与页脚的交接处：只保留"下沿渐出到黑"这一头。
+       原先是"一条渐变写两头"（上沿从白场渐入、下沿渐出到黑）；
+       用户裁定上沿那半要去掉——单篇文章的短页里，首屏下沿的白场一直铺到
+       文章区背后，档案馆再叠一道"白场渐入照片"，两道白场在同一屏相叠。
+       所以上沿不再透白；下沿那一头没被投诉，保持原样（含长度），便于日后归因。
+       （曾在此加过一层 opacity 0.03 的 SVG 噪点去"抖动"横向浅色条带，
+       用户反馈"根本没变化"——已撤除且不再还原。噪点打散的是 8 位色深的量化台阶，
+       对"整块被提亮"这类成因无效，别把它当成通解再加回来） */
+    .archive::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background: linear-gradient(to bottom,
+          rgba(0, 0, 0, 0) calc(100% - 240px),
+          rgba(0, 0, 0, 0.6) calc(100% - 80px),
+          var(--black) 100%);
+    }
+
+    /* 档案馆标题区单独拎出来做"实时反色"，所以它不能待在 .archive-inner 里：
+       .archive-inner 带 z-index: 1（用来压在照片与黑色渐晕之上），
+       而"带 z-index 的定位元素"会自成堆叠上下文——等于给 mix-blend-mode 画了一个封闭的混合组，
+       组里没有照片，字就只能跟透明底混合，"反色"根本不会发生。
+       于是把标题移到 .archive 的直接子级，只留 position: relative（z-index: auto）：
+       它仍排在 .archive::before（照片）之后、能被画在照片上面，却不成堆叠上下文，
+       混合组就一路通到根，照片落在它的"背景"里，反色才成立。
+       max-width / margin / padding 三项与 .archive-inner 完全一致，标题与下方内容保持同一条左对齐线 */
+    .archive-head {
+      position: relative;
+      max-width: var(--page-w);
+      margin: 0 auto;
+      padding: 0 48px;
+    }
+
+    /* "档案馆"三字与身后照片实时反色：白字 + difference 混合。
+       difference 的算法是 |背景 − 前景|，前景取纯白即 |背景 − 1| = 背景反相；
+       又因为它只作用在元素真正画上去的像素上（透明处不参与），
+       所以呈现的是"笔画本身＝笔画后面那块背景的反色"，而不是一个反色矩形块。
+       照片是 background-attachment: fixed 的：字随页面滚动时，字后面换成照片的哪一块像素就取哪一块，
+       "实时"由此而来，不需要 JS。
+       注意：这条规则依赖 .archive-head 不建堆叠上下文；一旦把标题挪回 .archive-inner，反色会整体失效 */
+    .archive .section-title {
+      color: var(--white);
+      mix-blend-mode: difference;
+    }
+
+    .archive-inner {
+      position: relative;
+      z-index: 1;
+      max-width: var(--page-w);
+      margin: 0 auto;
+      padding: 0 48px;
+    }
+
+    .archive-year {
+      position: relative;
+      font-family: var(--font-title);
+      font-size: 28px;
+      margin: 48px 0 0;
+      color: var(--gray-6);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border: 1px solid var(--gray-3);
+      transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+    }
+
+    /* 年份行是一扇彩色窗口：用图片原色作底，与身后黑白照片同一参照系对齐。
+       常态即叠着反色层（见下方 ::before），所以文字常态取黑——反色底偏亮，白字读不出；
+       悬停撤掉反色层、还原成原色，文字随之转白。底与字是配套的一对，必须同翻 */
+    .archive-year {
+      background: url('archive.webp') center / cover no-repeat fixed;
+      color: var(--black);
+      /* z-index: 0 不是为了层叠先后，而是为了建一个堆叠上下文——
+         绝对定位的 ::before 按绘制顺序会画在文字之上，会把「2026」一起反相成白字
+         （黑字反相 = 白，落在偏亮的底上就读不出来）。建了上下文再把反色层压到负层级，
+         它才只翻底色、不翻年份数字。注意：不能用 filter / transform / isolation 来建，
+         那几个属性会改变 background-attachment: fixed 的参照系，把取景窗与底图的对齐打散 */
+      z-index: 0;
+    }
+
+    /* 悬停到具体某一年：撤掉反色层、露出图片原色，文字随之转白（须排在上一块之后以覆盖） */
+    .archive-group:hover .archive-year {
+      color: var(--white);
+    }
+
+    /* 反色层：常显，悬停时渐隐回原色。用 backdrop-filter 翻转而非给年份行加 filter—— */
+    /* filter 会把年份行变成 fixed 定位的包含块，毁掉与身后照片的对齐 */
+    .archive-year::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      /* 负层级：落在年份行自身底色之上、文字之下——只翻底，不翻「2026」 */
+      z-index: -1;
+      opacity: 1;
+      backdrop-filter: invert(1);
+      -webkit-backdrop-filter: invert(1);
+      transition: opacity 0.35s ease;
+      pointer-events: none;
+    }
+
+    /* 悬停撤掉这一层反色 */
+    .archive-group:hover .archive-year::before {
+      opacity: 0;
+    }
+
+    .archive-arrow {
+      font-family: var(--font-body);
+      font-size: 20px;
+      transition: transform 0.3s ease;
+    }
+
+    /* 箭头方向跟随展开状态，而不是鼠标位置：面板悬停离开后仍保持展开 */
+    .archive-group.open .archive-arrow {
+      transform: rotate(45deg);
+    }
+
+    .archive-group {
+      position: relative;
+    }
+
+    /* 收起：不再由鼠标离开触发，改由点击年份行/月份框之外收回（JS 切换 .open） */
+    .archive-items {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.6s ease;
+    }
+
+    /* 展开：悬停意图的"等一小会"交给 JS 计时器（可被离开取消）；时长与收起看齐，收放同速 */
+    .archive-group.open .archive-items {
+      max-height: 900px;
+      transition: max-height 0.6s ease;
+    }
+
+    /* 面板直接显示图片原色——不再挂常显反色层。
+       这样它与"悬停后还原成原色"的年份行连成同一块原色表面（原先连的是反色） */
+    .archive-months {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      padding: 12px;
+      border: 1px solid var(--gray-3);
+      border-top: none;
+      background: url('archive.webp') center / cover no-repeat fixed;
+    }
+
+    .archive-month {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-body);
+      font-size: 12px;
+      border: 1px solid var(--gray-3);
+      color: var(--black);
+      cursor: pointer;
+      transition: color 0.35s ease;
+    }
+
+    /* 悬停月份：在原色底上再叠一层反相 → 翻成反色 */
+    .archive-month::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      backdrop-filter: invert(1);
+      -webkit-backdrop-filter: invert(1);
+      transition: opacity 0.35s ease;
+      pointer-events: none;
+    }
+
+    .archive-month:hover::before {
+      opacity: 1;
+    }
+
+    /* 悬停翻成反色后，数字与箭头随之转白，形成明确的黑↔白反馈 */
+    .archive-month:hover {
+      color: var(--white);
+    }
+
+    /* 有文章的月份：数字正下方一个向下箭头，点击展开文章列表 */
+    .archive-month.has-posts::after {
+      content: '↓';
+      margin-top: 2px;
+      font-size: 11px;
+      line-height: 1;
+      color: inherit;
+    }
+
+    /* 收起状态下只是数据容器，内容由 JS 搬进下方面板 */
+    .month-posts {
+      display: none;
+    }
+
+    /* 文章列表面板：常态高度收为 0，展开时用 max-height / opacity / padding 一起做入场动效 */
+    .month-posts-panel {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      padding: 0 32px;
+      border: 0 solid var(--gray-3);
+      border-top: none;
+      background: var(--black);
+      transition: max-height 0.38s ease, opacity 0.3s ease,
+                  padding 0.38s ease, border-width 0.38s ease;
+    }
+
+    .month-posts-panel.open {
+      max-height: 420px;
+      opacity: 1;
+      padding: 22px 32px;
+      border-width: 1px;
+    }
+
+    .month-post {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 4px 0;
+      text-decoration: none;
+      color: var(--white);
+      font-family: var(--font-title);
+      font-size: 22px;
+      line-height: 1;
+      /* 与卡片里的 .article-title 用同一套标题排版：字体 var(--font-title)、字号 22px、字距 2px。
+         差别只在对齐——卡片标题居中，这里靠左（flex 起点），这正是"和前面文章的标题一致且左对齐"。
+         日期 span 会一并继承这 2px 字距，而卡片 .article-meta 本来也是 2px，属同一排法，故不单独复位。
+         另注：这一行不参与逐字抖动拆分（见 JS 的 a:not(.month-post)）——
+         拆出的每个 span 都会变成独立 flex 项，被 space-between 摊到整行，标题会散开 */
+      letter-spacing: 2px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+      gap: 12px;
+    }
+
+    .month-post:last-child {
+      border-bottom: none;
+    }
+
+    /* 标题文字正下方、跟随标题宽度的一条下划线。
+       这个 span 在 .month-post（flex 行）里是独立的一项，宽度只包住自己的字，
+       所以 border-bottom 画出来恰好是标题的宽度，而不是整行。
+       常态透明、悬停转白，0.35s 渐显——与全站其它悬停反馈同一时长。
+       注意：不能用 .month-post span 这种宽泛选择器，否则日期也会被当成标题一起画线 */
+    .month-post-title {
+      display: inline-block;
+      border-bottom: 1px solid rgba(255, 255, 255, 0);
+      transition: border-color 0.35s ease;
+    }
+
+    /* 悬停不再把标题变灰（原先的 color: rgba(255,255,255,0.6) 已撤除），改为让上面的下划线浮现 */
+    .month-post:hover .month-post-title {
+      border-bottom-color: var(--white);
+    }
+
+    /* 日期：弱灰是静态排版的一部分，不随悬停变化 */
+    .month-post-date {
+      font-family: var(--font-body);
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.5);
+      white-space: nowrap;
+    }
+
+    /* ---------- Footer ---------- */
+    .footer {
+      position: relative;
+      background: var(--black);
+      color: var(--white);
+      /* 上沿留白 100→64：入口行原本离黑底上沿太远。收到与页脚内部其它间距同一量级
+         （行间 24 / 下沿 60），免得"上重下轻" */
+      padding: 64px 48px 60px;
+    }
+
+    .footer-inner {
+      max-width: var(--page-w);
+      margin: 0 auto;
+    }
+
+    /* 页脚入口行：关于 / 留言板 / 投稿，一左一中一右。
+       baseline 对齐让三者文字压在同一条基线上（两个链接自带 20px 上下内边距，
+       若用 flex-start 会让「关于」比它们高出 20px）。
+       「留言板」恰好落在中线上：首尾两项「关于」「投稿」都是两个字，宽度相等 */
+    .footer-links {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 40px;
+    }
+
+    /* 「关于」的整块：上排是入口行，正文挂在行的下方。
+       正文若留在这一行内，展开时会撑宽「关于」那一格、把后两项顶走，
+       所以它必须是行的兄弟节点而不是行内项目 */
+    .footer-about {
+      margin-bottom: 24px;
+      cursor: pointer;
+    }
+
+    .footer-about-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-title);
+      font-size: 22px;
+      letter-spacing: 0.5px;
+      color: var(--white);
+      margin-bottom: 20px;
+    }
+
+    .footer-about-arrow {
+      font-size: 18px;
+      letter-spacing: 0;
+      transition: translate 0.3s ease, transform 0.3s ease;
+    }
+
+    /* 悬停时只有箭头平移，文字一动不动。用独立的 translate 而不是 gap——
+       gap 会改变盒子宽度、把并排的项顶走；translate 只挪画面不动布局，
+       而且与展开态的 rotate 是两个属性，可以各自动作、互不覆盖 */
+    .footer-about-label:hover .footer-about-arrow {
+      translate: 12px 0;
+    }
+
+    /* 展开后 → 转为 ↓，与折叠状态区分 */
+    .footer-about.expanded .footer-about-arrow {
+      transform: rotate(90deg);
+    }
+
+    /* 正文在行的下方、不参与那一行的宽度计算，所以展开只会向下长，
+       不会把「留言板」「投稿」往右顶 */
+    .footer-about-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.6s ease;
+    }
+
+    .footer-about.expanded .footer-about-body {
+      max-height: 400px;
+    }
+
+    /* 「关于」展开区：4 枚社交标识（QQ / 小红书 / 微信 / GitHub），横排一行 4 枚。
+       去掉平台名后每格只剩一枚图标，列宽改为随内容（auto）并靠左排列——
+       原先用 1fr 是为了给"图标 + 文字"留等宽的两栏；现在文字没了，
+       1fr 会在每格右侧留出 ~110px 空档，把两枚图标拉得很散。
+       网格也不再需要宽度上限：4 枚 30px 图标 + 3 道间距 ≈ 204px，
+       伸不到「留言板」底下，原先那条 calc(50% - 96px) 的约束随之作废 */
+    .footer-social {
+      display: grid;
+      grid-template-columns: repeat(4, auto);
+      justify-content: start;
+      gap: 28px;
+      margin-top: 6px;
+      list-style: none;
+    }
+
+    /* 一格 = 一枚官方标识，整枚是一个链接。
+       颜色只在这一处写一次，图标走 fill: currentColor，悬停改 color 即整体换色。
+       平台名已从画面上去掉（改由图标的 aria-label 承担读屏名称），
+       所以原先给文字准备的字体/字号/字距/gap 一并撤除 */
+    .footer-social-item {
+      display: inline-flex;
+      align-items: center;
+      color: rgba(255, 255, 255, 0.62);
+      transition: color 0.35s ease;
+    }
+
+    /* 悬停整枚转纯白。不做位移/放大——本站的悬停反馈只保留"颜色变化"这类因果提示 */
+    .footer-social-item:hover {
+      color: var(--white);
+    }
+
+    /* 官方标识是"实心字形"（单条 path、靠 fill 上色），不是线条：
+       fill: currentColor 让它跟着链接的 color 走，stroke 显式关掉——
+       否则会继承外层的描边设置，字形边缘糊一圈。
+       尺寸由 26px 提到 30px：小红书那枚是官方完整字形，笔画极密（path 数据约 3.5KB），
+       26px 下细节被压到亚像素、看着糊成一团；网格单格约 138px 宽，放到 30px 也放得下 */
+    .footer-social-item svg {
+      width: 30px;
+      height: 30px;
+      flex: none;
+      fill: currentColor;
+      stroke: none;
+    }
+
+    /* 页脚入口「投稿」的样式与手势。flex: none 让它不参与挤压，免得文字被折成两行 */
+    .footer-submit {
+      display: inline-flex;
+      align-items: center;
+      flex: none;
+      gap: 12px;
+      font-family: var(--font-title);
+      font-size: 22px;
+      color: var(--white);
+      text-decoration: none;
+      padding: 20px 0;
+    }
+
+    /* 悬停同样只挪箭头，文字固定 */
+    .footer-submit-arrow {
+      font-size: 18px;
+      transition: translate 0.3s ease;
+    }
+
+    .footer-submit:hover .footer-submit-arrow {
+      translate: 12px 0;
+    }
+
+    /* ---------- Footer / 留言板 ---------- */
+    /* 「留言板」的标签留在入口行里（与「关于」同行），展开区挂在行的下方——
+       与「关于」同一套结构，只是标签在行内、正文在行外。
+       两块互斥：展开其一时另一块收起，收起走同一段 max-height 过渡，自带动效 */
+    .footer-guestbook-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-title);
+      font-size: 22px;
+      letter-spacing: 0.5px;
+      color: var(--white);
+      padding: 20px 0;
+      cursor: pointer;
+    }
+
+    /* 与「关于」同款手势：悬停只挪箭头，文字不动 */
+    .footer-guestbook-arrow {
+      font-size: 18px;
+      letter-spacing: 0;
+      transition: translate 0.3s ease, transform 0.3s ease;
+    }
+
+    .footer-guestbook-label:hover .footer-guestbook-arrow {
+      translate: 12px 0;
+    }
+
+    /* 标签在入口行里、内容壳在行外，是两个元素，所以箭头看的是标签自己身上这份展开态 */
+    .footer-guestbook-label.expanded .footer-guestbook-arrow {
+      transform: rotate(90deg);
+    }
+
+    .footer-guestbook-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.6s ease;
+    }
+
+    /* max-height 需要给"内容长到顶"留够余量：留言墙本身封顶 360px（见下），
+       所以表单+留言墙的总高有上界；底部又多了一条 .guest-film（约 162px 高 + 28px 上间距），
+       1200px 足以覆盖，不会出现内容被裁掉 */
+    .footer-guestbook.expanded .footer-guestbook-body {
+      max-height: 1200px;
+    }
+
+    /* 展开区宽度 ≈ 上面文章卡片的 60%：卡片在 --page-w（960px）容器里两侧各退 48px 内边距 = 864px，
+       其 60% ≈ 518px。用 60% 起步、518px 封顶，窄窗口下随容器同比例收窄
+       （版心放宽时这个封顶值要跟着 --page-w 一起改，否则比例关系就断了） */
+    .footer-guestbook-inner {
+      width: 60%;
+      max-width: 518px;
+      margin: 0 auto;
+      padding-top: 8px;
+    }
+
+    /* 表单三个字段（名字 / 上传 / 留言）一律白底黑字——
+       黑底页脚上把输入控件反过来用白底，与站内"反色"是同一套语言 */
+    .guest-field {
+      display: block;
+      width: 100%;
+      background: var(--white);
+      color: var(--black);
+      border: 1px solid var(--white);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.8;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      outline: none;
+    }
+
+    .guest-field::placeholder {
+      color: var(--gray-4);
+    }
+
+    .guest-field:focus {
+      box-shadow: inset 0 0 0 1px var(--gray-3);
+    }
+
+    .guest-textarea {
+      resize: vertical;
+      min-height: 112px;
+    }
+
+    /* 上传字段：用 label 包住真正被隐藏的 file input，点整条白框都能选图 */
+    .guest-upload {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      background: var(--white);
+      color: var(--gray-5);
+      font-family: var(--font-body);
+      font-size: 14px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      cursor: pointer;
+    }
+
+    .guest-file {
+      display: none;
+    }
+
+    .guest-upload-preview {
+      display: none;
+      width: 100%;
+      max-height: 220px;
+      object-fit: contain;
+      background: var(--white);
+      margin-bottom: 12px;
+    }
+
+    .guest-upload-preview.on {
+      display: block;
+    }
+
+    .guest-submit {
+      display: block;
+      width: 100%;
+      background: var(--white);
+      color: var(--black);
+      border: 1px solid var(--white);
+      font-family: var(--font-title);
+      font-size: 18px;
+      letter-spacing: 2px;
+      padding: 12px 0;
+      cursor: pointer;
+      transition: background-color 0.35s ease, color 0.35s ease;
+    }
+
+    /* 悬停反色：与文章卡片、档案馆同一套反馈 */
+    .guest-submit:hover {
+      background: var(--black);
+      color: var(--white);
+    }
+
+    /* 留言墙：仍是黑底白字，与页脚底色一致；白底留给"可输入"的东西。
+       自身封顶、超出时内部滚动——留言条数无上限，不能让展开区跟着无限长高 */
+    .guest-wall {
+      margin-top: 28px;
+      text-align: left;
+      max-height: 360px;
+      overflow-y: auto;
+    }
+
+    .guest-wall-empty {
+      font-family: var(--font-body);
+      font-size: 13px;
+      letter-spacing: 1px;
+      color: var(--gray-5);
+      text-align: center;
+    }
+
+    /* 留言板最底部：一条缓缓向左流动的照片带（原先只有一张台灯图）。
+       同屏三张。帧宽不写死：每帧按自己的宽高比（HTML 里的 --aspect）分配宽度，
+       同一高度下照片宽度 = 比例 × 高度，于是三帧拼起来恰好铺满留言区，
+       照片之间零间隙，既不裁切（用不到 object-fit，图片就是原始比例），
+       也不会出现两侧黑边（黑边往往来自「固定宽度的框 + contain」）。
+       灰度交给 CSS，与 .hero-image 同一条算式，原图放彩色即可。
+       左右两端用遮罩淡出到页脚的黑，让照片流看起来是从黑里出来的 */
+    .guest-film {
+      overflow: hidden;
+      /* 下间距给足，与再下面的 Einmal ist keinmal 刊名拉开距离 */
+      margin: 28px 0 48px;
+      -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
+      mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
+    }
+
+    /* 轨道宽 200%：同一组照片排两遍，translateX(-50%) 恰好转回起点，循环无缝 */
+    .guest-film-track {
+      display: flex;
+      width: 200%;
+      animation: guest-film-scroll 42s linear infinite;
+    }
+
+    /* flex-grow = 宽高比、flex-basis = 0：
+       剩余空间按各帧比例分配，宽度自然与「等高时的原比例宽度」一致 */
+    .guest-film-frame {
+      flex: var(--aspect, 1.33) 1 0;
+      min-width: 0;
+    }
+
+    .guest-film-frame img {
+      display: block;
+      width: 100%;
+      height: auto;
+      filter: grayscale(100%) contrast(1.05);
+    }
+
+    @keyframes guest-film-scroll {
+      to { transform: translateX(-50%); }
+    }
+
+    /* 系统偏好减少动效时保持静止（悬停不暂停：这条照片要一直流着） */
+    @media (prefers-reduced-motion: reduce) {
+      .guest-film-track { animation: none; }
+    }
+
+    .guest-note {
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .guest-note-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      font-family: var(--font-body);
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--gray-4);
+      margin-bottom: 8px;
+    }
+
+    .guest-note-name {
+      font-family: var(--font-title);
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      color: var(--white);
+    }
+
+    .guest-note-text {
+      font-size: 14px;
+      line-height: 1.9;
+      color: var(--gray-2);
+      overflow-wrap: anywhere;
+    }
+
+    .guest-note-img {
+      display: block;
+      width: 100%;
+      max-height: 260px;
+      object-fit: contain;
+      margin-top: 12px;
+      background: var(--white);
+    }
+
+    /* 刊名与版权行由原来的左右分居改为纵向居中叠放：刊名在上、版权行在下。
+       两者都居中，所以去掉 space-between，改 column + align-items: center */
+    .footer-bottom {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-body);
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--gray-4);
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .footer-name {
+      font-family: var(--font-title);
+      font-size: 16px;
+      color: var(--white);
+      letter-spacing: 0.5px;
+      /* 父级 .footer-bottom 有 text-transform: uppercase，这里显式关掉，保住首字母小写 */
+      text-transform: none;
+    }
+
+    /* 「ist」沿用首屏标题那一处深红；黑底上太沉，给它开一扇反色取景窗：
+       与反色小圆、档案馆同一套语言——身后黑底翻成白，深红字才读得出来 */
+    .footer-name-ist {
+      display: inline-block;
+      color: #660000;
+      backdrop-filter: invert(1);
+      -webkit-backdrop-filter: invert(1);
+    }
+
+    /* 最底部的版权行（原「© 2026 · 上帝之国」）换成 bottom.png 的反色版：
+       原图是白底黑线，反色后底色恰为纯黑，与 .footer 的黑底严丝合缝，不需要再做混合模式。
+       尺寸直接照抄文章卡上的刊徽（.article-logo img 是 height 48px / width auto）——
+       本项目图片一律只锁高度一个方向，另一个交给原比例，否则会把线条拉变形。
+       反色已在图片文件里做掉，所以这里不挂 filter：挂 filter 会另开一层画布，
+       与站内「反色取景窗」（.cursor-invert 的 backdrop-filter）叠加时不易推理。 */
+    .footer-bottom-img {
+      display: block;
+      height: 48px;
+      width: auto;
+      max-width: 100%;
+    }
+
+    /* ---------- Responsive ---------- */
+    /* 窄屏那一份（≤768px）。本块内的改动都不命中桌面端，桌面显示与性能零变化 */
+    @media (max-width: 768px) {
+      /* iOS Safari / Android Chrome 的地址栏会随滚动伸缩，而 100vh 取的是
+         "工具栏收起之后"的大视口——比用户此刻真正看得见的那一屏要高。
+         拿它当首屏高度的后果有三条：首屏标题被推到可见区中心之下；右下角「上帝之國」
+         落到屏幕下沿之外（不往下滑根本看不见）；首图的淡出段被整段推出屏幕，
+         图片变成一条硬边——"淡出为透明"这件事在手机上等于没发生。
+         100svh 是"工具栏展开时"的稳定小视口：用户第一眼看到的那一屏有多大，首屏就有多大。
+         选 svh 而不是 dvh，是因为 dvh 会跟着工具栏实时伸缩，滚动时首屏高度反复重排、
+         标题上下跳；svh 是常量，没有这个代价。
+         @supports 是保底：不支持 svh 的老浏览器整块不生效，原样退回 100vh */
+      @supports (height: 100svh) {
+        :root {
+          --vp-h: 100svh;
+          /* 淡出段在手机上收短：手机屏本来就矮，240px 会让读者多滑近三分之一屏
+             才够到第一篇文章。它同时被 .hero-image 的 mask 与 #latest 的外边距引用，
+             改这一处两处同步——与桌面端是同一条约束 */
+          --hero-fade-len: 180px;
+        }
+
+        /* 首屏就等于"看得见的那一屏"，不再额外长出一段要下滑才看得完的淡出区 */
+        .hero {
+          min-height: var(--vp-h);
+        }
+
+        /* 淡出改锚在首图自己的下沿，而不是首屏线：手机上首屏线就是首图底边，
+           再往下已经没有图片了，锚在首屏线的淡出段会整段落在图外。
+           锚在下沿之后，"最后 180px 淡到透明"在首屏之内就走完了 */
+        .hero-image {
+          -webkit-mask-image: linear-gradient(to bottom,
+              #000 0,
+              #000 calc(100% - var(--hero-fade-len)),
+              rgba(0, 0, 0, 0) 100%);
+          mask-image: linear-gradient(to bottom,
+              #000 0,
+              #000 calc(100% - var(--hero-fade-len)),
+              rgba(0, 0, 0, 0) 100%);
+        }
+
+        /* 「越过首屏才渐糊」这一层在手机上没有落脚点：它的遮罩从 100vh 起，
+           而竖屏手机的首图只有 100svh 高，整段遮罩落在元素之外——
+           等于每帧都在算一块全屏的 backdrop-filter、却一个像素都不显示。
+           与其让它白烧 GPU，不如在窄屏直接不建这一层 */
+        .hero-blur {
+          display: none;
+        }
+      }
+
+      /* iOS 会在横屏下按自己的规则放大字号，显式压回 100% 才与竖屏一致 */
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+
+      .hero-inner {
+        padding: 0 24px;
+      }
+      .hero-text {
+        gap: 28px;
+      }
+      .section {
+        padding: 80px 24px;
+      }
+      .section-title {
+        font-size: 32px;
+        margin-bottom: 40px;
+      }
+      .article-title {
+        font-size: 18px;
+      }
+      /* 卡片的 32/36 内边距是按桌面 864px 卡宽定的（--page-w 减两侧内边距）；手机屏宽只有三百多，
+         两边各让 36px 会把正文挤成很窄的一条，收到 20px 把宽度还给文字 */
+      .article-item {
+        padding: 24px 20px;
+      }
+      .footer {
+        padding: 60px 24px 40px;
+      }
+      /* 窄屏放不下并排，退回上下排列（两项都靠左） */
+      .footer-links {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      /* 窄屏再取 60% 就太窄了，留言区铺满容器 */
+      .footer-guestbook-inner {
+        width: 100%;
+        max-width: none;
+      }
+
+      /* 档案馆那三处 background-attachment: fixed —— 桌面端靠它把"年份行 / 月份框"
+         与身后那张照片锚进同一个取景坐标系（见 .archive-year 的注释，那是有意的对齐手法）。
+         但它在移动端浏览器上是公认的麻烦：iOS Safari 支持不完整、表现不可预期，
+         Android Chrome 虽支持却要在每一帧按视口尺寸重画整块背景，滚动时是纯粹的性能黑洞。
+         窄屏这里统一退回 scroll：照片随页面滚动（行为可预期、不重画），
+         年份行与月份框改成取"自己盒子"里的一段照片做底——仍然是"拿照片当色块"，
+         只是取景坐标系从视口换成了元素自身。反色层翻的是元素自己的背景，照常工作 */
+      .archive::before,
+      .archive-year,
+      .archive-months {
+        background-attachment: scroll;
+      }
+    }
+
+    /* ---------- 跟随鼠标的反色圆 ---------- */
+    /* 用 backdrop-filter: invert(1) 实时翻转身后的页面内容；移动只改 transform，不触发布局。
+       尺寸与「之」字后面那枚取景窗同源——同一条算式（1.05 × 刊名字号的 clamp(48px, 7vw, 96px)），
+       所以任何窗口宽度下二者都严格等大，而不是各写一个固定像素值 */
+    .cursor-invert {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: clamp(50.4px, 7.35vw, 100.8px);
+      height: clamp(50.4px, 7.35vw, 100.8px);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      backdrop-filter: invert(1);
+      -webkit-backdrop-filter: invert(1);
+    }
+
+    .cursor-invert.on {
+      opacity: 1;
+    }
+
+    /* 反色圆出现时隐藏系统光标——圆本身就是指针。
+       必须用 * 覆盖到子元素：链接的 pointer、输入框的 text 来自浏览器默认样式，
+       并不继承 body 的 cursor，只写 body 会漏掉它们 */
+    body.cursor-hidden,
+    body.cursor-hidden * {
+      cursor: none !important;
+    }
+
+    /* 链接悬停的字符抖动（借鉴 fauux 站）：让每个字各自错相位轻抖，像受潮的电信号。
+       每个字符是 JS 拆出来的独立 span，靠 nth-child 给不同延迟——
+       若相位一致，看起来就只剩整块平移，失去"字在颤"的感觉。
+       display: inline-block 之后 letter-spacing 不再作用于字符之间，
+       所以 JS 把原字距改写成每个 span 的 margin-right，静态排版与原样完全一致 */
+    .jitter-char {
+      display: inline-block;
+    }
+
+    :is(a, .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit):hover .jitter-char {
+      animation: char-jitter 0.6s linear infinite;
+    }
+
+    :is(a, .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit):hover .jitter-char:nth-child(2n) {
+      animation-delay: 0.1s;
+    }
+
+    :is(a, .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit):hover .jitter-char:nth-child(3n) {
+      animation-delay: 0.2s;
+    }
+
+    /* 位移在一像素量级：用户先说要"轻微"，看过之后要"再明显一点"，
+       于是从 0.5px 提到 1px；再往上（2px+）就不再是"轻微的颤"而是故障特效了。
+       周期由 0.3s 放缓到 0.6s（用户反馈"太快"），错相位延迟同步按比例翻倍，
+       两档间隔与周期的比值不变，抖动节奏才与原设计一致 */
+    @keyframes char-jitter {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(-1px, 1px); }
+      50% { transform: translate(1px, -1px); }
+      75% { transform: translate(-0.8px, -1px); }
+    }
+
+    /* ---------- 触屏：去掉"点了就赖着不走"的悬停态 ---------- */
+    /* 触屏浏览器没有真正的悬停：手指点下去会先触发一次 :hover，而这份 :hover
+       会一直挂着，直到用户去点别的地方——于是被点过的文章卡片整块反色不还原、
+       月份框一直亮着、刊名一直抖。下面把这些"只该由鼠标悬停触发"的状态
+       在触屏上复位回静态外观（卡片展开态不受影响，它走的是 .expanded）。
+       桌面端（hover: hover）不命中这一块，显示与性能零变化。
+       位置必须放在整份样式的最后：这里每一条都是对前面同名 :hover 规则的覆盖，
+       两者特异度相同、媒体查询不加权重，只能靠源码顺序决胜 */
+    @media (hover: none) {
+      .article-item:hover:not(.expanded) {
+        background: #ffffff;
+        border-color: var(--gray-3);
+      }
+      .article-item:hover:not(.expanded) .article-meta {
+        color: var(--gray-4);
+      }
+      .article-item:hover:not(.expanded) .article-author {
+        color: var(--gray-5);
+      }
+      .article-item:hover:not(.expanded) .article-title {
+        color: var(--black);
+      }
+      .article-item:hover:not(.expanded) .article-excerpt {
+        color: var(--gray-5);
+      }
+      .article-item:hover:not(.expanded) .article-toggle {
+        color: var(--gray-4);
+      }
+      /* 刊徽也跟着回到常态：底图那张回来、反相那张继续透明 */
+      .article-item:hover:not(.expanded) .article-logo .logo-base {
+        opacity: 1;
+      }
+      .article-item:hover:not(.expanded) .article-logo .logo-inv {
+        opacity: 0;
+      }
+      .archive-group:hover .archive-year {
+        color: var(--black);
+      }
+      .archive-group:hover .archive-year::before {
+        opacity: 1;
+      }
+      .archive-month:hover {
+        color: var(--black);
+      }
+      .archive-month:hover::before {
+        opacity: 0;
+      }
+      .month-post:hover .month-post-title {
+        border-bottom-color: rgba(255, 255, 255, 0);
+      }
+      .guest-submit:hover {
+        background: var(--white);
+        color: var(--black);
+      }
+      /* 社交标识常态是 62% 白，触屏上不因为点过就一直亮成纯白 */
+      .footer-social-item:hover {
+        color: rgba(255, 255, 255, 0.62);
+      }
+      /* 逐字抖动是"悬停才颤"的效果，触屏没有悬停这一说，别让它点一下就一直颤 */
+      :is(a, .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit):hover .jitter-char {
+        animation: none;
+      }
+      /* 跟随鼠标的反色圆在触屏上没有鼠标可跟；留着它只是一块固定定位的
+         backdrop-filter，纯开销。JS 那边同时不再注册 mousemove（见页内 <script>） */
+      .cursor-invert {
+        display: none;
+      }
+    }
+  </style>
 </head>
 <body>
-  <p>正在前往 <a href="https://gods-country.lyw2373314970.workers.dev/">上帝之国 · Einmal ist keinmal</a>…</p>
-  <script>location.replace('https://gods-country.lyw2373314970.workers.dev/');</script>
-</body>
-</html>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-crop">
+      <!-- decoding / fetchpriority 只影响加载顺序与解码时机，不改变任何渲染结果：
+           首图是整页最大的一块内容（LCP），显式标 high 才不会被后面几张小图抢带宽 -->
+      <img class="hero-image" src="795.webp" alt="墙上装框画作，画中写着 La Vie est ailleurs" decoding="async" fetchpriority="high">
+      <div class="hero-blur" aria-hidden="true"></div>
+    </div>
+    <div class="hero-inner">
+      <div class="hero-text">
+        <h1 class="hero-title">
+          <span class="line">Einmal</span>
+          <span class="line"><span class="line-highlight">ist</span> keinmal.</span>
+        </h1>
+      </div>
+      <!-- 刊名里的「之」同时是管理台入口：点它进 /admin 登录。
+           之所以选这个字——它是首屏唯一的红字、还带一枚反色取景窗，本来就是"这里不一样"的记号，
+           不需要再额外画一个入口；而站在刊名里它又完全不打扰读者。
+           aria-label 是必需的：链接的可访问名称单看一个"之"字没有意义。
+           href 保持 /admin 不动：在 Express / Workers 版里它是真正的后端路由，
+           在本页（GitHub Pages 静态副本）里由 admin/index.html 接住、跳到 Workers 后台。
+           两版 href 因此仍是同一个值，不必为了静态副本改成绝对地址。 -->
+      <p class="hero-cn">上帝<a class="hero-cn-hl" href="/admin" aria-label="进入管理台">之</a>國</p>
+    </div>
+  </section>
+
+  <!-- Daily：每日推荐。夹在「首屏」与「文章」之间——首屏之后的第一块内容。
+       左侧是一台 iPod nano 4th gen，屏幕改成白底框 + 三栏标签；
+       右侧是巴黎评论式的信息流（封面图 + 衬线标题 + 署名 + 斜体摘要）。
+       原图只有 169×375，显示宽度不许超过原生值，否则会糊 -->
+  <section class="section daily" id="daily">
+    <p class="section-label">Daily</p>
+    <h2 class="section-title">每日</h2>
+    <div class="daily-grid">
+      <!-- 折叠视窗：机身与右栏正文都包在里面。裁切（max-height + overflow: hidden）
+           必须挂在【这一层】：overflow 会建立 BFC，而 BFC 块盒会整体躲开浮动；
+           挂在正文那层的话，正文永远待在机身右侧、展开后也只有半栏。
+           正文自己是普通块盒、宽整栏——行盒在机身范围内变窄，机身以下自动整栏宽 -->
+      <div class="daily-fold">
+      <div class="daily-ipod">
+        <!-- ipod-clean.jpg 与 ipod.jpeg 同尺寸，机身左右边界（实测 x 38..917）之外已置纯白 -->
+        <!-- ipod-clean.webp：显示宽度 230px 的 2 倍（460×1015），17KB；原 jpg 是 955×2107 / 507KB。
+             width/height 写在标签上，浏览器先占好位置，图片到位时不跳版 -->
+        <img class="daily-ipod-body" src="ipod-clean.webp" width="460" height="1015"
+             decoding="async" alt="iPod nano 4th gen">
+        <div class="daily-ipod-screen">
+          <!-- 屏内视图：menu 是菜单本身，music 是点 music 后在同一块屏幕里换上来的内容。
+               两个视图都带 data-ipod-view，脚本靠它切换；
+               article / poem 不是屏幕视图：它们切的是右栏显示哪一类当天内容 -->
+          <nav class="daily-tags daily-ipod-view is-current" data-ipod-view="menu" aria-label="每日推荐分类">
+            <!-- 循环列表：轨道上排 3 份相同内容（每份 3 行）。滑动只改 translateY、不改 DOM；
+                 走过一个循环就把位移减掉一个循环，内容每 3 行重复一次，接缝不可见。
+                 只有第一份（data-ipod-base）是"原项"，脚本靠它判断当前选中；后两份是副本，
+                 只为让上下都接得上，读屏与 Tab 都跳过）
+                 注：副本里同样带 data-ipod-go，鼠标点到它也有对应行为 -->
+            <div class="daily-tags-track">
+              <button class="daily-tag" type="button" data-ipod-base data-ipod-go="music">music</button>
+              <button class="daily-tag" type="button" data-ipod-base data-ipod-go="article">article</button>
+              <button class="daily-tag" type="button" data-ipod-base data-ipod-go="poem">poem</button>
+              <button class="daily-tag" type="button" data-ipod-go="music" aria-hidden="true" tabindex="-1">music</button>
+              <button class="daily-tag" type="button" data-ipod-go="article" aria-hidden="true" tabindex="-1">article</button>
+              <button class="daily-tag" type="button" data-ipod-go="poem" aria-hidden="true" tabindex="-1">poem</button>
+              <button class="daily-tag" type="button" data-ipod-go="music" aria-hidden="true" tabindex="-1">music</button>
+              <button class="daily-tag" type="button" data-ipod-go="article" aria-hidden="true" tabindex="-1">article</button>
+              <button class="daily-tag" type="button" data-ipod-go="poem" aria-hidden="true" tabindex="-1">poem</button>
+            </div>
+            <!-- 固定选中框：钉在窗口正中，永远不随文字移动 -->
+            <div class="daily-menu-band" aria-hidden="true"></div>
+          </nav>
+          <!-- 屏内播放器：曲名 → 进度时间 → 进度条，自上而下三行，都在脚本里写。
+               这里**没有任何可拖动的控件**：进度条是纯 div，宽度按百分比改——
+               摆一个看起来能拖、实际拖不动的滑块，比不摆更糟。
+               播放器本体（<audio>）不在这里：它挂在屏幕之外，切屏与切栏目都不会把它销毁 -->
+          <div class="daily-ipod-view" data-ipod-view="music" hidden>
+            <div class="daily-music">
+              <p class="daily-music-name"></p>
+              <p class="daily-music-time"></p>
+              <div class="daily-music-bar"><i class="daily-music-fill"></i></div>
+            </div>
+          </div>
+        </div>
+        <!-- 转盘上的四个按钮：按 .daily-ipod-wheel 的实测位置摆四块透明热区，
+             图标在底下、热区盖在上面（z-index 高于白底框那层）。
+             MENU 回上一屏；左／右在 music 屏切上一首、下一首（在菜单屏仍是滚列表）；
+             下=播放／暂停；正中那枚是 center 确认键，与播放键无关（见页内脚本） -->
+        <div class="daily-ipod-wheel">
+          <button class="daily-ipod-btn is-menu" type="button" data-ipod="menu" aria-label="MENU，回到上一页"></button>
+          <button class="daily-ipod-btn is-prev" type="button" data-ipod="prev" aria-label="上一首"></button>
+          <button class="daily-ipod-btn is-next" type="button" data-ipod="next" aria-label="下一首"></button>
+          <button class="daily-ipod-btn is-play" type="button" data-ipod="play" aria-label="播放或暂停"></button>
+          <!-- 正中那个白圆是确认键（真机的 center 键），不是播放键。
+               放在最后并加 z-index，才不会被上面四个扇形抢走点击 -->
+          <button class="daily-ipod-btn is-center" type="button" data-ipod="center" aria-label="确认，进入选中项"></button>
+        </div>
+      </div>
+      <!-- 右栏：当天的 article / poem。内容来自仓库里的文本文件（本页与线上同源同路径）——
+           daily/article/ 或 daily/poem/ 下的「2026_10_8.txt」这种名字（年_月_日），
+           第一行是标题、其余是正文；页面按当天日期取，没有就往前找最近的一篇。
+           文件名就是发布日期：push 一个文件，等于发布那一天那一篇。
+           iPod 菜单里的 article / poem 切换看哪一类，默认 article。取数逻辑在页尾脚本 -->
+      <div class="daily-content"></div>
+      </div><!-- /折叠视窗 .daily-fold：越线的正文在这里被裁住 -->
+      <!-- 播放器本体：**故意**放在 .daily-ipod-screen 之外、也不属于任何 [data-ipod-view]。
+           换屏只改视图的 hidden、切栏目只改右栏，这个元素从头到尾不被销毁，
+           所以"切到 article / poem 音乐照放"是结构决定的，不靠脚本事后补救。
+           display:none（见 CSS）不占版面；preload=none：进页面不预下载，
+           按下播放键才开始拉数据——访客不点音乐，就不为音乐付流量。 -->
+      <audio class="daily-audio" preload="none"></audio>
+      <!-- 展开箭头：与文章卡片上那枚同款。默认只露到机身底边那一条线，点它把越线的续文放出来
+           （那部分落在浮动之外，自动按整栏宽铺开）。初始隐藏，右栏内容真的超出折叠线时
+           由脚本显出来（没超线就没有这个按钮） -->
+      <button class="daily-toggle" type="button" data-daily-toggle aria-expanded="false" hidden>↓</button>
+    </div>
+  </section>
+
+  <!-- Latest Articles -->
+  <section class="section" id="latest">
+    <div class="article-list">
+      <!-- 这里原先有一串内联几何值（width: 704.01px / height: 376.189px / transform: translateY(16.111px)）。
+           它们是可视化工具或保存页面时的运行期快照，不是设计意图：height 会把卡片钉死、
+           展开长文时盒子长不高；width 写死后窄屏（内容宽 < 864px）会横向溢出。
+           已整段移除，尺寸交回 CSS（.article-item 随容器自适应）。它带来的那 16px 下移
+           已在 .article-list 上用 padding-top 补回，卡片位置不变 -->
+      <article class="article-item">
+        <span class="article-logo">
+          <img class="logo-base" src="logo.webp" alt="上帝之国">
+          <img class="logo-inv" src="logo.webp" alt="" aria-hidden="true">
+        </span>
+        <h3 class="article-title" style="font-size: 25px;">创刊号</h3>
+        <p class="article-author">— 编辑部</p>
+        <p class="article-meta">2026.10.05 · 发刊词</p>
+        <div class="article-content">
+          <p class="article-excerpt" style="font-size: 18px;">“他要尘世间的上帝之国。”这是《不能承受的生命之轻》主人公托马斯的墓志铭。所谓上帝之国，就是一个反抗媚俗的世界。</p>
+          <!-- 展开后的正文字号必须与上方摘要一致：摘要被手动调成了 18px，
+               而 .article-full 的 CSS 默认是 15px，展开时正文会「变小」一档。
+               这里把同一个 18px 补到全文段落上，展开前后字号不跳变 -->
+          <p class="article-full" style="font-size: 18px;">“他要尘世间的上帝之国。”这是《不能承受的生命之轻》主人公托马斯的墓志铭。<br><br>所谓上帝之国，就是一个反抗媚俗的世界。<br><br>看到孩子们在草地上奔跑，第一滴眼泪说：真好；第二滴眼泪却说：全人类一起被感动的样子真好！这第二滴眼泪，使媚俗成为了媚俗。<br><br>他们的区别在哪？<br><br>第一滴眼泪是私人的产物。它简单、纯净，没有迎合任何主义和观念的义务——它是一种突如其来的感触。第二滴眼泪则是我们被媚俗侵略以后的妥协。<br><br>想要创办这样的刊物，正是因为我们的写作总是被媚俗裹挟。从我们的中学甚至小学阶段开始，我们的公开写作总是要迎合他人的眼光：如此的结构适合拿高分，这般的主旨适合对付考场…以至于我们之中的许多人都学会了假假真真地写作：个人感触和媚俗像两团橡皮泥揉在一起。<br><br>上帝之国是我们对创作的最后热情。在这里，我们只需要面对自己的内心。它是一个哪怕抛却凝视也要表达的冲动。你可以在这里创作，哪怕这其中有着不被常人理解的观点、背叛主流的思潮、连自己都迷迷糊糊的感触。<br><br>我们接受任何主题的文字，因为刊物的初心就是让任何想法得到表述。从有关书籍、哲学、伦理、音乐、艺术、自然、宗教、诗歌和酒精的细腻感触，到对社会、人性、情感、家庭的主观感受，再到日常分享、随笔散文、摄影爱好等等题材，我们都乐意看到。</p>
+        </div>
+        <span class="article-toggle">↓</span>
+      </article>
+    </div>
+  </section>
+
+  <!-- Archive -->
+  <section class="section archive" id="archive">
+    <div class="archive-head">
+      <p class="section-label">Archive</p>
+      <h2 class="section-title">档案馆</h2>
+    </div>
+
+    <div class="archive-inner">
+      <div class="archive-group">
+        <h3 class="archive-year">2026 <span class="archive-arrow">+</span></h3>
+        <div class="archive-items">
+          <div class="archive-months">
+            <div class="archive-month"><span class="month-num">01</span><div class="month-posts"></div></div>
+            <div class="archive-month"><span class="month-num">02</span><div class="month-posts"></div></div>
+            <div class="archive-month"><span class="month-num">03</span><div class="month-posts"></div></div>
+            <div class="archive-month"><span class="month-num">04</span><div class="month-posts"></div></div>
+            <div class="archive-month"><span class="month-num">05</span><div class="month-posts"></div></div>
+            <div class="archive-month"><span class="month-num">06</span><div class="month-posts"></div></div>
+            <div class="archive-month"><span class="month-num">07</span><div class="month-posts"></div></div>
+            <div class="archive-month"><span class="month-num">08</span><div class="month-posts"></div></div>
+            <div class="archive-month"><span class="month-num">09</span><div class="month-posts"></div></div>
+            <div class="archive-month has-posts"><span class="month-num">10</span><div class="month-posts"><a href="#" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a></div></div>
+            <div class="archive-month"><span class="month-num">11</span><div class="month-posts"></div></div>
+            <div class="archive-month"><span class="month-num">12</span><div class="month-posts"></div></div>
+          </div>
+          <div class="month-posts-panel" data-month=""><a href="#" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer" id="about">
+    <div class="footer-inner">
+      <div class="footer-about">
+        <div class="footer-links">
+          <p class="footer-about-label" style="letter-spacing: 0px;"><span class="jitter-char" style="margin-right: 0.5px;">关</span><span class="jitter-char" style="margin-right: 0.5px;">于</span> <span class="footer-about-arrow" aria-hidden="true">→</span></p>
+
+          <p class="footer-guestbook-label" style="letter-spacing: 0px;"><span class="jitter-char" style="margin-right: 0.5px;">留</span><span class="jitter-char" style="margin-right: 0.5px;">言</span><span class="jitter-char" style="margin-right: 0.5px;">板</span> <span class="footer-guestbook-arrow" aria-hidden="true">→</span></p>
+
+          <a href="#submit" class="footer-submit" id="submit">
+            <span class="jitter-char">投</span><span class="jitter-char">稿</span> <span class="footer-submit-arrow">→</span>
+          </a>
+        </div>
+
+        <div class="footer-about-body">
+          <!-- 「关于」展开区：4 枚社交标识，横排一行。href 先统一留 "#"，等给真实地址再逐条替换。
+               每枚图标是 Simple Icons 的官方品牌字形（单条 path、实心，24×24 viewBox），
+               颜色由 .footer-social-item 的 color 经 fill: currentColor 统一控制。
+               平台名不画在画面上，改由 <a> 的 aria-label 承担读屏名称。
+               SVG 上的 aria-hidden="true" 有两个作用：①图标本身不进读屏树（名称已由 aria-label 给出）；
+               ②页脚那段"逐字抖动"脚本遇到带 aria-hidden 的元素就不再往下拆——
+               否则它会把 SVG 内部的 <path>/<circle> 逐个包进 <span>，图标会直接散掉 -->
+          <ul class="footer-social">
+            <li>
+              <a class="footer-social-item" href="#" target="_blank" rel="noopener" aria-label="QQ">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.395 15.035a40 40 0 0 0-.803-2.264l-1.079-2.695c.001-.032.014-.562.014-.836C19.526 4.632 17.351 0 12 0S4.474 4.632 4.474 9.241c0 .274.013.804.014.836l-1.08 2.695a39 39 0 0 0-.802 2.264c-1.021 3.283-.69 4.643-.438 4.673.54.065 2.103-2.472 2.103-2.472 0 1.469.756 3.387 2.394 4.771-.612.188-1.363.479-1.845.835-.434.32-.379.646-.301.778.343.578 5.883.369 7.482.189 1.6.18 7.14.389 7.483-.189.078-.132.132-.458-.301-.778-.483-.356-1.233-.646-1.846-.836 1.637-1.384 2.393-3.302 2.393-4.771 0 0 1.563 2.537 2.103 2.472.251-.03.581-1.39-.438-4.673"/></svg>
+              </a>
+            </li>
+            <li>
+              <a class="footer-social-item" href="#" target="_blank" rel="noopener" aria-label="小红书">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22.405 9.879c.002.016.01.02.07.019h.725a.797.797 0 0 0 .78-.972.794.794 0 0 0-.884-.618.795.795 0 0 0-.692.794c0 .101-.002.666.001.777zm-11.509 4.808c-.203.001-1.353.004-1.685.003a2.528 2.528 0 0 1-.766-.126.025.025 0 0 0-.03.014L7.7 16.127a.025.025 0 0 0 .01.032c.111.06.336.124.495.124.66.01 1.32.002 1.981 0 .01 0 .02-.006.023-.015l.712-1.545a.025.025 0 0 0-.024-.036zM.477 9.91c-.071 0-.076.002-.076.01a.834.834 0 0 0-.01.08c-.027.397-.038.495-.234 3.06-.012.24-.034.389-.135.607-.026.057-.033.042.003.112.046.092.681 1.523.787 1.74.008.015.011.02.017.02.008 0 .033-.026.047-.044.147-.187.268-.391.371-.606.306-.635.44-1.325.486-1.706.014-.11.021-.22.03-.33l.204-2.616.022-.293c.003-.029 0-.033-.03-.034zm7.203 3.757a1.427 1.427 0 0 1-.135-.607c-.004-.084-.031-.39-.235-3.06a.443.443 0 0 0-.01-.082c-.004-.011-.052-.008-.076-.008h-1.48c-.03.001-.034.005-.03.034l.021.293c.076.982.153 1.964.233 2.946.05.4.186 1.085.487 1.706.103.215.223.419.37.606.015.018.037.051.048.049.02-.003.742-1.642.804-1.765.036-.07.03-.055.003-.112zm3.861-.913h-.872a.126.126 0 0 1-.116-.178l1.178-2.625a.025.025 0 0 0-.023-.035l-1.318-.003a.148.148 0 0 1-.135-.21l.876-1.954a.025.025 0 0 0-.023-.035h-1.56c-.01 0-.02.006-.024.015l-.926 2.068c-.085.169-.314.634-.399.938a.534.534 0 0 0-.02.191.46.46 0 0 0 .23.378.981.981 0 0 0 .46.119h.59c.041 0-.688 1.482-.834 1.972a.53.53 0 0 0-.023.172.465.465 0 0 0 .23.398c.15.092.342.12.475.12l1.66-.001c.01 0 .02-.006.023-.015l.575-1.28a.025.025 0 0 0-.024-.035zm-6.93-4.937H3.1a.032.032 0 0 0-.034.033c0 1.048-.01 2.795-.01 6.829 0 .288-.269.262-.28.262h-.74c-.04.001-.044.004-.04.047.001.037.465 1.064.555 1.263.01.02.03.033.051.033.157.003.767.009.938-.014.153-.02.3-.06.438-.132.3-.156.49-.419.595-.765.052-.172.075-.353.075-.533.002-2.33 0-4.66-.007-6.991a.032.032 0 0 0-.032-.032zm11.784 6.896c0-.014-.01-.021-.024-.022h-1.465c-.048-.001-.049-.002-.05-.049v-4.66c0-.072-.005-.07.07-.07h.863c.08 0 .075.004.075-.074V8.393c0-.082.006-.076-.08-.076h-3.5c-.064 0-.075-.006-.075.073v1.445c0 .083-.006.077.08.077h.854c.075 0 .07-.004.07.07v4.624c0 .095.008.084-.085.084-.37 0-1.11-.002-1.304 0-.048.001-.06.03-.06.03l-.697 1.519s-.014.025-.008.036c.006.01.013.008.058.008 1.748.003 3.495.002 5.243.002.03-.001.034-.006.035-.033v-1.539zm4.177-3.43c0 .013-.007.023-.02.024-.346.006-.692.004-1.037.004-.014-.002-.022-.01-.022-.024-.005-.434-.007-.869-.01-1.303 0-.072-.006-.071.07-.07l.733-.003c.041 0 .081.002.12.015.093.025.16.107.165.204.006.431.002 1.153.001 1.153zm2.67.244a1.953 1.953 0 0 0-.883-.222h-.18c-.04-.001-.04-.003-.042-.04V10.21c0-.132-.007-.263-.025-.394a1.823 1.823 0 0 0-.153-.53 1.533 1.533 0 0 0-.677-.71 2.167 2.167 0 0 0-1-.258c-.153-.003-.567 0-.72 0-.07 0-.068.004-.068-.065V7.76c0-.031-.01-.041-.046-.039H17.93s-.016 0-.023.007c-.006.006-.008.012-.008.023v.546c-.008.036-.057.015-.082.022h-.95c-.022.002-.028.008-.03.032v1.481c0 .09-.004.082.082.082h.913c.082 0 .072.128.072.128V11.19s.003.117-.06.117h-1.482c-.068 0-.06.082-.06.082v1.445s-.01.068.064.068h1.457c.082 0 .076-.006.076.079v3.225c0 .088-.007.081.082.081h1.43c.09 0 .082.007.082-.08v-3.27c0-.029.006-.035.033-.035l2.323-.003c.098 0 .191.02.28.061a.46.46 0 0 1 .274.407c.008.395.003.79.003 1.185 0 .259-.107.367-.33.367h-1.218c-.023.002-.029.008-.028.033.184.437.374.871.57 1.303a.045.045 0 0 0 .04.026c.17.005.34.002.51.003.15-.002.517.004.666-.01a2.03 2.03 0 0 0 .408-.075c.59-.18.975-.698.976-1.313v-1.981c0-.128-.01-.254-.034-.38 0 .078-.029-.641-.724-.998z"/></svg>
+              </a>
+            </li>
+            <li>
+              <a class="footer-social-item" href="#" target="_blank" rel="noopener" aria-label="微信">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 0 1-.023-.156.49.49 0 0 1 .201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.837-6.656-6.088V8.89c-.135-.01-.27-.027-.407-.03zm-2.53 3.274c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.97-.982zm4.844 0c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.969-.982z"/></svg>
+              </a>
+            </li>
+            <li>
+              <a class="footer-social-item" href="#" target="_blank" rel="noopener" aria-label="GitHub">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-guestbook">
+        <div class="footer-guestbook-body">
+          <div class="footer-guestbook-inner">
+            <form class="guest-form">
+              <input class="guest-field guest-name" type="text" placeholder="名字" autocomplete="off">
+
+              <label class="guest-upload">
+                <input class="guest-file" type="file" accept="image/*">
+                <span class="guest-upload-text">上传图片</span>
+              </label>
+              <img class="guest-upload-preview" alt="待上传图片预览">
+
+              <textarea class="guest-field guest-textarea" placeholder="Mus es sein?"></textarea>
+
+              <button class="guest-submit" type="submit">Es mus sein!</button>
+            </form>
+
+            <div class="guest-wall">
+              <p class="guest-wall-empty">还没有留言</p>
+            </div>
+
+            <!-- 照片流：向左缓慢滚动、悬停暂停、两端淡出到黑。
+                 每帧的 --aspect 是这张照片的宽高比（宽÷高），用来分配帧宽：
+                 同一高度下宽度与比例成正比，于是照片按原始比例铺满、彼此紧挨。
+                 加照片：在第一组末尾追加一帧并带上它的 --aspect，
+                 再把整组复制一遍（后面那组只作无缝循环的替身） -->
+            <div class="guest-film">
+              <div class="guest-film-track">
+                <!-- 胶片带的图在页脚、默认还是收起的：一律懒加载；width/height 写出来是为了
+                     让三帧先按比例占好位，图片到位时轨道与高度都不会跳 -->
+                <figure class="guest-film-frame" style="--aspect: 1.3333"><img src="lamp.webp" width="660" height="495" loading="lazy" decoding="async" alt="一盏蒂芙尼台灯"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3241"><img src="still-1.webp" width="660" height="498" loading="lazy" decoding="async" alt="黑白剧照：咖啡馆对谈"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.25"><img src="still-2.webp" width="660" height="528" loading="lazy" decoding="async" alt="黑白剧照：病房相见"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3333" aria-hidden="true"><img src="lamp.webp" width="660" height="495" loading="lazy" decoding="async" alt=""></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3241" aria-hidden="true"><img src="still-1.webp" width="660" height="498" loading="lazy" decoding="async" alt=""></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.25" aria-hidden="true"><img src="still-2.webp" width="660" height="528" loading="lazy" decoding="async" alt=""></figure>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <span class="footer-name" style="letter-spacing: 0px;"><span class="jitter-char" style="margin-right: 0.5px;">E</span><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">n</span><span class="jitter-char" style="margin-right: 0.5px;">m</span><span class="jitter-char" style="margin-right: 0.5px;">a</span><span class="jitter-char" style="margin-right: 0.5px;">l</span> <span class="footer-name-ist"><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">s</span><span class="jitter-char" style="margin-right: 0.5px;">t</span></span> <span class="jitter-char" style="margin-right: 0.5px;">k</span><span class="jitter-char" style="margin-right: 0.5px;">e</span><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">n</span><span class="jitter-char" style="margin-right: 0.5px;">m</span><span class="jitter-char" style="margin-right: 0.5px;">a</span><span class="jitter-char" style="margin-right: 0.5px;">l</span><span class="jitter-char" style="margin-right: 0.5px;">.</span></span>
+        <!-- 版权行由文字换成反色图片（见 CSS 的 .footer-bottom-img）。
+             原字面「© 2026 · 上帝之国」退到 alt：读屏、SEO、归档都还拿得到这句话，
+             但页面上不再有可拆字的文本节点。class 里保留 footer-credit，
+             是为了与 CSS / JS 里那份抖动选择器清单继续对齐（图片无字，自然不抖）。 -->
+        <img class="footer-credit footer-bottom-img" src="bottom-inv.webp" alt="© 2026 上帝之国">
+      </div>
+    </div>
+  </footer>
+
+  <div class="cursor-invert" aria-hidden="true" style="transform: translate3d(792px, 1px, 0px) translate(-50%, -50%);"></div>
+
+  <script>
+    // 屏内视图切换：点 music 是在这块屏幕里换一屏，不跳 URL、不换页面。
+    // 用 pushState 记一层，MENU 才能靠 history.back() 退回上一个视图；
+    // 浏览器前进／后退触发 popstate，再把视图同步回来。
+    // article / poem 不是屏幕里的视图：它们是"右栏显示哪一类当天内容"的开关（见下面 Daily 段）。
+    const ipodScreen = document.querySelector('.daily-ipod-screen');
+
+    /** 切右栏看 article / poem / music；由下面的 Daily 段赋值（页面里没有 Daily 区块时保持空函数） */
+    let showDailyCategory = () => {};
+
+    /** 音乐转盘的三个动作：'prev' | 'next' | 'play'；同样由 Daily 段赋值 */
+    let musicControl = () => {};
+
+    if (ipodScreen) {
+      const ipodViews = Array.from(ipodScreen.querySelectorAll('[data-ipod-view]'));
+
+      const showIpodView = (name) => {
+        ipodViews.forEach((view) => {
+          const on = view.dataset.ipodView === name;
+          view.hidden = !on;
+          view.classList.toggle('is-current', on);
+        });
+      };
+
+      // 当前该显示哪个视图：URL 上没有 #ipod-xxx 就显示菜单
+      const currentIpodView = () => {
+        const m = location.hash.match(/^#ipod-(.+)$/);
+        return m && ipodViews.some((v) => v.dataset.ipodView === m[1]) ? m[1] : 'menu';
+      };
+
+      // MENU = 真机上的返回键：只在「我们自己 pushState 压进去的子屏」里才回退。
+      // 判据必须是 history.state.ipod（enterIpodView 每次都写），不能用 history.length——
+      // 它只说明浏览器有历史（从别的站点点进来同样是 2），在菜单屏按它会一路退出站点。
+      // 菜单屏没有上一层可退：真机按 MENU 也不响应，这里就不响应。
+      document.querySelectorAll('.daily-ipod-btn[data-ipod="menu"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (currentIpodView() === 'menu') return;
+          if (history.state && history.state.ipod) { history.back(); return; }
+          // 深链直接落在子屏（别人分享 #ipod-music 打开的）：没有我们压的那层可退，
+          // 就地回菜单并把 hash 抹掉——绝不 back()，那会退到站点外
+          history.replaceState(null, '', location.pathname + location.search);
+          showIpodView('menu');
+        });
+      });
+
+      // 转盘上余下三个键（上一首／下一首／播放暂停）留待音乐视图接线
+
+      // 这是一个循环列表：选中框永远固定在窗口正中（中槽），上下键滚的是列表本身，
+      // 不是"选中项上下走"。
+      // 做法：轨道里排 3 份相同内容（每份 3 行），滑动只改 translateY、从不改任何 DOM 节点。
+      // 走过一个循环（3 行）就把位移整体减掉一个循环——内容每 3 行重复一次，
+      // 回退前后每一像素都相同，所以看不到接缝，也不存在"清空一帧再补回来"的过程。
+      const ipodMenuEl = ipodScreen.querySelector('[data-ipod-view="menu"]');
+      const ipodTrackEl = ipodMenuEl && ipodMenuEl.querySelector('.daily-tags-track');
+      const IPOD_ROW = 32;              // 须与 .daily-tag 的 flex-basis 一致
+      const IPOD_CYCLE = IPOD_ROW * 3;  // 一个循环 = 3 行；轨道里共 3 份 = 9 行
+
+      // 只有第一份（data-ipod-base）是原项，副本不参与选中判断
+      const ipodItems = () => (ipodTrackEl ? Array.from(ipodTrackEl.querySelectorAll('[data-ipod-base]')) : []);
+
+      // 当前选中 = 固定中槽压住的那一行。只按位移推算，不去改任何元素的 class
+      const ipodSelected = () => {
+        const items = ipodItems();
+        if (!items.length) return null;
+        // 轨道默认上移一个循环，所以静止时窗口顶行是第 3 行、中槽压的是第 4 行
+        const bandRow = items.length + 1 - Math.round(ipodOffset / IPOD_ROW);
+        return items[((bandRow % items.length) + items.length) % items.length];
+      };
+
+      // 选中项变黑：颜色跟着"中槽此刻压住的那一行"走，选中框本身依旧不动。
+      // 只在所在行发生变化时才碰 classList——逐帧写 class 会反复打断 color 过渡，颜色会闪
+      let ipodActiveEl = null;
+      const syncIpodActive = () => {
+        const items = ipodItems();
+        if (!ipodTrackEl || !items.length) return;
+        // 中槽中心落在第几行：轨道基准上移了一个循环（3 行），中槽自身又在窗口正中（+1.5 行）
+        const row = Math.floor(items.length + 1.5 - ipodOffset / IPOD_ROW);
+        const el = ipodTrackEl.children[row] || null;
+        if (el === ipodActiveEl) return;
+        if (ipodActiveEl) ipodActiveEl.classList.remove('is-active');
+        if (el) el.classList.add('is-active');
+        ipodActiveEl = el;
+      };
+
+      const enterIpodView = (target) => {
+        if (!target) return;
+        // 三个条目都决定"右栏显示什么"：
+        //   article / poem → 当天的文章或诗，屏幕不动，只换右栏
+        //   music          → 当前这一曲的歌词，同时把屏幕换成播放器
+        if (target === 'article' || target === 'poem') { showDailyCategory(target); return; }
+        if (target === 'music') showDailyCategory('music');
+        if (!ipodViews.some((v) => v.dataset.ipodView === target)) return;
+        if (target === currentIpodView()) return;
+        history.pushState({ ipod: target }, '', '#ipod-' + target);
+        showIpodView(target);
+      };
+
+      // 用 requestAnimationFrame 逐帧写位移，不再走 CSS transition。
+      // 每帧把"离目标还差多少"吃掉固定比例，天然带缓动、收尾不生硬，也不用猜过渡何时结束。
+      let ipodOffset = 0;   // 当前位移
+      let ipodTarget = 0;   // 目标位移；连按会累加，所以不会被上一次动画挡住
+      let ipodRaf = null;
+
+      // 轨道基准位置上移一个循环（-96px），上下才各有副本可滚
+      const applyIpodTransform = () => {
+        if (!ipodTrackEl) return;
+        ipodTrackEl.style.transform = 'translateY(' + (ipodOffset - IPOD_CYCLE) + 'px)';
+      };
+
+      const ipodTick = () => {
+        ipodOffset += (ipodTarget - ipodOffset) * 0.22;
+
+        // 走过一个整循环就整体回退一个循环：位移减掉 96px，目标同时减 96px。
+        // 内容每 3 行重复一次，回退前后画面逐像素相同，所以看不到跳变；
+        // 全程不碰任何 DOM 节点，也就不存在"清空一帧再补回来"的闪烁
+        while (ipodOffset <= -IPOD_CYCLE) { ipodOffset += IPOD_CYCLE; ipodTarget += IPOD_CYCLE; }
+        while (ipodOffset > IPOD_CYCLE) { ipodOffset -= IPOD_CYCLE; ipodTarget -= IPOD_CYCLE; }
+
+        // 颜色跟着中槽走（选中框本身不动）
+        syncIpodActive();
+
+        if (Math.abs(ipodTarget - ipodOffset) < 0.5) {
+          ipodOffset = ipodTarget;
+          syncIpodActive();
+          applyIpodTransform();
+          ipodRaf = null;
+          return;
+        }
+
+        applyIpodTransform();
+        ipodRaf = window.requestAnimationFrame(ipodTick);
+      };
+
+      const scrollIpodList = (dir) => {
+        if (!ipodTrackEl || ipodItems().length < 2) return;
+        // 只有停在菜单这一屏时才滚；进了 music 视图再按上下键没有意义
+        if (currentIpodView() !== 'menu') return;
+        // dir > 0（下一首）：列表向上滚；dir < 0（上一首）：向下滚
+        ipodTarget -= dir * IPOD_ROW;
+        if (!ipodRaf) ipodRaf = window.requestAnimationFrame(ipodTick);
+      };
+
+      // 接管后先写一次 transform 与选中色：值与 CSS／标记里的静态兜底一致，不会闪
+      applyIpodTransform();
+      syncIpodActive();
+
+      // 左／右两键是"一个键两种身份"：站在 music 屏里切歌，站在菜单屏里滚列表。
+      // 这个分叉必须放在这里判——两屏都用同一对物理键，没有第二个入口
+      document.querySelectorAll('.daily-ipod-btn[data-ipod="prev"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (currentIpodView() === 'music') { musicControl('prev'); return; }
+          scrollIpodList(-1);
+        });
+      });
+      document.querySelectorAll('.daily-ipod-btn[data-ipod="next"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (currentIpodView() === 'music') { musicControl('next'); return; }
+          scrollIpodList(1);
+        });
+      });
+
+      // 下键＝播放／暂停。这一键**不看当前在第几屏**：真机的播放键本来就是全局走带键，
+      // 而且"按播放键开/关音乐"正是用户要的行为，回菜单就失灵反倒像坏了
+      document.querySelectorAll('.daily-ipod-btn[data-ipod="play"]').forEach(btn => {
+        btn.addEventListener('click', () => musicControl('play'));
+      });
+
+      // 转盘正中那个白圆 = 确认键：进入当前选中项（中间那一行）对应的视图
+      document.querySelectorAll('.daily-ipod-btn[data-ipod="center"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const sel = ipodSelected();
+          enterIpodView(sel && sel.dataset.ipodGo);
+        });
+      });
+
+      // 直接点某一项也能进它的视图，等于跳过转盘点选
+      ipodScreen.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-ipod-go]');
+        if (!btn) return;
+        enterIpodView(btn.dataset.ipodGo);
+      });
+
+      // 视图同步只此一处：初始化、浏览器前进后退、MENU 的 history.back() 最终都落到这里。
+      // 落到 music 屏时右栏要跟着显示歌词——深链（别人分享的 #ipod-music）也走这条路，
+      // 只在 enterIpodView 里切右栏的话，直接开深链就会屏幕是音乐、右栏还是文章
+      const syncIpodView = () => {
+        const name = currentIpodView();
+        showIpodView(name);
+        if (name === 'music') showDailyCategory('music');
+      };
+      window.addEventListener('popstate', syncIpodView);
+      syncIpodView();
+    }
+
+    // 跟随鼠标的反色圆：移动只改 transform，避免逐帧触发布局；
+    // 只在首屏（首页那张画）与页脚出现，其余内容区不打扰阅读；鼠标离开窗口也隐去
+    const cursorInvert = document.querySelector('.cursor-invert');
+    const INVERT_SHOW = '.hero, .footer';
+    // 只把留言板的表单与留言墙排除在外：输入框要看清、要光标，让一个硕大的反色圆
+    // 在光标旁把白底黑字反复翻转，是干扰而不是效果。底部的照片流则保留反色圆——
+    // 在那块区域让光标变成反色圆、反相底色，刚好贴合"照片从黑里流出来"的感觉
+    const INVERT_MUTE = '.guest-form, .guest-wall';
+    // 触屏设备没有鼠标可跟：手指点一下会合成一次 mousemove，若照旧监听，
+    // 反色圆会突然出现在手指位置，并且因为再也收不到"离开"事件而一直挂在屏幕上。
+    // 所以整套跟随逻辑只在"能悬停且指针精确"的设备上注册（CSS 里 .cursor-invert
+    // 也已在 (hover: none) 下 display: none，两层都收掉才不留下空转的滤镜层）
+    const HOVER_CAPABLE = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    if (HOVER_CAPABLE) {
+      document.addEventListener('mousemove', (e) => {
+        const dx = e.clientX;
+        const dy = e.clientY;
+        cursorInvert.style.transform = 'translate3d(' + dx + 'px,' + dy + 'px,0) translate(-50%,-50%)';
+        const t = e.target;
+        const overShow = !!(t && t.closest && t.closest(INVERT_SHOW) && !t.closest(INVERT_MUTE));
+        cursorInvert.classList.toggle('on', overShow);
+        // 系统光标与反色圆同进同退：同一个布尔值控制两者，不会出现"有圆无光标"或反之
+        document.body.classList.toggle('cursor-hidden', overShow);
+      });
+      document.addEventListener('mouseleave', () => {
+        cursorInvert.classList.remove('on');
+        document.body.classList.remove('cursor-hidden');
+      });
+    }
+
+    // 页脚「关于」与「留言板」：两块互斥——展开其中一块时把另一块收起。
+    // 收起就是删掉 .expanded，走的是同一条 max-height 过渡，所以"关掉"天然带 0.6s 动效
+    const footerAbout = document.querySelector('.footer-about');
+    const footerGuestbook = document.querySelector('.footer-guestbook');
+
+    // 「留言板」的标签在入口行里，展开区在行外，是两个元素，
+    // 所以展开态要同时挂到两者上：一个管展开区高度，一个管箭头方向
+    const guestbookLabel = document.querySelector('.footer-guestbook-label');
+
+    if (footerAbout) {
+      footerAbout.addEventListener('click', (e) => {
+        // 入口行也包在这一块里，点「投稿」链接和「留言板」标签都要放行给它们自己。
+        // .footer-social-item：社交链接在展开区里面，点击会冒泡上来被当成"再点一次关于"而收起面板——
+        // 链接必须放行，否则点完图标面板就自己关了
+        if (e.target.closest && (e.target.closest('.footer-submit') ||
+            e.target.closest('.footer-guestbook-label') ||
+            e.target.closest('.footer-social-item'))) return;
+        const expanding = !footerAbout.classList.contains('expanded');
+        footerAbout.classList.toggle('expanded');
+        if (expanding && footerGuestbook) {
+          footerGuestbook.classList.remove('expanded');
+          if (guestbookLabel) guestbookLabel.classList.remove('expanded');
+        }
+      });
+    }
+
+    if (guestbookLabel && footerGuestbook) {
+      guestbookLabel.addEventListener('click', () => {
+        const expanding = !footerGuestbook.classList.contains('expanded');
+        footerGuestbook.classList.toggle('expanded', expanding);
+        guestbookLabel.classList.toggle('expanded', expanding);
+        if (expanding && footerAbout) footerAbout.classList.remove('expanded');
+      });
+    }
+
+    // 留言板本轮只做前端交互：无存储、无后端，提交后把留言插到墙上，方便先确认 UI。
+    // 刷新即清空，数据源等后端方案定下来再接
+    const guestForm = document.querySelector('.guest-form');
+    const guestWall = document.querySelector('.guest-wall');
+    const guestFile = document.querySelector('.guest-file');
+    const guestPreview = document.querySelector('.guest-upload-preview');
+
+    if (guestFile && guestPreview) {
+      guestFile.addEventListener('change', () => {
+        const file = guestFile.files && guestFile.files[0];
+        if (!file) {
+          guestPreview.classList.remove('on');
+          guestPreview.removeAttribute('src');
+          return;
+        }
+        guestPreview.src = URL.createObjectURL(file);
+        guestPreview.classList.add('on');
+      });
+    }
+
+    if (guestForm && guestWall) {
+      guestForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = guestForm.querySelector('.guest-name').value.trim();
+        const text = guestForm.querySelector('.guest-textarea').value.trim();
+        const file = guestFile && guestFile.files ? guestFile.files[0] : null;
+        if (!text && !file) return;
+
+        const emptyHint = guestWall.querySelector('.guest-wall-empty');
+        if (emptyHint) emptyHint.remove();
+
+        const note = document.createElement('div');
+        note.className = 'guest-note';
+
+        const head = document.createElement('p');
+        head.className = 'guest-note-head';
+        const nameEl = document.createElement('span');
+        nameEl.className = 'guest-note-name';
+        nameEl.textContent = name || '匿名';
+        const dateEl = document.createElement('span');
+        const now = new Date();
+        dateEl.textContent = now.getFullYear() + '.' +
+          String(now.getMonth() + 1).padStart(2, '0') + '.' +
+          String(now.getDate()).padStart(2, '0');
+        head.appendChild(nameEl);
+        head.appendChild(dateEl);
+        note.appendChild(head);
+
+        if (text) {
+          const textEl = document.createElement('p');
+          textEl.className = 'guest-note-text';
+          textEl.textContent = text;
+          note.appendChild(textEl);
+        }
+
+        if (file) {
+          const img = document.createElement('img');
+          img.className = 'guest-note-img';
+          img.alt = (name || '匿名') + ' 上传的图片';
+          img.src = URL.createObjectURL(file);
+          note.appendChild(img);
+        }
+
+        guestWall.prepend(note);
+
+        guestForm.reset();
+        if (guestPreview) {
+          guestPreview.classList.remove('on');
+          guestPreview.removeAttribute('src');
+        }
+      });
+    }
+
+    // 文章展开/收起：箭头方向由 CSS 的 .expanded 状态控制，此处只切换状态
+    const articleItems = document.querySelectorAll('.article-item');
+    articleItems.forEach((item) => {
+      item.addEventListener('click', () => {
+        item.classList.toggle('expanded');
+      });
+    });
+
+    // 把可点击文字拆成单字 span，供悬停时逐字错相位抖动（见 CSS 的 .jitter-char）。
+    // 字符变 inline-block 后 letter-spacing 不再作用于字符之间，所以先把父元素的原字距读出来，
+    // 改写成每个 span 的 margin-right（末字也留一份，才能与原样逐像素对齐），再把父元素字距清零。
+    // 空白字符保持为文本节点——包进 inline-block 会被折叠掉宽度，字与箭头之间的空隙就没了。
+    // 箭头等装饰元素（aria-hidden）不拆，免得它们跟着抖。
+    // a:not(.month-post)：档案馆月份面板里的文章行是 display:flex 的"标题—日期"两端对齐，
+    // 一旦把标题拆成多个 inline-block 的 span，每个 span 都会变成独立的 flex 项，
+    // 被 justify-content: space-between 摊到整行上——标题散架、也不再像卡片里的标题。
+    // 用户要求这一处"不要抖动、标题与前面的文章标题保持一致且左对齐"，故整体排除，不做拆字。
+    // a:not(.hero-cn-hl)：刊名里的「之」是管理台入口（一个 <a>），用户明确要求它不抖。
+    // 抖动动画的选择器是 :is(a,…):hover .jitter-char——只要不把它拆成 .jitter-char，就抖不起来；
+    // 而且它身上那枚反色取景窗是它的 ::before，拆字后视觉重心也会跟着变，索性整体放过。
+    document.querySelectorAll('a:not(.month-post):not(.hero-cn-hl), .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit').forEach((el) => {
+      const ls = parseFloat(getComputedStyle(el).letterSpacing) || 0;
+      if (ls) el.style.letterSpacing = '0px';
+
+      const split = (node) => {
+        Array.from(node.childNodes).forEach((child) => {
+          if (child.nodeType === Node.TEXT_NODE) {
+            const frag = document.createDocumentFragment();
+            Array.from(child.textContent).forEach((ch) => {
+              if (ch.trim() === '') {
+                frag.appendChild(document.createTextNode(ch));
+                return;
+              }
+              const span = document.createElement('span');
+              span.className = 'jitter-char';
+              span.textContent = ch;
+              if (ls) span.style.marginRight = ls + 'px';
+              frag.appendChild(span);
+            });
+            child.replaceWith(frag);
+          } else if (child.nodeType === Node.ELEMENT_NODE &&
+                     !child.hasAttribute('aria-hidden') &&
+                     !child.classList.contains('footer-submit-arrow')) {
+            split(child);
+          }
+        });
+      };
+      split(el);
+    });
+
+    // 档案馆年份组：悬停停留一小会才展开（鼠标提前离开则取消，这才是真正的悬停意图）；
+    // 展开后不因鼠标离开而收起；同一时刻最多展开一年，且先收旧再开新，两者前后进行不重叠
+    const ARCHIVE_HOVER_INTENT = 900; // 悬停停留多久才算想展开
+    const ARCHIVE_COLLAPSE_MS = 600;  // 收起动画时长，须与 .archive-items 的 max-height 过渡一致
+
+    // 收回一个年份：收起月份区，并清空该年里点开的月份选择
+    // 面板 DOM 内容留着无妨：它是隐藏的，下一次点月份会被整体覆盖，避免清空与重开之间的竞态
+    function closeArchiveGroup(group) {
+      group.classList.remove('open');
+      const panel = group.querySelector('.month-posts-panel');
+      if (!panel) return;
+      panel.classList.remove('open');
+      panel.dataset.month = '';
+    }
+
+    document.querySelectorAll('.archive-group').forEach(group => {
+      let intentTimer = null;
+      let openTimer = null;
+
+      if (HOVER_CAPABLE) {
+        group.addEventListener('mouseenter', () => {
+          clearTimeout(intentTimer);
+          clearTimeout(openTimer);
+          intentTimer = setTimeout(() => {
+            const others = Array.from(document.querySelectorAll('.archive-group.open')).filter(g => g !== group);
+            if (others.length === 0) {
+              group.classList.add('open');
+              return;
+            }
+            // 先让上一个年份收完，再展开本年——错开进行，避免两者同帧动画互相掩盖
+            others.forEach(closeArchiveGroup);
+            openTimer = setTimeout(() => group.classList.add('open'), ARCHIVE_COLLAPSE_MS);
+          }, ARCHIVE_HOVER_INTENT);
+        });
+
+        // 只取消"还没下定决心"的悬停；一旦过了意图时长就视为已确认，让整套收起→展开走完
+        group.addEventListener('mouseleave', () => {
+          clearTimeout(intentTimer);
+        });
+      } else {
+        // 触屏没有"悬停停留"这回事，改成点一下年份行立刻展开 / 收起。
+        // 若照旧走 mouseenter + 900ms 计时器，点一下要等将近一秒才有反应；
+        // 而且点第二下时，document 上那个"点外部收起"的守卫会把 .archive-year 放行掉，
+        // 等于点年份行关不掉——只剩点空白处才收得回去
+        const yearRow = group.querySelector('.archive-year');
+        if (yearRow) {
+          yearRow.addEventListener('click', () => {
+            const opening = !group.classList.contains('open');
+            // "同时最多展开一年"这条约束在触屏上照旧保留；
+            // 但不必等旧的收完再开新的——手指点按是明确指令，等 600ms 只会显得卡顿
+            document.querySelectorAll('.archive-group.open').forEach(g => {
+              if (g !== group) closeArchiveGroup(g);
+            });
+            if (opening) group.classList.add('open');
+            else closeArchiveGroup(group);
+          });
+        }
+      }
+    });
+
+    // 「最近的一年」默认展开：从 .archive-year 的文字里取年份数值（形如 "2026 +"），取最大的一年。
+    // 不写死"第一个 group"——年份在 HTML 里是倒序还是正序、以后新添年份放前放后，结果都正确。
+    // 加 class 发生在首屏绘制前的解析期，浏览器不会把 max-height 从 0 到 900px 补一次动画
+    const archiveGroups = Array.from(document.querySelectorAll('.archive-group'));
+    const latestGroup = archiveGroups.reduce((best, g) => {
+      const yearEl = g.querySelector('.archive-year');
+      const year = yearEl ? parseInt(yearEl.textContent, 10) : NaN;
+      if (Number.isNaN(year)) return best;
+      return (!best || year > best.year) ? { group: g, year } : best;
+    }, null);
+    if (latestGroup) latestGroup.group.classList.add('open');
+
+    // 点击「年份行 / 月份框（含展开的文章列表）」以外的任何位置都收回——
+    // 包括档案馆内部的其他区域（标题、留白）和板块之外的地方
+    document.addEventListener('click', (e) => {
+      const t = e.target;
+      if (!t.closest) return;
+      if (t.closest('.archive-year') || t.closest('.archive-months') || t.closest('.month-posts-panel')) return;
+      document.querySelectorAll('.archive-group.open').forEach(closeArchiveGroup);
+    });
+
+    // 月份方块：点一下把该月文章列表搬进下方面板展开，再点一下收起
+    document.querySelectorAll('.archive-month').forEach(month => {
+      const list = month.querySelector('.month-posts');
+      if (!list || list.children.length === 0) return;
+      month.addEventListener('click', () => {
+        const panel = month.closest('.archive-items').querySelector('.month-posts-panel');
+        const key = month.querySelector('.month-num').textContent;
+        if (panel.classList.contains('open') && panel.dataset.month === key) {
+          panel.classList.remove('open');
+          panel.dataset.month = '';
+          return;
+        }
+        panel.innerHTML = list.innerHTML;
+        panel.dataset.month = key;
+        panel.classList.add('open');
+      });
+    });
+
+    /* 右栏「每日」：当天的 article / poem。
+       内容不在数据库里，是仓库里的纯文本文件：
+         daily/article/2026_10_8.txt（article 类）
+         daily/poem/2026_10_8.txt   （poem 类）
+       文件名就是发布日期：年_月_日，月、日不补前导零；push 一个文件 = 发布那一天那一篇。
+       页面按"今天"取当天的文件，当天没有就往前逐天找最近的一篇（最多往回 60 天）。
+       文件第一行是标题，其余行是正文；正文的换行原样保留（.daily-body 是 pre-line）。
+       iPod 菜单里的 article / poem 决定看哪一类，默认 article。
+       文本一律走 textContent：拼 HTML 会把文件里的尖括号当标签执行。 */
+    const dailyGrid = document.querySelector('.daily-grid');
+    if (dailyGrid) {
+      const dailyFold = dailyGrid.querySelector('.daily-fold');
+      const dailyToggle = dailyGrid.querySelector('[data-daily-toggle]');
+      const dailyIpod = dailyGrid.querySelector('.daily-ipod');
+      const dailyRoot = dailyGrid.querySelector('.daily-content');
+      // 音乐那几块：播放器本体 + 屏内三行。都在 .daily-grid 里，
+      // 播放器本体故意不在屏幕内（见标记处注释），所以换屏不会把它一起收掉
+      const dailyAudio = dailyGrid.querySelector('.daily-audio');
+      const dailyMusicEl = dailyGrid.querySelector('.daily-music');
+      const dailyMusicName = dailyGrid.querySelector('.daily-music-name');
+      const dailyMusicTime = dailyGrid.querySelector('.daily-music-time');
+      const dailyMusicFill = dailyGrid.querySelector('.daily-music-fill');
+
+      /* 默认只露到机身底边那一条线（--daily-fold），点 ↓ 展开；越线的那部分落在浮动之外，
+         自动按整栏宽铺开。折叠线取机身实测高度：图片按比例缩放，写死会在窄屏或换图后错位。
+         被裁的是 .daily-fold（视窗）而不是正文那层——正文那层必须保持普通块盒，
+         它一旦 overflow: hidden 就会躲到机身右侧，展开后也只有半栏。
+         箭头只在"真的被裁住了"时显示——否则会留一个点了没反应的 ↓ 挂在那儿。 */
+      const syncDailyFold = () => {
+        if (!dailyFold || !dailyIpod) return;
+        const fold = dailyIpod.getBoundingClientRect().height;
+        dailyGrid.style.setProperty('--daily-fold', fold + 'px');
+        if (!dailyToggle) return;
+        // scrollHeight 是"被裁之前"的完整高度，与当前是否展开无关，
+        // 所以展开态下这个判断照样成立，箭头不会自己消失
+        const clipped = dailyFold.scrollHeight > fold + 2;
+        dailyToggle.hidden = !clipped;
+        if (!clipped) dailyGrid.classList.remove('expanded');
+      };
+
+      if (dailyToggle) {
+        dailyToggle.addEventListener('click', () => {
+          const expanded = dailyGrid.classList.toggle('expanded');
+          dailyToggle.setAttribute('aria-expanded', String(expanded));
+        });
+      }
+
+      window.addEventListener('resize', syncDailyFold);
+      syncDailyFold();
+
+      /* —— 找文件：今天没有就往前逐天找 —— */
+      const DAILY_FALLBACK_DAYS = 60; // 最多往回找多少天
+      const DAILY_BATCH = 7;          // 一批并发探几个日期：都是小文件，并发比逐个问快
+      const dailyCache = {};          // article / poem → { title, body } 或 null（找过了、没有）
+
+      const dailyFileName = (daysAgo) => {
+        const d = new Date();
+        d.setDate(d.getDate() - daysAgo);
+        return d.getFullYear() + '_' + (d.getMonth() + 1) + '_' + d.getDate() + '.txt';
+      };
+
+      /** 某一天的文件；404 回 null（那天没有），网络不通抛错交给调用方 */
+      const probeDaily = async (category, daysAgo) => {
+        // no-store：push 当天文件后刷新就能看到，不在浏览器里留住旧的 404
+        const res = await fetch('daily/' + category + '/' + dailyFileName(daysAgo), { cache: 'no-store' });
+        if (!res.ok) return null;
+        const text = (await res.text()).replace(/^\uFEFF/, '');
+        return text.trim() ? { daysAgo, text } : null; // 空文件当成没有
+      };
+
+      const findDaily = async (category) => {
+        for (let start = 0; start < DAILY_FALLBACK_DAYS; start += DAILY_BATCH) {
+          const batch = [];
+          for (let d = start; d < Math.min(start + DAILY_BATCH, DAILY_FALLBACK_DAYS); d++) {
+            batch.push(probeDaily(category, d));
+          }
+          const hit = (await Promise.all(batch)).filter(Boolean).sort((a, b) => a.daysAgo - b.daysAgo)[0];
+          if (hit) return hit;
+        }
+        return null;
+      };
+
+      /** 第一行是标题（跳过开头的空行），其余是正文 */
+      const splitDaily = (text) => {
+        const lines = text.split(/\r?\n/);
+        let i = 0;
+        while (i < lines.length && !lines[i].trim()) i++;
+        return {
+          title: (lines[i] || '').trim(),
+          body: lines.slice(i + 1).join('\n').replace(/^\n+/, '').replace(/\s+$/, ''),
+        };
+      };
+
+      /* 歌单是"块式"的（格式见 README「每日内容」/ PRD §14.3）：
+           第 1 行         —— 歌单标题，屏里不显示，只用来说明这份文件是什么
+           空行            —— 分块
+           每块第 1 行     —— 「曲名|mp3直链」，第一个 | 分界
+           每块其余行      —— 该曲歌词（静态原样，不解析 [00:12] 这类时间码）
+         只有「曲名|直链」一行、后面没有内容的块 = 该曲没有歌词，右栏就只显示曲名。
+         没有直链的块直接丢掉：缺了直链的"歌"在播放器里只是一个按下去没反应的死条目 */
+      const parseMusic = (text) => {
+        const lines = text.split(/\r?\n/);
+        let i = 0;
+        while (i < lines.length && !lines[i].trim()) i++;
+        const blocks = [];
+        let cur = null;
+        for (i = i + 1; i < lines.length; i++) {
+          if (!lines[i].trim()) { cur = null; continue; }
+          if (!cur) { cur = []; blocks.push(cur); }
+          cur.push(lines[i].replace(/\s+$/, ''));
+        }
+        return blocks.map((block) => {
+          const head = block[0];
+          const cut = head.indexOf('|');
+          return {
+            name: (cut >= 0 ? head.slice(0, cut) : head).trim(),
+            src: (cut >= 0 ? head.slice(cut + 1) : '').trim(),
+            lyrics: block.slice(1).join('\n').replace(/^\n+|\s+$/g, ''),
+          };
+        }).filter((track) => track.src);
+      };
+
+      const renderDaily = (entry, category) => {
+        dailyRoot.textContent = '';
+        if (entry) {
+          const title = document.createElement('h3');
+          title.className = 'daily-title';
+          title.textContent = entry.title;
+          dailyRoot.appendChild(title);
+          if (entry.body) {
+            const body = document.createElement('div');
+            // 诗分两栏（CSS 见 .daily-body.is-poem）：先把正文按空行拆成节，
+            // 每节一个 <p>，分栏时整节不跨栏；节内的单换行仍靠 pre-line 保留
+            const isPoem = category === 'poem';
+            body.className = isPoem ? 'daily-body is-poem' : 'daily-body';
+            if (isPoem) {
+              entry.body.split(/\n\s*\n/).forEach((stanza) => {
+                const p = document.createElement('p');
+                p.textContent = stanza.replace(/^\n+|\n+$/g, '');
+                body.appendChild(p);
+              });
+            } else {
+              body.textContent = entry.body;
+            }
+            dailyRoot.appendChild(body);
+          }
+        }
+        // 字数变了：折叠线与展开箭头都要按新高度重量一次
+        syncDailyFold();
+      };
+
+      const loadDaily = async (category) => {
+        if (dailyCache[category] !== undefined) return dailyCache[category];
+        let entry = null;
+        try {
+          const hit = await findDaily(category);
+          if (hit) entry = splitDaily(hit.text);
+        } catch {
+          // 网络不通：当作没有，右栏保持空；刷新页面会重试
+        }
+        dailyCache[category] = entry;
+        return entry;
+      };
+
+      /* —— music：屏内播放器 + 右栏歌词 ——
+         歌单文件与 article / poem 同一套查找规则（daily/music/<日期>.txt），
+         所以"发布"仍然只是 push 一个文本文件，不需要后端、不需要进数据库。
+         播放器本体（dailyAudio）在屏幕之外，它只被这里读写，与视图切换完全无关。 */
+      let musicTracks = [];
+      let musicIndex = -1;   // -1 = 还没选过任何一首
+      let musicError = false; // 直链打不开：屏内显示提示，切到下一首即清掉
+      let musicFound;         // undefined = 还没找过；null = 找过了、没有
+
+      const loadMusic = async () => {
+        // musicTracks 在这里就要带上：进 music 屏（showDailyCategory）走的是 loadMusic，
+        // 而它只看 musicTracks——不给的话屏内会一直显示"没有歌单"，
+        // 直到用户按下播放（那条路经 ensureMusic 才赋值）才突然冒出曲名
+        if (musicFound !== undefined) { musicTracks = musicFound.tracks; return musicFound; }
+        let tracks = [];
+        try {
+          const hit = await findDaily('music');
+          if (hit) tracks = parseMusic(hit.text);
+        } catch {
+          // 网络不通：当作没有歌单；刷新页面会重试
+        }
+        musicFound = { tracks };
+        musicTracks = tracks;
+        return musicFound;
+      };
+
+      /** 秒 → m:ss；时长还没拿到（preload=none，没按下播放前一无所知）就是 --:-- */
+      const clock = (sec) => {
+        if (!isFinite(sec) || sec < 0) return '--:--';
+        return Math.floor(sec / 60) + ':' + String(Math.floor(sec % 60)).padStart(2, '0');
+      };
+
+      /** 把当前曲目写进屏内三行。这是唯一会碰屏内 DOM 的函数，时间／进度都走它 */
+      const renderMusic = () => {
+        if (!dailyMusicEl) return;
+        const track = musicTracks[musicIndex] || null;
+        if (musicError || !track) {
+          dailyMusicEl.classList.add('is-error');
+          dailyMusicName.textContent = musicError ? '无法播放' : '没有歌单';
+          dailyMusicTime.textContent = '';
+          dailyMusicFill.style.width = '0%';
+          return;
+        }
+        dailyMusicEl.classList.remove('is-error');
+        dailyMusicName.textContent = track.name;
+        dailyMusicTime.textContent = clock(dailyAudio.currentTime) + ' / ' + clock(dailyAudio.duration);
+        const ratio = dailyAudio.duration ? dailyAudio.currentTime / dailyAudio.duration : 0;
+        dailyMusicFill.style.width = (Math.min(1, Math.max(0, ratio)) * 100).toFixed(2) + '%';
+      };
+
+      /** 右栏换成当前曲目的歌词。用 .daily-title / .daily-body 那套样式，
+          与 article、poem 的观感一致，只是标题位放曲名 */
+      const renderLyrics = () => {
+        dailyRoot.textContent = '';
+        const track = musicTracks[musicIndex] || null;
+        if (!track) return;
+        const name = document.createElement('h3');
+        name.className = 'daily-title';
+        name.textContent = track.name;
+        dailyRoot.appendChild(name);
+        if (track.lyrics) {
+          const body = document.createElement('div');
+          body.className = 'daily-body';
+          body.textContent = track.lyrics; // textContent：歌词里的尖括号不会被当标签执行
+          dailyRoot.appendChild(body);
+        }
+        syncDailyFold();
+      };
+
+      /** 切到当前这一首。withLyrics=false 用于"在菜单屏按了播放"——
+          那种情况下右栏还停在别的栏目上，不该被歌词抢走 */
+      const applyMusicTrack = (withLyrics) => {
+        musicError = false;
+        const track = musicTracks[musicIndex] || null;
+        const src = track ? track.src : '';
+        // 同一首不重写 src：给 .src 赋值会重新走一遍加载算法，正在放的那首会被拉回开头
+        if (dailyAudio.getAttribute('src') !== src) dailyAudio.setAttribute('src', src);
+        renderMusic();
+        if (withLyrics) renderLyrics();
+      };
+
+      const playMusic = () => {
+        // 直链打不开（404 / 跨域 / 编码不支持）都会走到这里；只改标志位，不去动 musicIndex，
+        // 用户切下一首就自然恢复
+        dailyAudio.play().catch(() => { musicError = true; renderMusic(); });
+      };
+
+      /** 曲目没载入时先载入；返回是否真的准备好了 */
+      const ensureMusic = async () => {
+        if (!musicFound) await loadMusic();
+        musicTracks = musicFound.tracks;
+        if (!musicTracks.length) return false;
+        if (musicIndex < 0 || musicIndex >= musicTracks.length) musicIndex = 0;
+        return true;
+      };
+
+      const toggleMusic = async () => {
+        if (!await ensureMusic()) { renderMusic(); return; }
+        const needSrc = dailyAudio.getAttribute('src') !== musicTracks[musicIndex].src;
+        if (needSrc || dailyAudio.paused) {
+          if (needSrc) applyMusicTrack(false);
+          playMusic();
+        } else {
+          dailyAudio.pause();
+        }
+      };
+
+      /** 上一首／下一首。到两端就不动——真机也是到端即止，不回头绕一圈。
+          autoplay：切之前本来在放就接着放，本来停着就停在暂停态（用户按下播放才算数） */
+      const switchMusic = (dir, autoplay) => {
+        const next = musicIndex + dir;
+        if (next < 0 || next >= musicTracks.length) return;
+        musicIndex = next;
+        applyMusicTrack(true);
+        if (autoplay) playMusic();
+      };
+
+      musicControl = (action) => {
+        if (action === 'play') { toggleMusic(); return; }
+        // 左右键只在 music 屏切歌（菜单屏那头由调用方继续滚列表，不在这里兜）。
+        // 歌单还没取到就没有"上一首/下一首"可言，直接不动
+        if (!musicTracks.length) return;
+        switchMusic(action === 'prev' ? -1 : 1, !dailyAudio.paused);
+      };
+
+      if (dailyAudio) {
+        // 进度与时长都直接读元素，不另存一份——存一份就要自己管同步，反而容易走偏
+        dailyAudio.addEventListener('timeupdate', renderMusic);
+        dailyAudio.addEventListener('durationchange', renderMusic);
+        dailyAudio.addEventListener('loadedmetadata', renderMusic);
+        dailyAudio.addEventListener('play', renderMusic);
+        dailyAudio.addEventListener('pause', renderMusic);
+        dailyAudio.addEventListener('error', () => { musicError = true; renderMusic(); });
+        // 放完自动顺到下一首；已经是最后一首就停在末尾，不循环（PRD §14.2 不做循环）
+        dailyAudio.addEventListener('ended', () => {
+          if (musicIndex + 1 < musicTracks.length) switchMusic(1, true);
+          else renderMusic();
+        });
+      }
+
+      let dailySeq = 0;
+      showDailyCategory = (category) => {
+        const seq = ++dailySeq;
+        if (category === 'music') {
+          loadMusic().then(() => {
+            if (seq !== dailySeq) return; // 期间又切了分类：这次结果作废
+            const ready = musicTracks.length > 0;
+            if (ready) {
+              if (musicIndex < 0 || musicIndex >= musicTracks.length) musicIndex = 0;
+              applyMusicTrack(true);
+            } else {
+              musicIndex = -1;
+              renderMusic();
+              renderLyrics();
+            }
+          });
+          return;
+        }
+        loadDaily(category).then((entry) => {
+          if (seq !== dailySeq) return; // 期间又切了分类：这次结果作废
+          renderDaily(entry, category);
+        });
+      };
+
+      // 默认显示 article
+      showDailyCategory('article');
+    }
+  </script>
+
+
+
+
+</body></html>
