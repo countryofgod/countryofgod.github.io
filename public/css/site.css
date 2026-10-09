@@ -405,7 +405,7 @@ body {
   letter-spacing: 0.5px; /* 字距收紧到极紧，贴近常规英文排法 */
   text-transform: uppercase; /* 英文小标纯大写 */
   color: var(--gray-4);
-  margin-bottom: 16px;
+  margin-bottom: 6px;
 }
 /* 每日 DAILY 的英文小标单独用纯黑，与其余灰标拉开层级 */
 .daily .section-label {
