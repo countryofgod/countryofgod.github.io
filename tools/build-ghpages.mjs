@@ -9,7 +9,7 @@
 // 用法：node tools/build-ghpages.mjs
 import { writeFile } from 'node:fs/promises';
 
-const BASE = 'https://gods-country.lyw2373314970.workers.dev';
+const BASE = 'https://gods-country.countryofgod.workers.dev';
 
 async function mustGet(path) {
   const res = await fetch(BASE + path);

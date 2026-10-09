@@ -294,13 +294,61 @@ function renderHome({ articles, archive, notes, submitMail }) {
     </div>
   </section>
 
-  <!-- Museum：新增板块，尚未策划——只放占位标题，内容待定。
-       导航里已挂上 #museum，先占个位，策划好了再往里填 -->
+  <!-- Museum：美术馆——一屏高的横向胶片（视觉参考浦东美术馆官网：无衬线、极简）。
+       图片取自仓库根的 museum/ 目录（已复制进 public/img/museum-N.jpg）；卡片暂不可点，只有横滑。
+       维护通道留待后续接留言板的上传通道，本轮不做后端 -->
+`;
+  const museumItems = [
+  { img: '/img/museum-1.jpg', alt: '美术馆作品 01', title: '作品 01', meta: '作品　待填' },
+  { img: '/img/museum-2.jpg', alt: '美术馆作品 02', title: '作品 02', meta: '作品　待填' },
+  { img: '/img/museum-3.jpg', alt: '美术馆作品 03', title: '作品 03', meta: '作品　待填' },
+  { img: '/img/museum-4.jpg', alt: '美术馆作品 04', title: '作品 04', meta: '作品　待填' },
+  { img: '/img/museum-5.jpg', alt: '美术馆作品 05', title: '作品 05', meta: '作品　待填' }
+  ];
+  out += `
   <section class="section museum" id="museum">
     <div class="museum-inner">
       <p class="section-label">Museum</p>
       <h2 class="section-title">美术馆</h2>
-      <p class="museum-coming">策划中</p>
+    </div>
+
+    <!-- 轨道独立于 .museum-inner，铺满视口宽度；
+         标题仍在上方 960 版心里 -->
+    <div class="museum-strip" data-museum-strip tabindex="0" role="group" aria-label="美术馆作品横滑胶片">
+      <div class="museum-viewport" data-museum-viewport>
+        <div class="museum-track" data-museum-track>
+`;
+  museumItems.forEach((item, i) => {
+  out += `
+          <article class="museum-card`;
+  out += esc(i % 2 ? ' museum-card--short' : '');
+  out += `">
+            <div class="museum-poster"><img src="`;
+  out += esc(item.img);
+  out += `" alt="`;
+  out += esc(item.alt);
+  out += `" loading="lazy" decoding="async"></div>
+            <div class="museum-card-text">
+              <p class="museum-card-title">`;
+  out += esc(item.title);
+  out += `</p>
+              <p class="museum-card-meta">`;
+  out += esc(item.meta);
+  out += `</p>
+            </div>
+          </article>
+`;
+  });
+  out += `
+        </div>
+      </div>
+      <div class="museum-strip-foot">
+        <div class="museum-dots" data-museum-dots></div>
+        <div class="museum-arrows">
+          <button type="button" class="museum-arrow" data-museum-prev aria-label="上一组">‹</button>
+          <button type="button" class="museum-arrow" data-museum-next aria-label="下一组">›</button>
+        </div>
+      </div>
     </div>
   </section>
 

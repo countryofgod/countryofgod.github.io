@@ -159,6 +159,10 @@
   --font-body: 'LoveLetter', serif;
   /* 右侧章节导航 / 档案馆「random」共用的拉丁字体：Podium Sans → Adobe Caslon Pro → 近似衬线兜底 */
   --font-nav: 'Podium Sans', 'PodiumSans', 'Podium Sans Web', 'Adobe Caslon Pro', 'Adobe Caslon', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', var(--font-title), serif;
+  /* 美术馆专用无衬线：拉丁字母先命中 Founders Grotesk；汉字它没有，浏览器会按字符逐字
+     回退到系统无衬线（PingFang SC / 微软雅黑）。仓库里没有中文无衬线 webfont，
+     所以中文这一半只能交给系统字体——这是刻意的取舍，不新增字体文件 */
+  --font-sans: 'Founders Grotesk', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
   /* 版心宽度：.section / .archive-head / .archive-inner / .footer-inner 四处共用，
      一处改、四处同步，标题与正文、页脚永远落在同一条左右对齐线上。
      两侧各留 48px 内边距，所以正文净宽 = 本值 − 96px（960 → 864px）。
@@ -413,7 +417,7 @@ body {
   letter-spacing: 0.5px; /* 字距收紧到极紧，贴近常规英文排法 */
   text-transform: uppercase; /* 英文小标纯大写 */
   color: var(--gray-4);
-  margin-bottom: 16px;
+  margin-bottom: 6px;
 }
 /* 每日 DAILY 的英文小标单独用纯黑，与其余灰标拉开层级 */
 .daily .section-label {
@@ -428,15 +432,15 @@ body {
   letter-spacing: 4px;
 }
 
-/* ---------- 右侧章节导航（daily / pub / archive / museum / end）---------- */
-/* 固定在视口右侧、垂直居中；不随内容滚动。列表右对齐，选中项用「背景反色」：
-   黑底白字（= 页面纸/墨的反色）。链接是锚点，html 已 scroll-behavior: smooth，
+/* ---------- 章节导航（daily / pub / archive / museum / end）---------- */
+/* 固定在视口右下角；不随内容滚动。整体竖排、字母顺时针转 90°：
+   这正是 writing-mode: vertical-rl 的默认行为（水平文种的 glyph 顺时针旋转 90°），
+   所以不需要再补 transform: rotate()。链接是锚点，html 已 scroll-behavior: smooth，
    点一下就平滑滚到对应区块。高亮逻辑在 site.js */
 .side-nav {
   position: fixed;
-  top: 50%;
   right: 24px;
-  transform: translateY(-50%);
+  bottom: 24px;
   z-index: 50;
 }
 .side-nav-list {
@@ -444,9 +448,14 @@ body {
   margin: 0;
   padding: 0;
   display: flex;
+  /* 竖排上下文里主轴是「自上而下」、交叉轴才是横向，所以排成一行 5 列要写 column：
+     写 row 的话五个词会沿主轴堆成一列。
+     这里用 column 而不是 column-reverse：vertical-rl + column 恰好等于
+     「原来那根竖列表整体顺时针转 90°」——daily 落在最右、end 在最左，
+     反着转回去就是原来的列表 */
   flex-direction: column;
-  align-items: flex-end; /* 右对齐：列表项收成内容宽、贴右排，选中黑块也只裹住字 */
   gap: 14px;
+  writing-mode: vertical-rl;
 }
 .side-nav-item {
   display: block;
@@ -463,7 +472,7 @@ body {
 .side-nav-item:not(.is-active):hover {
   color: var(--gray-6);
 }
-/* 选中：不加任何背景块，字位置与未选中完全一致、右对齐也不动。
+/* 选中：不加任何背景块，字位置与未选中完全一致、排布也不动。
    daily / pub 选中＝黑字；其余（archive / museum / end）选中＝白字 */
 .side-nav-item.is-active {
   color: var(--white);
@@ -481,15 +490,19 @@ body {
   }
 }
 
-/* Museum：新增板块，尚未策划——仅占位，内容待定。
-   背景用 museum.jpeg；去掉 .section 的版心 max-width 限制，让图铺满整个视口宽度
-   （cover 随宽度自适应裁切，不再被 960 栏卡成一条）。min-height 保证短内容也露出一片图 */
+/* Museum：美术馆——一屏高的横滑海报墙。
+   参考浦美官网的「展览」横排与用户给的样子：卡片宽度一致、高度只有高低两种交替，
+   顶部对齐。标题居中在 960 版心内，轨道独立出来铺满视口全宽。 */
 .museum {
   position: relative;
   z-index: 3;
   max-width: none; /* 突破 .section 的 max-width: var(--page-w)，全宽背景 */
-  /* 背景全宽，但内容收进 .museum-inner 的居中栏，与档案馆标题同一条左对齐线 */
-  padding: 120px 0; /* 横向留白交给 .museum-inner，这里只留上下 */
+  /* 一屏高、子元素纵向堆叠并整体垂直居中；标题在上，轨道在其下、铺满宽度 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 96px 0 80px;
   /* 与上方档案馆之间的分隔细线：纯白，2px */
   border-top: 2px solid var(--white);
   /* 仅底部向黑色渐变（顶端不再压黑、也不要模糊）：68% 起由透明过渡到实心黑 */
@@ -501,24 +514,206 @@ body {
       #000 100%
     ),
     url('/public/img/museum.jpeg') center / cover no-repeat;
-  min-height: 60vh;
 }
-/* 内容居中栏：与 .archive-head / .archive-inner 完全一致的 max-width / margin / padding，
-   于是美术馆标题与档案馆标题落在同一条左右对齐线上 */
+/* 标题栏：要和档案馆标题落在同一条左对齐线上。
+   那条线是 48 而不是 96——.archive 本身是全宽的（.archive 里写了
+   max-width: none 且 padding-left/right: 0），真正产生缩进的只有
+   .archive-head 自己的那 48px（.archive-head 与 .museum-inner 同为
+   max-width: 960 居中 + padding: 0 48px）。.museum 同样全宽、横向不留内边距，
+   所以这里写 48px 就与档案馆严丝合缝。轨道独立在外、铺满全宽 */
 .museum-inner {
+  /* width: 100% 必须写死：.museum 是 flex 列容器，而这里又用了 margin: 0 auto——
+     flex 项一旦在交叉轴上出现 auto 外边距，就不再走 stretch 拉伸，
+     宽度会退化成"文字那么宽"，整块连同标题变成居中的一小条。
+     写死 100% 才拿回 960 版心，标题落在与档案馆相同的 48px 上 */
+  width: 100%;
   max-width: var(--page-w);
-  margin: 0 auto;
+  margin: 0 auto 48px; /* 标题栏底部留白，给轨道腾出空间 */
   padding: 0 48px;
 }
-/* 标题（美术馆）与小标（Museum）在照片上改白色，保证可读；仅改色，不动字号/间距 */
+/* 标题（美术馆）与小标（Museum）在照片上改白色，保证可读。
+   只改颜色，不动字体：标题仍用站点原有的 --font-title（衬线） */
 .museum .section-label,
 .museum .section-title {
   color: var(--white);
 }
-.museum-coming {
-  font-family: var(--font-body);
+
+/* ---------- 轨道 & 视口 ---------- */
+/* --card-w 是一屏里每一张的宽度：22% 即全宽下一屏约露出 4.5 张；
+   240px 是窄屏下限，免得 22% 在小屏上收成一条 */
+.museum-strip {
+  position: relative;
+  width: 100%;
+  --card-w: max(240px, 22%);
+  /* 悬停时只外扩"取景窗口"的宽度。图片按这个宽度固定出图、由 .museum-poster 裁切，
+     所以窗口变宽时图片本身不缩放，只是右侧那截被露出来 */
+  --card-w-hover: calc(var(--card-w) * 1.5);
+}
+.museum-strip:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.6);
+  outline-offset: 12px;
+}
+/* 视口裁切溢出；touch-action: pan-y 把纵向滚动还给页面，横向手势留给拖拽 */
+.museum-viewport {
+  overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+}
+.museum-viewport:active {
+  cursor: grabbing;
+}
+.museum-track {
+  display: flex;
+  gap: 24px;
+  /* 关键：默认的 stretch 会把所有卡片拉成"最高的那张"的高度，
+     "高低交替"就没了。flex-start 让每张卡按自己的高度、顶部对齐 */
+  align-items: flex-start;
+  will-change: transform;
+  transition: transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* ---------- 卡片 ---------- */
+/* flex: 0 0 auto 阻止 flex 默认的 shrink：不写这个的话，
+   多张卡加起来远超视口宽时会被自动压窄，"宽度一致"就失效了。
+   高度只有 54vh（高）与 38vh（矮）两种，由模板给的 --short 类交替。
+   刻意不用 :nth-child(even)：作品数是奇数时，克隆出来的第二、三套奇偶会整体翻转，
+   同一张图在接缝两侧一高一矮，循环绕回时高度会跳；类跟着节点被 cloneNode 复制，天然一致 */
+.museum-card {
+  flex: 0 0 auto;
+  width: var(--card-w);
+  height: 54vh;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.15); /* 暗底给图片加一层灰雾，提升文字在照片上的对比 */
+  transition: width 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.museum-card--short {
+  height: 38vh;
+}
+/* 只外扩宽度，高度不动——所以是"窗口变大"，不是"整张卡放大" */
+.museum-card:hover {
+  width: var(--card-w-hover);
+}
+/* 拖拽期间冻结外扩：拖的时候指针必然压在某张卡上，不冻住就会一边跟手一边鼓起来 */
+.museum-strip.is-dragging .museum-card,
+.museum-strip.is-dragging .museum-card:hover {
+  width: var(--card-w);
+  transition: none;
+}
+/* 海报自撑占满卡片上部：min-height:0 是 flex item 的标配，
+   否则它会按图片固有高度撑开整个卡，"固定高度"就失效了 */
+.museum-poster {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+}
+/* 图片随卡片等比放大：窗口变宽多少，图片就放大多少（object-fit 保持比例、不改裁切构图） */
+.museum-poster img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  -webkit-user-drag: none; /* 不这样做的话，按住图片会触发浏览器原生的"拖拽图片"，把横滑手势吃掉 */
+}
+/* 文字带贴卡片内底 */
+.museum-card-text {
+  flex: 0 0 auto;
+  padding: 14px 16px;
+}
+.museum-card-title {
+  font-family: var(--font-sans);
   font-size: 16px;
-  color: var(--gray-4);
+  letter-spacing: 0.5px;
+  color: var(--white);
+  margin: 0;
+}
+.museum-card-meta {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 6px 0 0;
+}
+
+/* ---------- 底部控件 ---------- */
+/* 圆点和箭头也收在标题那条左右对齐线上（48px 与 .museum-inner 同理）；
+   视口铺满全宽，但控件不跟着撒到两边，避免过散 */
+.museum-strip-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: var(--page-w);
+  margin: 32px auto 0;
+  padding: 0 48px;
+}
+.museum-dots {
+  display: flex;
+  gap: 10px;
+}
+.museum-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+}
+.museum-dot[aria-current='true'] {
+  background: var(--white);
+}
+.museum-arrows {
+  display: flex;
+  gap: 10px;
+}
+.museum-arrow {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--white);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.museum-arrow:not(:disabled):hover {
+  border-color: var(--white);
+}
+.museum-arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ---------- 响应式 ---------- */
+/* 尊重系统「减少动态效果」：轨道的位移过渡关掉，直接就位 */
+@media (prefers-reduced-motion: reduce) {
+  .museum-track {
+    transition: none;
+  }
+}
+/* 窄屏：板块不再强制一屏高（卡片较高时容易溢出一屏）。
+   48px 那条对齐线在任何宽度下都不变，所以不用再单独覆盖内边距 */
+@media (max-width: 768px) {
+  .museum {
+    min-height: auto;
+    padding: 80px 0 64px;
+  }
+  .museum-inner {
+    margin-bottom: 32px;
+  }
+  .museum-strip {
+    --card-w: 62vw;
+  }
+  .museum-card {
+    height: 44vh;
+  }
+  .museum-card--short {
+    height: 32vh;
+  }
 }
 
 /* ---------- Daily：每日推荐（左右栏，标题规范参照档案馆）---------- */
@@ -2340,7 +2535,7 @@ body.cursor-hidden * {
       <h2 class="section-title">档案馆</h2>
       <!-- 唯一的发现入口：不看时间、不看热度，随机翻一篇。
            旧文过了半年就不再摆在架子外面，这里是能碰到它们的门 -->
-      <p class="archive-random"><a class="archive-random-link" href="https://gods-country.lyw2373314970.workers.dev/random">random →</a></p>
+      <p class="archive-random"><a class="archive-random-link" href="https://gods-country.countryofgod.workers.dev/random">random →</a></p>
     </div>
 
     <div class="archive-inner">
@@ -2367,13 +2562,71 @@ body.cursor-hidden * {
     </div>
   </section>
 
-  <!-- Museum：新增板块，尚未策划——只放占位标题，内容待定。
-       导航里已挂上 #museum，先占个位，策划好了再往里填 -->
+  <!-- Museum：美术馆——一屏高的横向胶片（视觉参考浦东美术馆官网：无衬线、极简）。
+       图片取自仓库根的 museum/ 目录（已复制进 public/img/museum-N.jpg）；卡片暂不可点，只有横滑。
+       维护通道留待后续接留言板的上传通道，本轮不做后端 -->
+
   <section class="section museum" id="museum">
     <div class="museum-inner">
       <p class="section-label">Museum</p>
       <h2 class="section-title">美术馆</h2>
-      <p class="museum-coming">策划中</p>
+    </div>
+
+    <!-- 轨道独立于 .museum-inner，铺满视口宽度；
+         标题仍在上方 960 版心里 -->
+    <div class="museum-strip" data-museum-strip tabindex="0" role="group" aria-label="美术馆作品横滑胶片">
+      <div class="museum-viewport" data-museum-viewport>
+        <div class="museum-track" data-museum-track>
+
+          <article class="museum-card">
+            <div class="museum-poster"><img src="/public/img/museum-1.jpg" alt="美术馆作品 01" loading="lazy" decoding="async"></div>
+            <div class="museum-card-text">
+              <p class="museum-card-title">作品 01</p>
+              <p class="museum-card-meta">作品　待填</p>
+            </div>
+          </article>
+
+          <article class="museum-card museum-card--short">
+            <div class="museum-poster"><img src="/public/img/museum-2.jpg" alt="美术馆作品 02" loading="lazy" decoding="async"></div>
+            <div class="museum-card-text">
+              <p class="museum-card-title">作品 02</p>
+              <p class="museum-card-meta">作品　待填</p>
+            </div>
+          </article>
+
+          <article class="museum-card">
+            <div class="museum-poster"><img src="/public/img/museum-3.jpg" alt="美术馆作品 03" loading="lazy" decoding="async"></div>
+            <div class="museum-card-text">
+              <p class="museum-card-title">作品 03</p>
+              <p class="museum-card-meta">作品　待填</p>
+            </div>
+          </article>
+
+          <article class="museum-card museum-card--short">
+            <div class="museum-poster"><img src="/public/img/museum-4.jpg" alt="美术馆作品 04" loading="lazy" decoding="async"></div>
+            <div class="museum-card-text">
+              <p class="museum-card-title">作品 04</p>
+              <p class="museum-card-meta">作品　待填</p>
+            </div>
+          </article>
+
+          <article class="museum-card">
+            <div class="museum-poster"><img src="/public/img/museum-5.jpg" alt="美术馆作品 05" loading="lazy" decoding="async"></div>
+            <div class="museum-card-text">
+              <p class="museum-card-title">作品 05</p>
+              <p class="museum-card-meta">作品　待填</p>
+            </div>
+          </article>
+
+        </div>
+      </div>
+      <div class="museum-strip-foot">
+        <div class="museum-dots" data-museum-dots></div>
+        <div class="museum-arrows">
+          <button type="button" class="museum-arrow" data-museum-prev aria-label="上一组">‹</button>
+          <button type="button" class="museum-arrow" data-museum-next aria-label="下一组">›</button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -2482,6 +2735,6 @@ body.cursor-hidden * {
   <div class="cursor-invert" aria-hidden="true" style="transform: translate3d(792px, 1px, 0px) translate(-50%, -50%);"></div>
 
   <!-- 同步加载、不加 defer：拆字脚本必须在首屏绘制前跑完，否则字距会跳一次 -->
-  <script>window.__API_BASE__='https://gods-country.lyw2373314970.workers.dev';window.__DAILY_BASE__='/public/daily/';</script>
+  <script>window.__API_BASE__='https://gods-country.countryofgod.workers.dev';window.__DAILY_BASE__='/public/daily/';</script>
   <script src="/public/js/site.js"></script>
 </body></html>

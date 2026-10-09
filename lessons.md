@@ -827,6 +827,18 @@
 
 5. **子代理的报告不能直接当结论用，关键指标要能对上代码。** 本轮 browser 子代理报告「最外层 div class 为 `daily-content is-poem`」，但代码里只给 `.daily-body` 加了 `is-poem`，`daily-content` 不可能有——它把两层看串了（还说"第一栏包含标题"，而标题其实是 `.daily-body` 的兄弟、根本不参与分栏）。**它给的关键指标（body 的 class、4 个 `<p>`、`column-count=2`）是对的，但这类自述性细节必须与代码交叉核对后再转述给用户**，否则等于把幻觉二次传播。
 
+## 2026-10-09（第六十九段）
+
+1. **"整体向参考站看齐（无衬线）"是形容词，落地时必须逐元素确认它落在哪些元素上——我擅自把它扩到了板块标题，用户当场叫停。** 用户选的是"风格向参考站看齐"，我就把 `.museum .section-title` 的 `font-family` 改成 `--font-sans`、顺手把 `letter-spacing` 从 4px 收到 2px。结果是 `美术馆标题的字体不要改啊！！！`。教训：**风格类决策只给出"方向"，不给"作用范围"；作用范围（标题 / 小标 / 正文 / 卡片文案）要单独问，或者默认"只改用户点名的那几个元素"。** 更具体一点：标题是站点的视觉身份证，用户对它的容忍度最低——**标题的字体、字号、字距动手前一定要单独确认**。
+
+2. **判断"改动是否生效"要区分三个层级：文件里的值 → 服务端返回的值 → 浏览器渲染的值。** 本轮 CSS 改完，我用 `Invoke-WebRequest http://127.0.0.1:3000/css/site.css` 直接拉服务端返回的样式表来核对，比在编辑器里看文件可靠得多（能同时排除"文件没保存"和"服务端走了缓存"）。**这三个层级要逐级验证，跳级就会误判。**
+
+3. **PowerShell 的 `-like` 通配符里 `*` 会跨行匹配，拿它做"某 CSS 规则是否还在"的判定会产生假阳性。** 我删掉 `.museum .section-title { font-family: ... }` 后，用 `$css -like "*.museum .section-title {*"` 检查，仍返回 True——因为相邻的合并选择器 `.museum .section-label,\n.museum .section-title {` 正好也包含这个子串。**判定代码片段是否残留，必须用 Grep 看上下文（`-A 3`），不能用 `-like` / `-match` 做包含判断。**
+
+4. **三处同源文件改 DOM 要三处同步，但 CSS 只有两份——别把 CSS 改动同步到 `worker/src/html.js`。** 现状是：DOM 有 `server/views/index.ejs`（源）、`worker/src/html.js`（由 `node worker/build-templates.mjs` 生成）、`index.html`（GitHub Pages 版，手工同步）三份；CSS 只有 `public/css/site.css` 与 `index.html` 内联副本两份。**本轮只改样式（字体），html.js 一行没动，也就不需要重跑模板编译——"改完就习惯性重跑 build"是多余动作。**
+
+5. **端口被旧进程占用时不必强杀重启——Express + EJS 在非 production 下每次请求重读模板，静态文件也是现读。** `node server/app.js` 报 `EADDRINUSE :::3000`，我没去杀进程，而是先试着请求 3000 端口，发现它返回的 HTML 已含 `museum-strip`（新结构）、不再含 `museum-coming`（旧占位），CSS 也已含 `--font-sans`——说明**旧进程服务的正是改后的代码**。教训：**先确认旧进程服务的是不是最新代码，再决定要不要重启**，能省一次重启和一次端口冲突排查。
+
 
 
 

@@ -998,3 +998,172 @@ document.querySelectorAll('.archive-month').forEach(month => {
     panel.classList.add('open');
   });
 });
+
+// 美术馆横滑胶片：全宽铺开，卡片宽度一致、高度高低交替，切到尽头会绕回开头。
+// 索引按"第几张"记账而不是按像素——窗口变窄变宽后一张卡的宽度会变，
+// 记死的像素值立刻失效；所以每次尺寸变化都重新用 offsetLeft 量一遍落点。
+// 箭头 / 圆点 / 拖拽 / ←→ 四个入口改的都是同一个虚拟索引 v，再各自渲染。
+// 位移走 translateX、视口 overflow:hidden 切掉溢出，与浦东美术馆官网的做法一致。
+document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
+  const viewport = strip.querySelector('[data-museum-viewport]');
+  const track = strip.querySelector('[data-museum-track]');
+  const dotsBox = strip.querySelector('[data-museum-dots]');
+  const prevBtn = strip.querySelector('[data-museum-prev]');
+  const nextBtn = strip.querySelector('[data-museum-next]');
+  if (!viewport || !track || !dotsBox || track.children.length === 0) return;
+
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const originals = Array.from(track.children);
+  const SET = originals.length; // 一套作品有几张
+
+  // 循环列表：两端各克隆一整套作品，于是任意一张都能继续往两边滑，永远不到头。
+  // 克隆体标 aria-hidden，键盘与读屏只认中间那套原件。
+  // 克隆不会打乱 :nth-child 的高低交替：SET 是偶数，前置一套之后原件的奇偶性不变
+  const makeClones = () =>
+    originals.map((card) => {
+      const clone = card.cloneNode(true);
+      clone.classList.add('museum-card--clone');
+      clone.setAttribute('aria-hidden', 'true');
+      return clone;
+    });
+  makeClones().forEach((c) => track.insertBefore(c, originals[0])); // 前置一套
+  makeClones().forEach((c) => track.appendChild(c)); // 后置一套
+  // 此刻轨道上共 3 套：[0,SET) 前置 | [SET,2SET) 原件 | [2SET,3SET) 后置
+  const cards = Array.from(track.children);
+
+  // v 是"虚拟索引"，指向 3 套里的某一张。平时被收敛在中间那套（v ∈ [SET, 2*SET)），
+  // 一旦滑出这个范围就整体挪回一个循环（见 normalize）——
+  // 两端内容逐张相同，所以这一挪画面完全不变，看不出接缝。
+  // 归位必须跟"写目标位移"发生在同一时刻，绝不能挂在 transitionend 上：
+  // 快速连点时上一段过渡会被下一次 render 直接打断，transitionend 根本不会来，
+  // 而 v 早已越过轨道末尾（pos[v] 变 undefined → translateX(NaNpx) 是非法值被忽略），
+  // 画面就永久卡死在原地——这正是"快速点下一页会卡"的根因。
+  // 所以这里改成：每次 render 先归一化索引（并把动画途中的位移一起补掉），再写目标。
+  let pos = [];
+  let cycle = 0; // 一套作品的像素宽（= pos[SET] - pos[0]）；内容每 cycle 像素完全重复
+  let v = SET; // 起始 = 原件里的第 0 张
+
+  // 每张卡的落点 = 它的 offsetLeft。有两侧克隆垫着，中间那套的任意一张都能被拉到左边缘，
+  // 所以不需要再夹到"最后一屏"，也不会拉出右侧空白
+  const measure = () => {
+    pos = cards.map((card) => card.offsetLeft);
+    if (pos.length > SET) cycle = pos[SET] - pos[0];
+  };
+
+  // 读"此刻动画到哪了"：过渡进行中读到的是中间值，静止时就是当前落点。
+  // transform 还是 none（一次都没写过）时返回 null，调用方跳过平移即可
+  const currentShift = () => {
+    const t = getComputedStyle(track).transform;
+    if (!t || t === 'none') return null;
+    try { return new DOMMatrixReadOnly(t).m41; } catch (_) { return null; }
+  };
+
+  // 把"当前动画中的位置"整体平移 delta 像素。内容每 cycle 像素重复一次，
+  // 平移整数个 cycle 画面逐像素相同；不补这一下，光改索引就会让目标跳一个循环，
+  // 而位移起点还停在原处，浏览器会把这段差值也补间出来（看起来是突然甩一下）
+  const wrapBy = (delta) => {
+    const cur = currentShift();
+    if (cur === null) return;
+    const keep = track.style.transition;
+    track.style.transition = 'none';
+    track.style.transform = `translateX(${cur + delta}px)`;
+    void track.offsetWidth; // 强制回流：先把"无过渡的这一帧"提交下去，交回过渡时才不会把平移也补间
+    track.style.transition = keep;
+  };
+
+  // 收敛虚拟索引：越左界 +SET、越右界 -SET，同步把位移补回一个循环，画面不动
+  const normalize = () => {
+    if (!cycle) return;
+    while (v >= 2 * SET) { v -= SET; wrapBy(cycle); }
+    while (v < SET) { v += SET; wrapBy(-cycle); }
+  };
+
+  const render = () => {
+    // 每次渲染前重量一遍：窗口宽度变化会让每张卡的落点整体移位，
+    // 缓存下来的像素值会失准（这也是不把像素值记死的原因）
+    measure();
+    if (!pos.length) return;
+    // 先归位再写目标：两步在同一次同步执行里完成，中间不给浏览器插帧的机会
+    normalize();
+    track.style.transform = `translateX(${-pos[v]}px)`;
+
+    // 圆点 = 一套作品一张。只在"个数变了"时重建：
+    // 否则悬停让落点个数一有变化就会销毁重建按钮，指针底下那个会闪
+    if (dotsBox.children.length !== SET) {
+      dotsBox.innerHTML = '';
+      originals.forEach((_, i) => {
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = 'museum-dot';
+        dot.setAttribute('aria-label', `第 ${i + 1} 张`);
+        dot.addEventListener('click', () => { v = SET + i; render(); });
+        dotsBox.appendChild(dot);
+      });
+    }
+    // v 落在第几张：虚拟索引对一套取模即可
+    const active = ((v % SET) + SET) % SET;
+    Array.from(dotsBox.children).forEach((dot, i) => {
+      if (i === active) dot.setAttribute('aria-current', 'true');
+      else dot.removeAttribute('aria-current');
+    });
+  };
+
+  const step = (delta) => { v += delta; render(); };
+
+  if (prevBtn) prevBtn.addEventListener('click', () => step(-1));
+  if (nextBtn) nextBtn.addEventListener('click', () => step(1));
+
+  // 键盘：聚焦胶片后 ←→ 翻页
+  strip.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { step(-1); e.preventDefault(); }
+    else if (e.key === 'ArrowRight') { step(1); e.preventDefault(); }
+  });
+
+  // 拖拽换页。拖拽中关掉 CSS 过渡让轨道跟手，松手再交还给 CSS 做缓动。
+  let startX = 0;
+  let baseShift = 0;
+  let dragging = false;
+  let moved = 0;
+
+  viewport.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return; // 只认左键 / 触摸 / 笔尖；右键菜单不参与横滑
+    dragging = true;
+    // 拖拽期间冻住悬停外扩：指针这时必然压在某张卡上，不冻住就会一边跟手一边鼓起来
+    strip.classList.add('is-dragging');
+    startX = e.clientX;
+    baseShift = pos[v] || 0;
+    moved = 0;
+    track.style.transition = 'none';
+    if (viewport.setPointerCapture) viewport.setPointerCapture(e.pointerId);
+  });
+
+  viewport.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    // 跟手位移夹在 ±2 张以内：拖得再远也只走一步，又不至于把两侧克隆拉穿、露出空白
+    const span = (pos[v + 1] || pos[v]) - pos[v];
+    const raw = e.clientX - startX;
+    moved = Math.max(-2 * span, Math.min(2 * span, raw));
+    track.style.transform = `translateX(${-baseShift + moved}px)`;
+  });
+
+  const endDrag = () => {
+    if (!dragging) return;
+    dragging = false;
+    strip.classList.remove('is-dragging');
+    // 置空 = 交回 CSS 里那条过渡（系统开了"减少动态效果"时它本身也是 none）
+    track.style.transition = prefersReduced ? 'none' : '';
+    // 40px 阈值：太灵敏会把轻触当翻页，太钝则拖了半屏还不换
+    if (moved <= -40) v += 1;
+    else if (moved >= 40) v -= 1;
+    render();
+  };
+
+  viewport.addEventListener('pointerup', endDrag);
+  viewport.addEventListener('pointercancel', endDrag);
+  // 指针滑出视口时 pointerup 可能落在别处，靠这个事件兜底，否则会卡在"跟手"状态
+  viewport.addEventListener('lostpointercapture', endDrag);
+
+  window.addEventListener('resize', render);
+
+  render();
+});
