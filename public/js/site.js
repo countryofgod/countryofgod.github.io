@@ -413,6 +413,31 @@ if (dailyGrid) {
     dailyMusicFill.style.width = (Math.min(1, Math.max(0, ratio)) * 100).toFixed(2) + '%';
   };
 
+  /* 配图：挂在歌词下面。元素只建一次、切歌时反复用同一个（换曲不该重新下载同一张图），
+     打不开就把自己摘掉并记下失败——不留在那儿占位，也不留一个 404 的破图 */
+  let musicImageEl = null;
+  let musicImageFailed = false;
+
+  const appendDailyImage = () => {
+    if (!musicFound || !musicFound.image || musicImageFailed) return;
+    if (!musicImageEl) {
+      const img = document.createElement('img');
+      img.className = 'daily-figure';
+      img.decoding = 'async';
+      img.alt = '当日配图';
+      // 图片到位／撤掉都会改变右栏高度：折叠线与展开箭头要按新高度重量一次
+      img.addEventListener('load', syncDailyFold);
+      img.addEventListener('error', () => {
+        musicImageFailed = true;
+        if (musicImageEl) musicImageEl.remove();
+        syncDailyFold();
+      });
+      img.src = musicFound.image;
+      musicImageEl = img;
+    }
+    dailyRoot.appendChild(musicImageEl);
+  };
+
   /** 右栏换成当前曲目的歌词。用 .daily-title / .daily-body 那套样式，
       与 article、poem 的观感一致，只是标题位放曲名 */
   const renderLyrics = () => {
@@ -429,6 +454,7 @@ if (dailyGrid) {
       body.textContent = track.lyrics; // textContent：歌词里的尖括号不会被当标签执行
       dailyRoot.appendChild(body);
     }
+    appendDailyImage();
     syncDailyFold();
   };
 
@@ -528,6 +554,44 @@ if (dailyGrid) {
 
   // 默认显示 article
   showDailyCategory('article');
+}
+
+/* ---------- 右侧章节导航：滚动高亮当前区块 ---------- */
+/* 点一项是锚点平滑跳转（html 已 smooth），这里只负责"滚到哪一段、哪一项反色"：
+   取视口中线已经越过的最后一个区块，它就是当前正在看的。
+   停在首屏（首图 / 留言那一段）时，中线还在第一个导航区块之上，循环一个都没命中，
+   于是 activeId 保持 null、哪一项都不选中——首图部分各列留白、不抢戏。
+   用 getBoundingClientRect 算绝对位置，避开 offsetTop 在定位祖先下的偏差。
+   scroll 走 rAF 节流：滚动一帧最多算一次，不卡 */
+const sideNav = document.querySelector('.side-nav');
+if (sideNav) {
+  const navLinks = Array.from(sideNav.querySelectorAll('a.side-nav-item'));
+  const navTargets = navLinks
+    .map((a) => ({ link: a, id: a.getAttribute('href').slice(1) }))
+    .map((t) => ({ ...t, el: document.getElementById(t.id) }))
+    .filter((t) => t.el);
+
+  let navTick = false;
+  const syncSideNav = () => {
+    navTick = false;
+    const line = window.scrollY + window.innerHeight / 2;
+    // 默认 null：首图部分（还没滚过任何导航区块）不选中任何一项
+    let activeId = null;
+    for (const t of navTargets) {
+      if (t.el.getBoundingClientRect().top + window.scrollY <= line) activeId = t.id;
+    }
+    navLinks.forEach((a) => {
+      a.classList.toggle('is-active', a.getAttribute('href').slice(1) === activeId);
+    });
+  };
+  const onNavScroll = () => {
+    if (navTick) return;
+    navTick = true;
+    window.requestAnimationFrame(syncSideNav);
+  };
+  window.addEventListener('scroll', onNavScroll, { passive: true });
+  window.addEventListener('resize', onNavScroll);
+  syncSideNav();
 }
 
 // 跟随鼠标的反色圆：移动只改 transform，避免逐帧触发布局；
@@ -808,7 +872,7 @@ articleItems.forEach((item) => {
 // a:not(.hero-cn-hl)：刊名里的「之」是管理台入口（一个 <a>），用户明确要求它不抖。
 // 抖动动画的选择器是 :is(a,…):hover .jitter-char——只要不把它拆成 .jitter-char，就抖不起来；
 // 而且它身上那枚反色取景窗是它的 ::before，拆字后视觉重心也会跟着变，索性整体放过。
-document.querySelectorAll('a:not(.month-post):not(.hero-cn-hl), .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit').forEach((el) => {
+document.querySelectorAll('a:not(.month-post):not(.hero-cn-hl):not(.side-nav-item):not(.archive-random-link), .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit').forEach((el) => {
   const ls = parseFloat(getComputedStyle(el).letterSpacing) || 0;
   if (ls) el.style.letterSpacing = '0px';
 

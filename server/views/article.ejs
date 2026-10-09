@@ -14,7 +14,7 @@
   <main class="sheet">
     <p class="sheet-top">
       <a class="sheet-home" href="/">上帝之国</a>
-      <a class="sheet-random" href="/random">随便一篇 →</a>
+      <a class="sheet-random" href="/random">next →</a>
     </p>
 
     <h1 class="sheet-title"><%= article.title %></h1>
@@ -28,13 +28,12 @@
     <div class="sheet-archived">
       <p class="sheet-archived-line">这篇已于 <%= arch.toISOString().slice(0, 7).replace('-', '.') %> 沉入档案馆。</p>
       <p class="sheet-archived-note">过刊不摆在架子外面。想读它，只能等随机翻到。</p>
-      <a class="sheet-archived-btn" href="/random">随便一篇</a>
+      <a class="sheet-archived-btn" href="/random">next</a>
     </div>
 <% } %>
 
     <section class="echo" data-article="<%= article.id %>">
       <h2 class="echo-title">回声</h2>
-      <p class="echo-note">一台设备对一篇只留一次。留过可以先撤回再重留。</p>
 
       <ul class="echo-list">
 <% echoes.forEach((e) => { %>        <li class="echo-item" data-id="<%= e.id %>">

@@ -66,7 +66,7 @@ const changes = statusRaw
 /* ---------- 2. 校验新增/修改的 txt，标题留作提交信息 ---------- */
 const touched = []; // 新增 / 修改：{ category, name, num, title, path }
 const removed = [];
-const assets = []; // 自托管的音频：daily/music/*.mp3，不参与标题校验，但要一起提交
+const assets = []; // 自托管的素材：daily/music/ 下的音频与配图，不参与标题校验，但要一起提交
 for (const c of changes) {
   if (c.code.startsWith('D')) {
     removed.push(c.path);
@@ -80,7 +80,14 @@ for (const c of changes) {
     assets.push(c.path);
     continue;
   }
-  if (!c.path.endsWith('.txt')) fail(`daily/ 下只放 .txt 内容文件（音频只放 daily/music/）：${c.path}`);
+  // 当天的配图：与歌单 txt 同名、只换扩展名（daily/music/2026_10_9.jpg），
+  // 前端取到歌单那天的同名图就挂在歌词下面。同样没有标题行，跳过 txt 校验一起提交
+  if (/\.(jpe?g|png|webp|gif)$/i.test(c.path)) {
+    if (!c.path.startsWith('daily/music/')) fail(`配图只放在 daily/music/ 下：${c.path}`);
+    assets.push(c.path);
+    continue;
+  }
+  if (!c.path.endsWith('.txt')) fail(`daily/ 下只放 .txt 内容文件（音频与配图只放 daily/music/）：${c.path}`);
 
   const m = c.path.match(/^daily\/(article|poem|music)\/(.+)\.txt$/);
   if (!m) fail(`路径不对：${c.path}（应为 daily/article/… 、daily/poem/… 或 daily/music/…）`);
@@ -123,7 +130,7 @@ for (const t of touched) {
 for (const p of removed) log(`  - ${p}（删除）`);
 for (const p of assets) {
   const kb = Math.max(1, Math.round(readFileSync(join(root, p)).byteLength / 1024));
-  log(`  + ${p}（自托管音频，${kb} KB）`);
+  log(`  + ${p}（自托管素材，${kb} KB）`);
 }
 
 /* ---------- 4. 提交 ---------- */
@@ -132,7 +139,9 @@ const headline = touched.length
       .slice(0, 2)
       .map((t) => `${t.title}（${t.name}）`)
       .join('、')}${touched.length > 2 ? ` 等 ${touched.length} 篇` : ''}`
-  : `每日内容：删除 ${removed.length} 个文件`;
+  : removed.length
+    ? `每日内容：删除 ${removed.length} 个文件`
+    : `每日内容：素材 ${assets.length} 个（音频 / 配图）`;
 const body = [...touched.map((t) => `+ ${t.path}`), ...removed.map((p) => `- ${p}`)].join('\n');
 
 if (dryRun) {

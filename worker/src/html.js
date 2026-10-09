@@ -132,6 +132,21 @@ function renderHome({ articles, archive, notes, submitMail }) {
 </head>
 <body>
 
+  <!-- 右侧章节导航：daily / pub / archive / museum / end。
+       随滚动高亮当前所在区块（对应项变黑，见 site.js），点任意一项平滑跳到该区块。
+       映射：daily→#daily，pub→#latest（即「最新文章」），archive→#archive，
+            museum→#museum（新增、尚未策划的板块，仅占位），end→#about（页脚）。
+       固定在视口右侧、垂直居中；窄屏（≤1120px）正文会顶到边，导航收起 -->
+  <nav class="side-nav" aria-label="章节导航">
+    <ul class="side-nav-list">
+      <li><a class="side-nav-item" href="#daily">daily</a></li>
+      <li><a class="side-nav-item" href="#latest">pub</a></li>
+      <li><a class="side-nav-item" href="#archive">archive</a></li>
+      <li><a class="side-nav-item" href="#museum">museum</a></li>
+      <li><a class="side-nav-item" href="#about">end</a></li>
+    </ul>
+  </nav>
+
   <!-- Hero -->
   <section class="hero">
     <div class="hero-crop">
@@ -267,7 +282,7 @@ function renderHome({ articles, archive, notes, submitMail }) {
       <h2 class="section-title">档案馆</h2>
       <!-- 唯一的发现入口：不看时间、不看热度，随机翻一篇。
            旧文过了半年就不再摆在架子外面，这里是能碰到它们的门 -->
-      <p class="archive-random"><a href="/random">随便一篇 →</a></p>
+      <p class="archive-random"><a class="archive-random-link" href="/random">random →</a></p>
     </div>
 
     <div class="archive-inner">
@@ -276,6 +291,16 @@ function renderHome({ articles, archive, notes, submitMail }) {
   out += archiveGroup({ group, open: i === 0 });
   });
   out += `
+    </div>
+  </section>
+
+  <!-- Museum：新增板块，尚未策划——只放占位标题，内容待定。
+       导航里已挂上 #museum，先占个位，策划好了再往里填 -->
+  <section class="section museum" id="museum">
+    <div class="museum-inner">
+      <p class="section-label">Museum</p>
+      <h2 class="section-title">美术馆</h2>
+      <p class="museum-coming">策划中</p>
     </div>
   </section>
 
@@ -422,7 +447,7 @@ function renderArticle({ article, archived, readable, echoes }) {
   <main class="sheet">
     <p class="sheet-top">
       <a class="sheet-home" href="/">上帝之国</a>
-      <a class="sheet-random" href="/random">随便一篇 →</a>
+      <a class="sheet-random" href="/random">next →</a>
     </p>
 
     <h1 class="sheet-title">`;
@@ -452,7 +477,7 @@ function renderArticle({ article, archived, readable, echoes }) {
   out += esc(arch.toISOString().slice(0, 7).replace('-', '.'));
   out += ` 沉入档案馆。</p>
       <p class="sheet-archived-note">过刊不摆在架子外面。想读它，只能等随机翻到。</p>
-      <a class="sheet-archived-btn" href="/random">随便一篇</a>
+      <a class="sheet-archived-btn" href="/random">next</a>
     </div>
 `;
   }
@@ -462,7 +487,6 @@ function renderArticle({ article, archived, readable, echoes }) {
   out += esc(article.id);
   out += `">
       <h2 class="echo-title">回声</h2>
-      <p class="echo-note">一台设备对一篇只留一次。留过可以先撤回再重留。</p>
 
       <ul class="echo-list">
 `;

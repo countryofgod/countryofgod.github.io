@@ -14,6 +14,124 @@
   font-display: swap;
 }
 
+/* Heldane Text：仓库根目录自带的英文衬线字体（6 款字面：Regular / Medium / Bold × 正体/斜体）。 */
+@font-face {
+  font-family: 'Heldane Text';
+  src: url('/fonts/HeldaneText/HeldaneTextRegular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Heldane Text';
+  src: url('/fonts/HeldaneText/HeldaneTextRegularItalic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Heldane Text';
+  src: url('/fonts/HeldaneText/HeldaneTextMedium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Heldane Text';
+  src: url('/fonts/HeldaneText/HeldaneTextMediumItalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Heldane Text';
+  src: url('/fonts/HeldaneText/HeldaneTextBold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Heldane Text';
+  src: url('/fonts/HeldaneText/HeldaneTextBoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Founders Grotesk：站内的英文无衬线字体，用于各版块标题的英文小标（.section-label）。
+   取自仓库根的 Founders-Grotesk-Font-Family.zip，主家族 10 款字面（Light/Regular/Medium/
+   Semibold/Bold × 正体/斜体），格式 opentype */
+@font-face {
+  font-family: 'Founders Grotesk';
+  src: url('/fonts/FoundersGrotesk/FoundersGrotesk-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Founders Grotesk';
+  src: url('/fonts/FoundersGrotesk/FoundersGrotesk-LightItalic.otf') format('opentype');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Founders Grotesk';
+  src: url('/fonts/FoundersGrotesk/FoundersGrotesk-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Founders Grotesk';
+  src: url('/fonts/FoundersGrotesk/FoundersGrotesk-RegularItalic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Founders Grotesk';
+  src: url('/fonts/FoundersGrotesk/FoundersGrotesk-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Founders Grotesk';
+  src: url('/fonts/FoundersGrotesk/FoundersGrotesk-MediumItalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Founders Grotesk';
+  src: url('/fonts/FoundersGrotesk/FoundersGrotesk-Semibold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Founders Grotesk';
+  src: url('/fonts/FoundersGrotesk/FoundersGrotesk-SemiboldItalic.otf') format('opentype');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Founders Grotesk';
+  src: url('/fonts/FoundersGrotesk/FoundersGrotesk-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Founders Grotesk';
+  src: url('/fonts/FoundersGrotesk/FoundersGrotesk-BoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 *, *::before, *::after {
   margin: 0;
   padding: 0;
@@ -31,6 +149,8 @@
   --gray-6: #333333;
   --font-title: 'LoveLetter', 'KeBenSong', serif;
   --font-body: 'LoveLetter', serif;
+  /* 右侧章节导航 / 档案馆「random」共用的拉丁字体：Podium Sans → Adobe Caslon Pro → 近似衬线兜底 */
+  --font-nav: 'Podium Sans', 'PodiumSans', 'Podium Sans Web', 'Adobe Caslon Pro', 'Adobe Caslon', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', var(--font-title), serif;
   /* 版心宽度：.section / .archive-head / .archive-inner / .footer-inner 四处共用，
      一处改、四处同步，标题与正文、页脚永远落在同一条左右对齐线上。
      两侧各留 48px 内边距，所以正文净宽 = 本值 − 96px（960 → 864px）。
@@ -280,12 +400,16 @@ body {
 /* 版块标题：只放宽字距，保持左对齐——用户明确否掉了档案馆这一处的居中。
    放宽字距取自 fauux 站那种"松"的排法；卡片内的文章标题仍居中，那才是用户要的"标题居中" */
 .section-label {
-  font-family: var(--font-body);
+  font-family: 'Founders Grotesk', 'Helvetica Neue', Arial, sans-serif; /* 英文小标用 Founders Grotesk */
   font-size: 11px;
-  letter-spacing: 6px;
-  text-transform: uppercase;
+  letter-spacing: 0.5px; /* 字距收紧到极紧，贴近常规英文排法 */
+  text-transform: uppercase; /* 英文小标纯大写 */
   color: var(--gray-4);
   margin-bottom: 16px;
+}
+/* 每日 DAILY 的英文小标单独用纯黑，与其余灰标拉开层级 */
+.daily .section-label {
+  color: var(--black);
 }
 
 .section-title {
@@ -294,6 +418,99 @@ body {
   font-weight: normal;
   margin-bottom: 56px;
   letter-spacing: 4px;
+}
+
+/* ---------- 右侧章节导航（daily / pub / archive / museum / end）---------- */
+/* 固定在视口右侧、垂直居中；不随内容滚动。列表右对齐，选中项用「背景反色」：
+   黑底白字（= 页面纸/墨的反色）。链接是锚点，html 已 scroll-behavior: smooth，
+   点一下就平滑滚到对应区块。高亮逻辑在 site.js */
+.side-nav {
+  position: fixed;
+  top: 50%;
+  right: 24px;
+  transform: translateY(-50%);
+  z-index: 50;
+}
+.side-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* 右对齐：列表项收成内容宽、贴右排，选中黑块也只裹住字 */
+  gap: 14px;
+}
+.side-nav-item {
+  display: block;
+  /* 与 iPod 屏内那排滚动菜单（.daily-tag）同款字体：Podium Sans → Adobe Caslon Pro →
+     近似衬线兜底。两款都是商用字体，没放授权 woff2 时浏览器会回退到 Caslon/Georgia 一系，
+     导航与 iPod 走同一条回退链，所以观感一致 */
+  font-family: var(--font-nav);
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--gray-4);
+  text-decoration: none;
+  transition: color 0.35s ease;
+}
+.side-nav-item:not(.is-active):hover {
+  color: var(--gray-6);
+}
+/* 选中：不加任何背景块，字位置与未选中完全一致、右对齐也不动。
+   daily / pub 选中＝黑字；其余（archive / museum / end）选中＝白字 */
+.side-nav-item.is-active {
+  color: var(--white);
+}
+.side-nav-item[href="#daily"].is-active,
+.side-nav-item[href="#latest"].is-active {
+  color: var(--black);
+}
+
+/* 窄屏：正文会顶到右边，导航与内容重叠——收起。判定线 1120px 取在
+   内容（960 居中 + 左右内边距）与导航（右侧 24px + 自身宽）之间留有余量的位置 */
+@media (max-width: 1120px) {
+  .side-nav {
+    display: none;
+  }
+}
+
+/* Museum：新增板块，尚未策划——仅占位，内容待定。
+   背景用 museum.jpeg；去掉 .section 的版心 max-width 限制，让图铺满整个视口宽度
+   （cover 随宽度自适应裁切，不再被 960 栏卡成一条）。min-height 保证短内容也露出一片图 */
+.museum {
+  position: relative;
+  z-index: 3;
+  max-width: none; /* 突破 .section 的 max-width: var(--page-w)，全宽背景 */
+  /* 背景全宽，但内容收进 .museum-inner 的居中栏，与档案馆标题同一条左对齐线 */
+  padding: 120px 0; /* 横向留白交给 .museum-inner，这里只留上下 */
+  /* 与上方档案馆之间的分隔细线：纯白，2px */
+  border-top: 2px solid var(--white);
+  /* 仅底部向黑色渐变（顶端不再压黑、也不要模糊）：68% 起由透明过渡到实心黑 */
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0) 68%,
+      #000 100%
+    ),
+    url('/img/museum.jpeg') center / cover no-repeat;
+  min-height: 60vh;
+}
+/* 内容居中栏：与 .archive-head / .archive-inner 完全一致的 max-width / margin / padding，
+   于是美术馆标题与档案馆标题落在同一条左右对齐线上 */
+.museum-inner {
+  max-width: var(--page-w);
+  margin: 0 auto;
+  padding: 0 48px;
+}
+/* 标题（美术馆）与小标（Museum）在照片上改白色，保证可读；仅改色，不动字号/间距 */
+.museum .section-label,
+.museum .section-title {
+  color: var(--white);
+}
+.museum-coming {
+  font-family: var(--font-body);
+  font-size: 16px;
+  color: var(--gray-4);
 }
 
 /* ---------- Daily：每日推荐（左右栏，标题规范参照档案馆）---------- */
@@ -618,7 +835,7 @@ body {
   /* 三栏字体按用户指定用 Podium Sans；它装不上时回退到上一版指定的 Adobe Caslon Pro，
      再往后才是近似衬线兜底——不要把回退链整条换掉，否则等于把上一版的字体丢掉。
      两款都是商用字体：要让所有访客都看到，需把授权 woff2 放进 public/fonts 并补 @font-face */
-  font-family: 'Podium Sans', 'PodiumSans', 'Podium Sans Web', 'Adobe Caslon Pro', 'Adobe Caslon', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', var(--font-title), serif;
+  font-family: var(--font-nav);
   font-size: 18px;
   color: var(--gray-4);
   text-decoration: none;
@@ -689,6 +906,21 @@ body {
 
 .daily-body.is-poem > p + p {
   margin-top: 1.3em;
+}
+
+/* 当天的配图：由脚本挂在歌词下面（右栏是脚本生成的，模板里没有这一块）。
+   灰度算式与首图、留言照片流同一条（grayscale(100%) contrast(1.05)），
+   所以仓库里放彩色原图也不会跳出全站的黑白画廊观感。
+   尺寸只给上限、不写死宽高：原图是 731×1093 的竖幅，按栏宽铺满会顶出一大屏，
+   max-height 兜住高度、比例交给浏览器按原图算（CSS 会同时满足 max-width / max-height 而不拉伸），
+   min(380px, 100%) 让窄屏时还能再缩，不会横向溢出 */
+.daily-figure {
+  display: block;
+  width: auto;
+  max-width: min(380px, 100%);
+  max-height: 520px;
+  margin-top: 24px;
+  filter: grayscale(100%) contrast(1.05);
 }
 
 /* 窄屏放不下并排：机器居中、不再浮动，正文跟着占满整栏。
@@ -914,6 +1146,8 @@ body {
   max-width: none;
   padding-left: 0;
   padding-right: 0;
+  /* 与上方 pub（最新文章）之间的分隔线：浅一丢丢的灰 + 90% 不透明度（10% 透明），2px */
+  border-top: 2px solid rgba(119, 119, 119, 0.85);
 }
 
 /* 档案馆照片层：黑白常显；提高对比与压暗，让灰阶更沉。
@@ -987,7 +1221,7 @@ body {
 }
 
 .archive-random a {
-  font-family: var(--font-body);
+  font-family: var(--font-nav); /* 与右侧导航同一套拉丁字体 */
   font-size: 11px;
   letter-spacing: 2px;
   color: rgba(255, 255, 255, 0.62);
@@ -1832,6 +2066,12 @@ body.cursor-hidden * {
 
 :is(a, .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit):hover .jitter-char {
   animation: char-jitter 0.6s linear infinite;
+}
+
+/* 右侧章节导航不参与逐字抖动：英文小标是静态排版，抖起来反而干扰阅读；
+   上面的 JS 拆字选择器也已把 .side-nav-item 排除，这里再兜一层保险 */
+.side-nav:hover .jitter-char {
+  animation: none;
 }
 
 :is(a, .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit):hover .jitter-char:nth-child(2n) {
