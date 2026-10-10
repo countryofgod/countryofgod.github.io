@@ -407,6 +407,9 @@ body {
 #latest {
   position: relative;
   z-index: 3;
+  /* pub（最新文章）末尾比常规多出一倍留白（120px → 240px），
+     与下方档案馆之间拉开更明显的呼吸位，再接 archive */
+  padding-bottom: 240px;
 }
 
 /* 版块标题：只放宽字距，保持左对齐——用户明确否掉了档案馆这一处的居中。
@@ -563,6 +566,21 @@ body {
 .museum-viewport:active {
   cursor: grabbing;
 }
+/* 离散翻页层：脚本把 translateX 写在这一层（箭头 / 圆点 / 拖拽）。
+   过渡挂在这里而不是轨道上——轨道那份 transform 被下面的漂移动画占着，
+   两者写在同一个元素上会互相覆盖 */
+.museum-shift {
+  will-change: transform;
+  transition: transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+/* 自动漂移：整条轨道匀速向右平移【一个循环】。
+   --drift-dist / --drift-dur 由 site.js 量出真实的一套作品宽度后写到 .museum-strip 上
+   （dist = 一个循环的像素宽，dur = dist ÷ 速度），这样速度恒定、与窗口宽窄无关。
+   内容每 cycle 像素重复一次，所以动画从 +cycle 跳回 0 的那一瞬画面逐像素相同，接缝看不见 */
+@keyframes museum-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(var(--drift-dist, 0px)); }
+}
 .museum-track {
   display: flex;
   gap: 24px;
@@ -570,7 +588,14 @@ body {
      "高低交替"就没了。flex-start 让每张卡按自己的高度、顶部对齐 */
   align-items: flex-start;
   will-change: transform;
-  transition: transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  animation: museum-drift var(--drift-dur, 80s) linear infinite;
+}
+/* 悬停＝暂停漂移 + 卡片放大（放大仍走 .museum-card:hover）。
+   只认视口区域：底部圆点／箭头在 .museum-strip-foot 里，不在 .museum-viewport 内，
+   鼠标挪到控件上不会把漂移也停掉 */
+.museum-viewport:hover .museum-track,
+.museum-strip.is-dragging .museum-track {
+  animation-play-state: paused;
 }
 
 /* ---------- 卡片 ---------- */
@@ -689,9 +714,12 @@ body {
 }
 
 /* ---------- 响应式 ---------- */
-/* 尊重系统「减少动态效果」：轨道的位移过渡关掉，直接就位 */
+/* 尊重系统「减少动态效果」：漂移停掉、离散翻页的过渡也关掉，直接就位 */
 @media (prefers-reduced-motion: reduce) {
   .museum-track {
+    animation: none;
+  }
+  .museum-shift {
     transition: none;
   }
 }
@@ -1107,7 +1135,8 @@ body {
   break-inside: avoid;
 }
 
-.daily-body.is-poem > p + p {
+/* 有空行分段时，节与节之间留间距；按行拆（daily-poem-line）则不加，避免每行都空一行 */
+.daily-body.is-poem > .daily-stanza + .daily-stanza {
   margin-top: 1.3em;
 }
 
@@ -1519,9 +1548,11 @@ body {
   transition: max-height 0.6s ease;
 }
 
-/* 展开：悬停意图的"等一小会"交给 JS 计时器（可被离开取消）；时长与收起看齐，收放同速 */
+/* 展开：悬停意图的"等一小会"交给 JS 计时器（可被离开取消）；时长与收起看齐，收放同速。
+   上限给到很大，避免月份多 / 窄屏时把月份网格裁掉（裁掉会显得"没展开"）。
+   元素实际高度仍是内容高度，只是 max-height 不成为瓶颈 */
 .archive-group.open .archive-items {
-  max-height: 900px;
+  max-height: 4000px;
   transition: max-height 0.6s ease;
 }
 
@@ -2552,11 +2583,11 @@ body.cursor-hidden * {
             <div class="archive-month"><span class="month-num">07</span><div class="month-posts"></div></div>
             <div class="archive-month"><span class="month-num">08</span><div class="month-posts"></div></div>
             <div class="archive-month"><span class="month-num">09</span><div class="month-posts"></div></div>
-            <div class="archive-month has-posts"><span class="month-num">10</span><div class="month-posts"><a href="/p/chuangkanhao" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a></div></div>
+            <div class="archive-month has-posts"><span class="month-num">10</span><div class="month-posts"><a href="https://gods-country.countryofgod.workers.dev/p/chuangkanhao" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a></div></div>
             <div class="archive-month"><span class="month-num">11</span><div class="month-posts"></div></div>
             <div class="archive-month"><span class="month-num">12</span><div class="month-posts"></div></div>
           </div>
-          <div class="month-posts-panel" data-month=""><a href="/p/chuangkanhao" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a></div>
+          <div class="month-posts-panel" data-month=""><a href="https://gods-country.countryofgod.workers.dev/p/chuangkanhao" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a></div>
         </div>
       </div>
     </div>
@@ -2576,6 +2607,11 @@ body.cursor-hidden * {
          标题仍在上方 960 版心里 -->
     <div class="museum-strip" data-museum-strip tabindex="0" role="group" aria-label="美术馆作品横滑胶片">
       <div class="museum-viewport" data-museum-viewport>
+        <!-- 两层位移：.museum-shift 由脚本写 translateX（箭头/圆点/拖拽的离散翻页），
+             .museum-track 只有一条匀速漂移的 CSS 动画（自动缓慢右移）。
+             分成两层是因为二者要同时存在：动画会独占 transform 属性，
+             跟脚本写的 transform 抢同一个属性会互相覆盖 -->
+        <div class="museum-shift" data-museum-shift>
         <div class="museum-track" data-museum-track>
 
           <article class="museum-card">
@@ -2619,6 +2655,7 @@ body.cursor-hidden * {
           </article>
 
         </div>
+        </div>
       </div>
       <div class="museum-strip-foot">
         <div class="museum-dots" data-museum-dots></div>
@@ -2628,6 +2665,10 @@ body.cursor-hidden * {
         </div>
       </div>
     </div>
+    <!-- 中部偏右的纵向留白带：把 .museum 那面墙原样重绘成一条 48px 竖条（位置见 CSS 的 .museum-gap），
+         盖在胶片之上。作品漂到这里就被"藏掉"，视觉上跳过这一段。
+         它是 .museum 的绝对定位子元素而不是轨道的子元素——所以永远不动，只让作品从底下过 -->
+    <span class="museum-gap" aria-hidden="true"></span>
   </section>
 
   <!-- Footer -->
