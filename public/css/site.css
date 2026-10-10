@@ -718,17 +718,21 @@ body {
   overflow: hidden;
   color: var(--white);
 }
-/* 默认（未悬停展品）：展览批次。
-   英文 SYLVAPPLE 用美术馆英文小标同款（Founders Grotesk）；中文「的艺术会」用展品标题同款（--font-sans）。
-   不加任何提示语，直接写 */
+/* 默认（未悬停展品）：展览批次。与右侧章节导航同一套竖排（vertical-rl），
+   两条竖列——第一行 SYLVAPPLE、第二行 艺术会；不加任何提示语。
+   字体分工：英文用导航同款，中文仍用展品标题同款 */
+.museum-intro-batch {
+  writing-mode: vertical-rl;
+}
 .museum-intro-batch-en {
-  font-family: 'Founders Grotesk', 'Helvetica Neue', Arial, sans-serif;
-  font-size: 24px;
-  letter-spacing: 0.5px; /* 与美术馆英文小标 Museum（.section-label）同一字距 */
-  text-transform: uppercase;
+  display: block;
+  font-family: var(--font-nav); /* 与侧边章节导航同款字体 */
+  font-size: 18px; /* 导航 15px，按仓库「1px 一档」的口径调大 3 号 */
+  letter-spacing: 1px; /* 与导航同一字距 */
 }
 .museum-intro-batch-zh {
-  font-family: var(--font-sans);
+  display: block;
+  font-family: var(--font-sans); /* 展品标题同款 */
   font-size: 30px;
   letter-spacing: 2px;
   line-height: 1.2;
