@@ -554,27 +554,6 @@ body {
   touch-action: pan-y;
   user-select: none;
   cursor: grab;
-  /* 中部偏右的纵向留白带：定在 68% 处、宽 = 半张展品卡（--card-w 由 .museum-strip 继承下来，
-     所以窄屏把卡片改成 62vw 时，这条留白也跟着一起变）。
-     做法不是盖一块色，而是把视口"挖掉"这一条：被挖掉的地方自然露出 .museum 那面墙，
-     露出的就是同一张底图，所以与左右两侧的墙面纹理天然对齐，不存在接缝。
-     挖空靠一条三段硬停的遮罩渐变（不透明 → 透明 → 不透明）实现。
-     遮罩挂在视口上——挖空的高度因此正好等于胶片高度，不会伸到底部圆点／箭头那一行
-     （那两个在 .museum-strip-foot 里，不在视口内）。
-     另外遮罩不影响命中测试：留白范围内照样能拖拽胶片、照样悬停暂停漂移 */
-  --gap-w: calc(var(--card-w) / 2);
-  -webkit-mask-image: linear-gradient(
-    to right,
-    #000 0 68%,
-    transparent 68% calc(68% + var(--gap-w)),
-    #000 calc(68% + var(--gap-w)) 100%
-  );
-  mask-image: linear-gradient(
-    to right,
-    #000 0 68%,
-    transparent 68% calc(68% + var(--gap-w)),
-    #000 calc(68% + var(--gap-w)) 100%
-  );
 }
 .museum-viewport:active {
   cursor: grabbing;
@@ -1561,9 +1540,11 @@ body {
   transition: max-height 0.6s ease;
 }
 
-/* 展开：悬停意图的"等一小会"交给 JS 计时器（可被离开取消）；时长与收起看齐，收放同速 */
+/* 展开：悬停意图的"等一小会"交给 JS 计时器（可被离开取消）；时长与收起看齐，收放同速。
+   上限给到很大，避免月份多 / 窄屏时把月份网格裁掉（裁掉会显得"没展开"）。
+   元素实际高度仍是内容高度，只是 max-height 不成为瓶颈 */
 .archive-group.open .archive-items {
-  max-height: 900px;
+  max-height: 4000px;
   transition: max-height 0.6s ease;
 }
 
