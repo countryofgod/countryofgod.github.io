@@ -721,6 +721,12 @@ if (sideNav) {
     for (const t of navTargets) {
       if (t.el.getBoundingClientRect().top + window.scrollY <= line) activeId = t.id;
     }
+    // 触底一定要点亮最后一项（end）：页脚若比半屏还矮，它的顶边永远越不过中线，
+    // 光靠上面的"中线判定"就会出现"滑到底了却还停在 museum"的情况。
+    // 2px 是滚动位置在小数/缩放下的容差
+    const atBottom =
+      window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+    if (atBottom && navTargets.length) activeId = navTargets[navTargets.length - 1].id;
     navLinks.forEach((a) => {
       a.classList.toggle('is-active', a.getAttribute('href').slice(1) === activeId);
     });
