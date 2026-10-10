@@ -501,6 +501,13 @@ body {
   /* 与上方档案馆之间的分隔细线：纯白，2px */
   border-top: 2px solid var(--white);
   /* 仅底部向黑色渐变（顶端不再压黑、也不要模糊）：68% 起由透明过渡到实心黑 */
+  /* 上下两层背景图：museum_upper.png（上层）压在 museum.jpeg（下层）之上。
+     两张原图尺寸完全相同（1792×1258），且都写在同一个盒子（.museum）上、
+     用同一套 center / cover no-repeat 定位，浏览器会按完全相同的方式
+     缩放与摆位，因此两层逐像素完全重合。
+     这正是"完全重合"的关键：必须放在同一元素的 background 多层里。
+     若把上层单独做成子元素/伪元素并给它不同高度的盒子，cover 会按各自盒子
+     重新裁切，两张图就对不齐了（之前的 50% 高度写法即是错在这里）。 */
   background:
     linear-gradient(
       to bottom,
@@ -508,28 +515,10 @@ body {
       rgba(0, 0, 0, 0) 68%,
       #000 100%
     ),
+    url('/img/museum_upper.png') center / cover no-repeat,
     url('/img/museum.jpeg') center / cover no-repeat;
 }
 
-/* 美术馆顶部背景图（museum_upper.png）：
-   配置与 .museum 自己的背景（museum.jpeg）同款 —— center / cover no-repeat。
-   位置在版块顶部，也就是展品（.museum-strip 轨道）的上方。
-   用 z-index: -1 当背景层：.museum 有 z-index: 3 + position: relative，
-   本身就是层叠上下文，负 z 的子层画在 .museum 自己的背景之上、
-   又在标题正文与展品之下（负 z 属于第 2 步，正文/展品在其后），所以是"背景"而非遮挡。
-   pointer-events: none —— 该图层不可点击，不拦截轨道的拖拽与卡片交互 */
-.museum::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  /* 顶部区域：占据版块上半部分，落在展品上方 */
-  height: 50%;
-  background: url('/img/museum_upper.png') center / cover no-repeat;
-  pointer-events: none;
-  z-index: -1;
-}
 
 /* 标题栏：要和档案馆标题落在同一条左对齐线上。
    那条线是 48 而不是 96——.archive 本身是全宽的（.archive 里写了
