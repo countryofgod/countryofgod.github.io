@@ -632,13 +632,14 @@ body {
 /* ---------- 卡片 ---------- */
 /* flex: 0 0 auto 阻止 flex 默认的 shrink：不写这个的话，
    多张卡加起来远超视口宽时会被自动压窄，"宽度一致"就失效了。
-   高度只有 54vh（高）与 38vh（矮）两种，由模板给的 --short 类交替。
+   高度只有 46vh（高）与 38vh（矮）两种，由模板给的 --short 类交替。
+   高的那档比矮的高出的部分已减半：原先 54-38=16vh，现在 46-38=8vh。
    刻意不用 :nth-child(even)：作品数是奇数时，克隆出来的第二、三套奇偶会整体翻转，
    同一张图在接缝两侧一高一矮，循环绕回时高度会跳；类跟着节点被 cloneNode 复制，天然一致 */
 .museum-card {
   flex: 0 0 auto;
   width: var(--card-w);
-  height: 54vh;
+  height: 46vh;
   display: flex;
   flex-direction: column;
   margin: 0;
@@ -691,6 +692,82 @@ body {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.6);
   margin: 6px 0 0;
+}
+
+/* ---------- 舞台：左 75% 胶片，右 25% 介绍 ---------- */
+/* 右侧 25% 不挂展品、专做展览介绍：胶片只占左 75%，介绍区是它右侧的并列 flex 项。
+   介绍区默认显示当前展览批次（悬停展品时切换成该件作品的介绍，见 site.js）。
+   背景复用美术馆那面墙 museum.jpeg，再压一层暗色 scrim 保证白字可读 */
+.museum-stage {
+  display: flex;
+  align-items: stretch;
+}
+.museum-stage > .museum-viewport {
+  flex: 1 1 75%;
+  min-width: 0; /* 容纳 flex 子项的轨道，避免被内容撑破 75% 上限 */
+}
+.museum-intro {
+  position: relative;
+  flex: 0 0 25%;
+  align-self: stretch;
+  padding: 48px 40px;
+  overflow: hidden;
+  background: url('/public/img/museum.jpeg') center / cover no-repeat;
+  color: var(--white);
+}
+/* 暗色 scrim：与 .museum 底部向黑渐变同一思路，给文字垫底 */
+.museum-intro::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.72));
+  pointer-events: none;
+}
+.museum-intro > * {
+  position: relative;
+}
+/* 默认（未悬停展品）：展览批次。
+   英文 SYLVAPPLE 用美术馆英文小标同款（Founders Grotesk）；中文「的艺术会」用展品标题同款（--font-sans）。
+   不加任何提示语，直接写 */
+.museum-intro-batch-en {
+  display: block;
+  font-family: 'Founders Grotesk', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 13px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+.museum-intro-batch-zh {
+  display: block;
+  margin-top: 10px;
+  font-family: var(--font-sans);
+  font-size: 30px;
+  letter-spacing: 2px;
+  line-height: 1.2;
+}
+/* 悬停展品：该件作品的介绍。标题用展品标题同款，正文先以「暂无」占位 */
+.museum-intro-detail {
+  display: none;
+}
+.museum-intro.is-detail .museum-intro-batch {
+  display: none;
+}
+.museum-intro.is-detail .museum-intro-detail {
+  display: block;
+}
+.museum-intro-title {
+  margin: 0 0 14px;
+  font-family: var(--font-sans);
+  font-size: 24px;
+  letter-spacing: 1px;
+  line-height: 1.3;
+  color: var(--white);
+}
+.museum-intro-body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.78);
 }
 
 /* ---------- 底部控件 ---------- */
@@ -768,10 +845,21 @@ body {
     --card-w: 62vw;
   }
   .museum-card {
-    height: 44vh;
+    height: 38vh;
   }
   .museum-card--short {
     height: 32vh;
+  }
+  /* 窄屏：介绍区挪到胶片下方、占满整宽，不再挤在右侧 30% */
+  .museum-stage {
+    flex-direction: column;
+  }
+  .museum-stage > .museum-viewport {
+    flex-basis: auto;
+  }
+  .museum-intro {
+    flex-basis: auto;
+    padding: 32px 24px;
   }
 }
 
@@ -2634,9 +2722,10 @@ body.cursor-hidden * {
       <h2 class="section-title">美术馆</h2>
     </div>
 
-    <!-- 轨道独立于 .museum-inner，铺满视口宽度；
-         标题仍在上方 960 版心里 -->
+    <!-- 轨道独立于 .museum-inner，铺满 .museum-stage 的左 75% 宽度；
+         标题仍在上方 960 版心里；右 25% 是展览介绍区 -->
     <div class="museum-strip" data-museum-strip tabindex="0" role="group" aria-label="美术馆作品横滑胶片">
+      <div class="museum-stage">
       <div class="museum-viewport" data-museum-viewport>
         <!-- 两层位移：.museum-shift 由脚本写 translateX（箭头/圆点/拖拽的离散翻页），
              .museum-track 只有一条匀速漂移的 CSS 动画（自动缓慢右移）。
@@ -2688,6 +2777,16 @@ body.cursor-hidden * {
         </div>
         </div>
       </div>
+      <aside class="museum-intro" data-museum-intro aria-live="polite">
+        <div class="museum-intro-batch" data-museum-batch>
+          <span class="museum-intro-batch-en">SYLVAPPLE</span><span class="museum-intro-batch-zh">的艺术会</span>
+        </div>
+        <div class="museum-intro-detail" data-museum-detail>
+          <p class="museum-intro-title" data-museum-detail-title></p>
+          <p class="museum-intro-body" data-museum-detail-body>暂无</p>
+        </div>
+      </aside>
+      </div>
       <div class="museum-strip-foot">
         <div class="museum-dots" data-museum-dots></div>
         <div class="museum-arrows">
@@ -2696,10 +2795,6 @@ body.cursor-hidden * {
         </div>
       </div>
     </div>
-    <!-- 中部偏右的纵向留白带：把 .museum 那面墙原样重绘成一条 48px 竖条（位置见 CSS 的 .museum-gap），
-         盖在胶片之上。作品漂到这里就被"藏掉"，视觉上跳过这一段。
-         它是 .museum 的绝对定位子元素而不是轨道的子元素——所以永远不动，只让作品从底下过 -->
-    <span class="museum-gap" aria-hidden="true"></span>
   </section>
 
   <!-- Footer -->

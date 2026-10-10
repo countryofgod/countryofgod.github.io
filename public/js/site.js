@@ -1171,6 +1171,24 @@ document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
   // 此刻轨道上共 3 套：[0,SET) 前置 | [SET,2SET) 原件 | [2SET,3SET) 后置
   const cards = Array.from(track.children);
 
+  // 右侧 30% 介绍区：未悬停展品时显示当前展览批次（HTML 里写死），
+  // 悬停某件展品时切到该件作品的介绍（标题取自卡片，正文先以「暂无」占位）。
+  // 用 mouseenter / mouseleave（不冒泡）逐卡绑定：克隆体也在 cards 里，一并生效。
+  const intro = strip.querySelector('[data-museum-intro]');
+  const detailTitle = strip.querySelector('[data-museum-detail-title]');
+  if (intro) {
+    const showBatch = () => intro.classList.remove('is-detail');
+    const showDetail = (card) => {
+      const t = card.querySelector('.museum-card-title');
+      if (detailTitle) detailTitle.textContent = t ? t.textContent : '';
+      intro.classList.add('is-detail');
+    };
+    cards.forEach((card) => {
+      card.addEventListener('mouseenter', () => showDetail(card));
+      card.addEventListener('mouseleave', showBatch);
+    });
+  }
+
   // v 是"虚拟索引"，指向 3 套里的某一张。平时被收敛在中间那套（v ∈ [SET, 2*SET)），
   // 一旦滑出这个范围就整体挪回一个循环（见 normalize）——
   // 两端内容逐张相同，所以这一挪画面完全不变，看不出接缝。
