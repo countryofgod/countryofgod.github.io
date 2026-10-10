@@ -1652,7 +1652,15 @@ body {
   padding: 0 32px;
   border: 0 solid var(--gray-3);
   border-top: none;
-  background: var(--black);
+  /* 背景不再是实心黑：改成"透出档案馆照片 + 高斯模糊"。
+     backdrop-filter 只模糊元素**背后**的画面，且天然被裁在元素自己的盒子里，
+     所以模糊只发生在列表框内这一块，不会糊到框外（正是要的效果）。
+     底下压一层半透明黑（scrim）：照片本身偏亮（压了 18% 白纱），
+     不压暗的话白字读不出来；0.5 既能透出照片又留得住对比。
+     -webkit- 前缀给 Safari */
+  background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   transition: max-height 0.38s ease, opacity 0.3s ease,
               padding 0.38s ease, border-width 0.38s ease;
 }
