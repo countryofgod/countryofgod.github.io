@@ -343,9 +343,10 @@ function renderHome({ articles, archive, notes, submitMail }) {
       <h2 class="section-title">美术馆</h2>
     </div>
 
-    <!-- 轨道独立于 .museum-inner，铺满视口宽度；
-         标题仍在上方 960 版心里 -->
+    <!-- 轨道独立于 .museum-inner，铺满 .museum-stage 的左 75% 宽度；
+         标题仍在上方 960 版心里；右 25% 是展览介绍区 -->
     <div class="museum-strip" data-museum-strip tabindex="0" role="group" aria-label="美术馆作品横滑胶片">
+      <div class="museum-stage">
       <div class="museum-viewport" data-museum-viewport>
         <!-- 两层位移：.museum-shift 由脚本写 translateX（箭头/圆点/拖拽的离散翻页），
              .museum-track 只有一条匀速漂移的 CSS 动画（自动缓慢右移）。
@@ -379,6 +380,7 @@ function renderHome({ articles, archive, notes, submitMail }) {
         </div>
         </div>
       </div>
+      </div>
       <div class="museum-strip-foot">
         <div class="museum-dots" data-museum-dots></div>
         <div class="museum-arrows">
@@ -387,6 +389,15 @@ function renderHome({ articles, archive, notes, submitMail }) {
         </div>
       </div>
     </div>
+    <aside class="museum-intro" data-museum-intro aria-live="polite">
+      <div class="museum-intro-batch" data-museum-batch>
+        <span class="museum-intro-batch-en">SYLVAPPLE</span><span class="museum-intro-batch-zh">的艺术会</span>
+      </div>
+      <div class="museum-intro-detail" data-museum-detail>
+        <p class="museum-intro-title" data-museum-detail-title></p>
+        <p class="museum-intro-body" data-museum-detail-body>暂无</p>
+      </div>
+    </aside>
   </section>
 
   <!-- Footer -->

@@ -688,37 +688,31 @@ body {
   margin: 6px 0 0;
 }
 
-/* ---------- 舞台：左 75% 胶片，右 25% 介绍 ---------- */
-/* 右侧 25% 不挂展品、专做展览介绍：胶片只占左 75%，介绍区是它右侧的并列 flex 项。
-   介绍区默认显示当前展览批次（悬停展品时切换成该件作品的介绍，见 site.js）。
-   背景复用美术馆那面墙 museum.jpeg，再压一层暗色 scrim 保证白字可读 */
+/* ---------- 胶片占左 75%，右侧 25% 是介绍栏 ---------- */
+/* 胶片只占左 75%（右侧 25% 不挂展品）；介绍栏是 .museum 的绝对定位子元素，
+   top:0 / bottom:0 让它从上到下贯穿整个美术馆区块。
+   介绍栏没有独立壁纸：不设 background，露出 .museum 那面墙本身。
+   介绍区默认显示当前展览批次（悬停展品时切换成该件作品的介绍，见 site.js） */
 .museum-stage {
   display: flex;
   align-items: stretch;
 }
 .museum-stage > .museum-viewport {
-  flex: 1 1 75%;
+  flex: 0 0 75%;
   min-width: 0; /* 容纳 flex 子项的轨道，避免被内容撑破 75% 上限 */
 }
+/* z-index: 2 压在 .museum::after（上层覆盖图，z-index: 1）之上，才不会被它糊住。
+   padding-top 由 site.js 量出「美术馆」标题所在高度后写入，文字因此从标题那一行开始 */
 .museum-intro {
-  position: relative;
-  flex: 0 0 25%;
-  align-self: stretch;
-  padding: 48px 40px;
-  overflow: hidden;
-  background: url('/img/museum.jpeg') center / cover no-repeat;
-  color: var(--white);
-}
-/* 暗色 scrim：与 .museum 底部向黑渐变同一思路，给文字垫底 */
-.museum-intro::before {
-  content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.72));
-  pointer-events: none;
-}
-.museum-intro > * {
-  position: relative;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 25%;
+  z-index: 2;
+  padding: 0 40px;
+  overflow: hidden;
+  color: var(--white);
 }
 /* 默认（未悬停展品）：展览批次。
    英文 SYLVAPPLE 用美术馆英文小标同款（Founders Grotesk）；中文「的艺术会」用展品标题同款（--font-sans）。
@@ -844,7 +838,7 @@ body {
   .museum-card--short {
     height: 32vh;
   }
-  /* 窄屏：介绍区挪到胶片下方、占满整宽，不再挤在右侧 25% */
+  /* 窄屏：介绍栏回到文档流、整宽铺在胶片下方，不再绝对定位在右侧 25% */
   .museum-stage {
     flex-direction: column;
   }
@@ -852,7 +846,8 @@ body {
     flex-basis: auto;
   }
   .museum-intro {
-    flex-basis: auto;
+    position: static;
+    width: auto;
     padding: 32px 24px;
   }
 }

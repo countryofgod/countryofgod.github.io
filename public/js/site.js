@@ -1171,11 +1171,13 @@ document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
   // 此刻轨道上共 3 套：[0,SET) 前置 | [SET,2SET) 原件 | [2SET,3SET) 后置
   const cards = Array.from(track.children);
 
-  // 右侧 30% 介绍区：未悬停展品时显示当前展览批次（HTML 里写死），
+  // 右侧 25% 介绍栏：未悬停展品时显示当前展览批次（HTML 里写死），
   // 悬停某件展品时切到该件作品的介绍（标题取自卡片，正文先以「暂无」占位）。
   // 用 mouseenter / mouseleave（不冒泡）逐卡绑定：克隆体也在 cards 里，一并生效。
-  const intro = strip.querySelector('[data-museum-intro]');
-  const detailTitle = strip.querySelector('[data-museum-detail-title]');
+  // 介绍栏是 .museum 的直接子元素（不在 strip 里），所以从 section 上找。
+  const museum = strip.closest('.museum');
+  const intro = museum ? museum.querySelector('[data-museum-intro]') : null;
+  const detailTitle = intro ? intro.querySelector('[data-museum-detail-title]') : null;
   if (intro) {
     const showBatch = () => intro.classList.remove('is-detail');
     const showDetail = (card) => {
@@ -1183,10 +1185,33 @@ document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
       if (detailTitle) detailTitle.textContent = t ? t.textContent : '';
       intro.classList.add('is-detail');
     };
+    // 卡片上只挂 mouseenter：走到两张展品之间的空隙时不触发任何切换，
+    // 右侧文字保持刚才那一件，不会闪回展览批次。
+    // 只有整条胶片区域（viewport）都离开时才回到批次。
     cards.forEach((card) => {
       card.addEventListener('mouseenter', () => showDetail(card));
-      card.addEventListener('mouseleave', showBatch);
     });
+    viewport.addEventListener('mouseleave', showBatch);
+
+    // 文字从「美术馆」那三个字的高度开始：量出标题相对 .museum 上边缘的距离，
+    // 写成介绍栏的 padding-top。不能直接写死像素——.museum 是 flex 列 + 垂直居中，
+    // 内容不满一屏时整组会往下挪，标题的实际高度随窗口变化。
+    const introAnchor = museum.querySelector('.museum-inner .section-title');
+    const alignIntro = () => {
+      if (!introAnchor) return;
+      // 窄屏下介绍栏回到文档流（position: static），清掉内联值、把间距交回 CSS
+      if (window.matchMedia('(max-width: 768px)').matches) {
+        intro.style.paddingTop = '';
+        return;
+      }
+      const bt = parseFloat(getComputedStyle(museum).borderTopWidth) || 0;
+      const top = introAnchor.getBoundingClientRect().top - museum.getBoundingClientRect().top - bt;
+      intro.style.paddingTop = Math.max(0, Math.round(top)) + 'px';
+    };
+    alignIntro();
+    // 字体是异步加载的，落地后行高会变，再对一次
+    window.addEventListener('load', alignIntro);
+    window.addEventListener('resize', alignIntro);
   }
 
   // v 是"虚拟索引"，指向 3 套里的某一张。平时被收敛在中间那套（v ∈ [SET, 2*SET)），
