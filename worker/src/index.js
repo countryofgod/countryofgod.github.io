@@ -504,9 +504,16 @@ export default {
       }
     }
 
-    // 其余交给静态资源（css / js / img / fonts）；取不到再 404
-    const asset = await env.ASSETS.fetch(request);
-    if (asset && asset.status !== 404) return asset;
+    // 其余交给静态资源（css / js / img / fonts）；取不到再 404。
+    // env.ASSETS 未必存在：配置里的 assets 只让平台直接下发静态文件，
+    // 并不保证给 Worker 注入 ASSETS 绑定（线上实测没有）。
+    // 原先直接写 env.ASSETS.fetch(request)，绑定缺失时就抛异常，
+    // 于是任何没匹配到路由的路径都变成 Cloudflare 的 500「服务器错误」页。
+    // 这里先判一下：拿不到静态资源就正常回 404，不再抛成服务器错误。
+    if (env.ASSETS) {
+      const asset = await env.ASSETS.fetch(request);
+      if (asset && asset.status !== 404) return asset;
+    }
     return new Response('404 页面不存在', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
   },
 };
