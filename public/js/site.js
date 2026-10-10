@@ -1192,26 +1192,6 @@ document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
       card.addEventListener('mouseenter', () => showDetail(card));
     });
     viewport.addEventListener('mouseleave', showBatch);
-
-    // 文字从「美术馆」那三个字的高度开始：量出标题相对 .museum 上边缘的距离，
-    // 写成介绍栏的 padding-top。不能直接写死像素——.museum 是 flex 列 + 垂直居中，
-    // 内容不满一屏时整组会往下挪，标题的实际高度随窗口变化。
-    const introAnchor = museum.querySelector('.museum-inner .section-title');
-    const alignIntro = () => {
-      if (!introAnchor) return;
-      // 窄屏下介绍栏回到文档流（position: static），清掉内联值、把间距交回 CSS
-      if (window.matchMedia('(max-width: 768px)').matches) {
-        intro.style.paddingTop = '';
-        return;
-      }
-      const bt = parseFloat(getComputedStyle(museum).borderTopWidth) || 0;
-      const top = introAnchor.getBoundingClientRect().top - museum.getBoundingClientRect().top - bt;
-      intro.style.paddingTop = Math.max(0, Math.round(top)) + 'px';
-    };
-    alignIntro();
-    // 字体是异步加载的，落地后行高会变，再对一次
-    window.addEventListener('load', alignIntro);
-    window.addEventListener('resize', alignIntro);
   }
 
   // v 是"虚拟索引"，指向 3 套里的某一张。平时被收敛在中间那套（v ∈ [SET, 2*SET)），

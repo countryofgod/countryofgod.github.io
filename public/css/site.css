@@ -706,7 +706,7 @@ body {
   min-width: 0; /* 容纳 flex 子项的轨道，避免被内容撑破 75% 上限 */
 }
 /* z-index: 2 压在 .museum::after（上层覆盖图，z-index: 1）之上，才不会被它糊住。
-   padding-top 由 site.js 量出「美术馆」标题所在高度后写入，文字因此从标题那一行开始 */
+   内容在栏内水平、垂直双向居中 */
 .museum-intro {
   position: absolute;
   top: 0;
@@ -717,18 +717,21 @@ body {
   padding: 0 40px;
   overflow: hidden;
   color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 /* 默认（未悬停展品）：展览批次。与右侧章节导航同一套竖排（vertical-rl），
    两条竖列——第一行 SYLVAPPLE、第二行 艺术会；不加任何提示语。
-   字体分工：英文用导航同款，中文仍用展品标题同款 */
+   字体分工：英文用美术馆英文小标 Museum 同款，中文仍用展品标题同款 */
 .museum-intro-batch {
   writing-mode: vertical-rl;
 }
 .museum-intro-batch-en {
   display: block;
-  font-family: var(--font-nav); /* 与侧边章节导航同款字体 */
-  font-size: 18px; /* 导航 15px，按仓库「1px 一档」的口径调大 3 号 */
-  letter-spacing: 1px; /* 与导航同一字距 */
+  font-family: 'Founders Grotesk', 'Helvetica Neue', Arial, sans-serif; /* 美术馆英文小标 Museum 同款 */
+  font-size: 18px;
+  letter-spacing: 1px;
 }
 .museum-intro-batch-zh {
   display: block;
