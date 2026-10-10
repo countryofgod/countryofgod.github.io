@@ -812,6 +812,9 @@ body {
 /* 圆点和箭头也收在标题那条左右对齐线上（48px 与 .museum-inner 同理）；
    视口铺满全宽，但控件不跟着撒到两边，避免过散 */
 .museum-strip-foot {
+  /* width: 100% 与 .museum-inner 同理：一旦出现 auto 外边距，盒子会退化成"内容那么宽"，
+     圆点就不再压在「美術館」那条左线上了。写死 100% 才与标题共用同一个 960 版心 + 48px */
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
