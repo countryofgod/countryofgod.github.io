@@ -39,11 +39,12 @@ html = html
   .replace(/(src|href)="\/fonts\//g, '$1="/public/fonts/')
   .replace(/(src|href)="\/daily\//g, '$1="/public/daily/');
 
-// 5) 留言图片、/random、文章页都是 Worker 的路由，静态页上没有，指回 Worker
+// 5) 留言图片、/random、文章页、每日单独页都是 Worker 的路由，静态页上没有，指回 Worker
 html = html
   .replace(/(src|href)="\/api\//g, `$1="${BASE}/api/`)
   .replace(/href="\/random"/g, `href="${BASE}/random"`)
-  .replace(/href="\/article\//g, `href="${BASE}/article/`);
+  .replace(/href="\/p\//g, `href="${BASE}/p/`)
+  .replace(/href="\/d\//g, `href="${BASE}/d/`);
 
 // 6) 静态页没有后端：告诉 site.js 把留言接口指回 Worker（跨域 + 带凭据，见 worker/src/index.js 的 CORS 段）
 html = html.replace(

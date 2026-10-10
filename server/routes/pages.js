@@ -59,6 +59,19 @@ router.get('/p/:slug', (req, res, next) => {
   }
 });
 
+/** GET /d/:date/:category —— 每日单独页（文/诗/乐），内容前端拉扁平文件渲染 */
+router.get('/d/:date/:category', (req, res, next) => {
+  try {
+    const { date, category } = req.params;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !['article', 'poem', 'music'].includes(category)) {
+      return res.status(404).type('text/plain; charset=utf-8').send('404 没有这一天');
+    }
+    res.render('daily');
+  } catch (err) {
+    next(err);
+  }
+});
+
 /** GET /random —— 随便一篇。不分时间，任何一年的都可能被翻出来 */
 router.get('/random', (req, res, next) => {
   try {

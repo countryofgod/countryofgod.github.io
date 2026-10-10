@@ -12,7 +12,7 @@
  * 由 npm 生命周期自动触发（predeploy / predev），一般不用手动跑。
  * public/daily/ 是纯生成物，不入库（见 .gitignore）。
  */
-import { cpSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, rmSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -30,4 +30,31 @@ rmSync(dest, { recursive: true, force: true });
 mkdirSync(dest, { recursive: true });
 cpSync(src, dest, { recursive: true });
 
-console.log('daily/ → public/daily/ 已同步');
+// 生成每日清单（public/daily-manifest.json）：把每天的文/诗/乐也并进档案馆网格。
+// Worker 无文件系统，靠 ASSETS 绑定读这份静态 JSON；Node 直接读文件。
+const manifest = [];
+for (const cat of ['article', 'poem', 'music']) {
+  const dir = join(src, cat);
+  if (!existsSync(dir)) continue;
+  for (const name of readdirSync(dir)) {
+    if (!name.endsWith('.txt')) continue;
+    const parts = name.replace(/\.txt$/, '').split('_').map(Number);
+    if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n))) continue;
+    const [y, mo, d] = parts;
+    const iso = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const lines = readFileSync(join(dir, name), 'utf8').split(/\r?\n/);
+    let i = 0;
+    while (i < lines.length && !lines[i].trim()) i++;
+    manifest.push({
+      date: iso,
+      year: y,
+      month: mo,
+      category: cat,
+      title: (lines[i] || '').trim(),
+      href: `/d/${iso}/${cat}`,
+    });
+  }
+}
+manifest.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+writeFileSync(join(root, 'public', 'daily-manifest.json'), JSON.stringify(manifest));
+console.log(`daily/ → public/daily/ 已同步；daily-manifest.json 已生成（${manifest.length} 条）`);

@@ -274,3 +274,66 @@
     font-size: 17px;
   }
 }
+
+/* ---------- 每日单独页 ---------- */
+.page-daily {
+  background: var(--white);
+  color: var(--black);
+  line-height: 1.9;
+}
+
+.sheet-daily {
+  max-width: 680px;
+}
+
+.daily-page-loading,
+.daily-page-err {
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--gray-4);
+  text-align: center;
+  margin-top: 48px;
+}
+
+/* 诗：分节显示，单栏即可（页面比 iPod 屏宽），每节一段 */
+.sheet-body.is-poem .daily-stanza {
+  margin: 0 0 1em;
+}
+
+.sheet-body.is-poem .daily-poem-line {
+  margin: 0 0 0.45em;
+}
+
+.daily-tracklist {
+  list-style: none;
+  margin: 32px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.daily-track-play {
+  font-family: var(--font-title);
+  font-size: 18px;
+  letter-spacing: 1px;
+  color: var(--black);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.35s ease;
+}
+
+.daily-track-play:hover {
+  color: var(--gray-5);
+}
+
+.daily-track-lyrics {
+  margin-top: 10px;
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--gray-6);
+  white-space: pre-line;
+}

@@ -211,6 +211,10 @@ const museumItems = [
         </div>
       </div>
     </div>
+    <!-- 中部偏右的纵向留白带：把 .museum 那面墙原样重绘成一条 48px 竖条（位置见 CSS 的 .museum-gap），
+         盖在胶片之上。作品漂到这里就被"藏掉"，视觉上跳过这一段。
+         它是 .museum 的绝对定位子元素而不是轨道的子元素——所以永远不动，只让作品从底下过 -->
+    <span class="museum-gap" aria-hidden="true"></span>
   </section>
 
   <!-- Footer -->

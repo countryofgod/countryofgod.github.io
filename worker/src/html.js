@@ -14,7 +14,13 @@ function monthPost({ post }) {
   let out = '';
   out += `<a href="`;
   out += esc(post.href);
-  out += `" class="month-post"><span class="month-post-title">`;
+  out += `" class="month-post`;
+  out += esc(post.kind === 'daily' ? ' is-daily' : '');
+  out += `">`;
+  if (post.kind === 'daily') {
+  out += `<span class="month-post-daily">每日</span>`;
+  }
+  out += `<span class="month-post-title">`;
   out += esc(post.title);
   out += `</span><span class="month-post-date">`;
   out += esc(post.date);
@@ -116,6 +122,38 @@ function guestNote({ note }) {
 `;
   }
   out += `              </div>`;
+  return out;
+}
+
+function renderDaily({}) {
+  let out = '';
+  out += `<!DOCTYPE html>
+<html lang="zh-CN"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>每日 · 上帝之国</title>
+  <meta name="description" content="上帝之国 · 每日一文一诗一曲">
+  <!-- 先挂主站样式：配色变量与字体族沿用同一套，不另起视觉语言 -->
+  <link rel="stylesheet" href="/css/site.css">
+  <link rel="stylesheet" href="/css/article.css">
+</head>
+<body class="page-daily">
+  <main class="sheet sheet-daily" id="daily-page">
+    <p class="sheet-top">
+      <a class="sheet-home" href="/">上帝之国</a>
+      <a class="sheet-random" href="/random">next →</a>
+    </p>
+
+    <!-- 内容由 site.js 按 URL 里的日期/分类，前端拉 daily/<分类>/<文件名>.txt 渲染；
+         标题与正文都走 textContent，文件里的尖括号不会被当标签执行 -->
+    <div class="daily-page-body">
+      <p class="daily-page-loading">读取中…</p>
+    </div>
+  </main>
+
+  <script src="/js/site.js"></script>
+</body></html>
+`;
   return out;
 }
 
@@ -287,8 +325,8 @@ function renderHome({ articles, archive, notes, submitMail }) {
 
     <div class="archive-inner">
 `;
-  archive.forEach((group, i) => {
-  out += archiveGroup({ group, open: i === 0 });
+  archive.forEach((group) => {
+  out += archiveGroup({ group, open: group.year === 2026 });
   });
   out += `
     </div>
@@ -894,4 +932,4 @@ function renderAdmin({ authed, loginError, adminPath, articles, archiveEntries, 
   return out;
 }
 
-export { renderHome, renderArticle, renderAdmin, esc };
+export { renderHome, renderArticle, renderAdmin, renderDaily, esc };

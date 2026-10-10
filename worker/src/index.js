@@ -1,4 +1,4 @@
-import { renderHome, renderArticle, renderAdmin } from './html.js';
+import { renderHome, renderArticle, renderAdmin, renderDaily } from './html.js';
 import {
   Invalid,
   Conflict,
@@ -148,6 +148,21 @@ on('GET', '/p/:slug', async (req, env, params) => {
       echoes: await db.listEchoes(env, article.id),
     })
   );
+});
+
+/**
+ * GET /d/:date/:category —— 每日单独页（文/诗/乐）。
+ * 内容仍是仓库扁平文件，由前端按 URL 里的日期、分类去拉 daily/<分类>/<文件名>.txt 渲染；
+ * 这里只给页面壳，标题/正文由前端补。日期须 YYYY-MM-DD、分类须为 article/poem/music。
+ */
+on('GET', '/d/:date/:category', async (req, env, params) => {
+  await db.bootstrap(env);
+  const okDate = /^\d{4}-\d{2}-\d{2}$/.test(params.date);
+  const okCat = ['article', 'poem', 'music'].includes(params.category);
+  if (!okDate || !okCat) {
+    return new Response('404 没有这一天', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+  }
+  return page(renderDaily());
 });
 
 /** GET /random —— 随便一篇。不分时间，任何一年的都可能被翻出来 */

@@ -59,6 +59,7 @@ const parts = [
   compile(read('partials/article-item.ejs'), 'articleItem', '{ article }'),
   compile(read('partials/archive-group.ejs'), 'archiveGroup', '{ group, open }'),
   compile(read('partials/guest-note.ejs'), 'guestNote', '{ note }'),
+  compile(read('daily.ejs'), 'renderDaily', '{}'),
   compile(read('index.ejs'), 'renderHome', '{ articles, archive, notes, submitMail }'),
   compile(read('article.ejs'), 'renderArticle', '{ article, archived, readable, echoes }'),
   compile(
@@ -83,7 +84,7 @@ const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ESCAPES[c]);
 
 ${parts}
-export { renderHome, renderArticle, renderAdmin, esc };
+export { renderHome, renderArticle, renderAdmin, renderDaily, esc };
 `;
 }
 

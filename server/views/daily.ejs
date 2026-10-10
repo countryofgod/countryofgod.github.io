@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>每日 · 上帝之国</title>
+  <meta name="description" content="上帝之国 · 每日一文一诗一曲">
+  <!-- 先挂主站样式：配色变量与字体族沿用同一套，不另起视觉语言 -->
+  <link rel="stylesheet" href="/css/site.css">
+  <link rel="stylesheet" href="/css/article.css">
+</head>
+<body class="page-daily">
+  <main class="sheet sheet-daily" id="daily-page">
+    <p class="sheet-top">
+      <a class="sheet-home" href="/">上帝之国</a>
+      <a class="sheet-random" href="/random">next →</a>
+    </p>
+
+    <!-- 内容由 site.js 按 URL 里的日期/分类，前端拉 daily/<分类>/<文件名>.txt 渲染；
+         标题与正文都走 textContent，文件里的尖括号不会被当标签执行 -->
+    <div class="daily-page-body">
+      <p class="daily-page-loading">读取中…</p>
+    </div>
+  </main>
+
+  <script src="/js/site.js"></script>
+</body></html>

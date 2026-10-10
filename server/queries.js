@@ -1,5 +1,10 @@
 import { db, tx } from './db.js';
 import { uploadToImgbb } from './imgbb.js';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const projectRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 /* ---------------- 日期 ---------------- */
 
@@ -137,6 +142,28 @@ export function getArchive() {
       // 指向文章永久页。半年之后那页只剩「已入档」视图 —— 这是刻意的，不是坏链
       href: `/p/${encodeURIComponent(r.slug)}`,
     });
+  }
+
+  // 合并每日清单（扁平文件）：把每天的文/诗/乐也按年月并进档案馆网格。
+  // 清单缺失或损坏不影响首页，只是档案馆里看不到每日。
+  try {
+    const manPath = join(projectRoot, 'public', 'daily-manifest.json');
+    if (existsSync(manPath)) {
+      const daily = JSON.parse(readFileSync(manPath, 'utf8'));
+      for (const d of daily) {
+        if (!byYear.has(d.year)) byYear.set(d.year, new Map());
+        const months = byYear.get(d.year);
+        if (!months.has(d.month)) months.set(d.month, []);
+        months.get(d.month).push({
+          title: d.title,
+          date: d.date.slice(5).replace('-', '.'),
+          href: d.href,
+          kind: 'daily',
+        });
+      }
+    }
+  } catch {
+    /* 清单不可用：仅展示文章 */
   }
 
   return [...byYear.entries()]

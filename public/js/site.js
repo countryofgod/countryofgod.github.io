@@ -213,6 +213,39 @@ if (ipodScreen) {
    music 那一类第一行是歌单名，其余按空行分块（见 parseMusic）。
    iPod 菜单里的 article / poem / music 决定看哪一类，默认 article。
    文本一律走 textContent：拼 HTML 会把文件里的尖括号当标签执行。 */
+/* 这两个纯函数被「首页每日右栏」和「每日单独页」共用，提到模块作用域 */
+const splitDaily = (text) => {
+  const lines = text.split(/\r?\n/);
+  let i = 0;
+  while (i < lines.length && !lines[i].trim()) i++;
+  return {
+    title: (lines[i] || '').trim(),
+    body: lines.slice(i + 1).join('\n').replace(/^\n+/, '').replace(/\s+$/, ''),
+  };
+};
+
+const parseMusic = (text) => {
+  const lines = text.split(/\r?\n/);
+  let i = 0;
+  while (i < lines.length && !lines[i].trim()) i++;
+  const blocks = [];
+  let cur = null;
+  for (i = i + 1; i < lines.length; i++) {
+    if (!lines[i].trim()) { cur = null; continue; }
+    if (!cur) { cur = []; blocks.push(cur); }
+    cur.push(lines[i].replace(/\s+$/, ''));
+  }
+  return blocks.map((block) => {
+    const head = block[0];
+    const cut = head.indexOf('|');
+    return {
+      name: (cut >= 0 ? head.slice(0, cut) : head).trim(),
+      src: (cut >= 0 ? head.slice(cut + 1) : '').trim(),
+      lyrics: block.slice(1).join('\n').replace(/^\n+|\s+$/g, ''),
+    };
+  }).filter((track) => track.src);
+};
+
 const dailyGrid = document.querySelector('.daily-grid');
 if (dailyGrid) {
   // 被裁的是 .daily-fold（视窗），不是正文那层——正文那层必须保持普通块盒，
@@ -295,46 +328,6 @@ if (dailyGrid) {
       if (hit) return hit;
     }
     return null;
-  };
-
-  /** 第一行是标题（跳过开头的空行），其余是正文 */
-  const splitDaily = (text) => {
-    const lines = text.split(/\r?\n/);
-    let i = 0;
-    while (i < lines.length && !lines[i].trim()) i++;
-    return {
-      title: (lines[i] || '').trim(),
-      body: lines.slice(i + 1).join('\n').replace(/^\n+/, '').replace(/\s+$/, ''),
-    };
-  };
-
-  /* 歌单是"块式"的（格式见 README「每日内容」/ PRD §14.3）：
-       第 1 行         —— 歌单标题，屏里不显示，只用来说明这份文件是什么
-       空行            —— 分块
-       每块第 1 行     —— 「曲名|mp3直链」，第一个 | 分界
-       每块其余行      —— 该曲歌词（静态原样，不解析 [00:12] 这类时间码）
-     只有「曲名|直链」一行、后面没有内容的块 = 该曲没有歌词，右栏就只显示曲名。
-     没有直链的块直接丢掉：缺了直链的"歌"在播放器里只是一个按下去没反应的死条目 */
-  const parseMusic = (text) => {
-    const lines = text.split(/\r?\n/);
-    let i = 0;
-    while (i < lines.length && !lines[i].trim()) i++;
-    const blocks = [];
-    let cur = null;
-    for (i = i + 1; i < lines.length; i++) {
-      if (!lines[i].trim()) { cur = null; continue; }
-      if (!cur) { cur = []; blocks.push(cur); }
-      cur.push(lines[i].replace(/\s+$/, ''));
-    }
-    return blocks.map((block) => {
-      const head = block[0];
-      const cut = head.indexOf('|');
-      return {
-        name: (cut >= 0 ? head.slice(0, cut) : head).trim(),
-        src: (cut >= 0 ? head.slice(cut + 1) : '').trim(),
-        lyrics: block.slice(1).join('\n').replace(/^\n+|\s+$/g, ''),
-      };
-    }).filter((track) => track.src);
   };
 
   const renderDaily = (entry, category) => {
@@ -593,6 +586,115 @@ if (dailyGrid) {
 
   // 默认显示 article
   showDailyCategory('article');
+}
+
+/* ---------- 每日单独页：/d/YYYY-MM-DD/<category> ----------
+   内容仍是仓库扁平文件：按 URL 里的日期、分类，前端拉 daily/<分类>/<文件名>.txt 渲染。
+   文件名不补前导零（2026_10_9.txt），从 ISO 日期用 Number() 拆零还原。 */
+const dailyPageEl = document.getElementById('daily-page');
+if (dailyPageEl) {
+  const m = location.pathname.match(/^\/d\/(\d{4}-\d{2}-\d{2})\/(article|poem|music)\/?$/);
+  const body = dailyPageEl.querySelector('.daily-page-body');
+  if (!m || !body) {
+    if (body) body.innerHTML = '<p class="daily-page-err">地址不对。</p>';
+  } else {
+    const iso = m[1];
+    const category = m[2];
+    const [Y, Mo, D] = iso.split('-');
+    const file = Y + '_' + Number(Mo) + '_' + Number(D) + '.txt';
+    (async () => {
+      try {
+        const res = await fetch(DAILY_BASE + category + '/' + file, { cache: 'no-store' });
+        if (!res.ok) { body.innerHTML = '<p class="daily-page-err">这一天还没有内容。</p>'; return; }
+        const text = (await res.text()).replace(/^\uFEFF/, '');
+        if (category === 'music') renderDailyMusicPage(body, text);
+        else renderDailyTextPage(body, text, category);
+      } catch {
+        body.innerHTML = '<p class="daily-page-err">读取失败，刷新重试。</p>';
+      }
+    })();
+  }
+}
+
+/** 文/诗单独页：标题 + 正文；诗按空行分节，复用首页的 stanza / line 拆法 */
+function renderDailyTextPage(container, text, category) {
+  container.textContent = '';
+  const { title, body: bodyText } = splitDaily(text);
+  const h = document.createElement('h1');
+  h.className = 'sheet-title';
+  h.textContent = title;
+  container.appendChild(h);
+  if (bodyText) {
+    const isPoem = category === 'poem';
+    const b = document.createElement('div');
+    b.className = isPoem ? 'sheet-body is-poem' : 'sheet-body';
+    if (isPoem) {
+      const lines = bodyText.split(/\r?\n/);
+      const groups = [];
+      let cur = [];
+      for (const ln of lines) {
+        if (!ln.trim()) { if (cur.length) { groups.push(cur.join('\n')); cur = []; } }
+        else cur.push(ln.replace(/\s+$/, ''));
+      }
+      if (cur.length) groups.push(cur.join('\n'));
+      const lineMode = groups.length <= 1;
+      const pieces = lineMode ? (groups[0] || '').split(/\r?\n/).map((s) => s.replace(/\s+$/, '')) : groups;
+      pieces.filter((s) => s.trim()).forEach((piece) => {
+        const p = document.createElement('p');
+        p.className = lineMode ? 'daily-poem-line' : 'daily-stanza';
+        p.textContent = piece;
+        b.appendChild(p);
+      });
+    } else {
+      b.textContent = bodyText;
+    }
+    container.appendChild(b);
+  }
+  if (title) document.title = title + ' · 上帝之国';
+}
+
+/** 音乐单独页：歌单名 + 逐曲（点开即播、歌词原样），不依赖首页 iPod 播放器 */
+function renderDailyMusicPage(container, text) {
+  container.textContent = '';
+  const { title } = splitDaily(text);
+  if (title) {
+    const h = document.createElement('h1');
+    h.className = 'sheet-title';
+    h.textContent = title;
+    container.appendChild(h);
+  }
+  const tracks = parseMusic(text);
+  if (!tracks.length) {
+    const p = document.createElement('p');
+    p.className = 'daily-page-err';
+    p.textContent = '歌单为空。';
+    container.appendChild(p);
+    return;
+  }
+  const list = document.createElement('ol');
+  list.className = 'daily-tracklist';
+  tracks.forEach((t, idx) => {
+    const li = document.createElement('li');
+    li.className = 'daily-track';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'daily-track-play';
+    btn.textContent = (idx + 1) + '. ' + t.name;
+    const audio = document.createElement('audio');
+    audio.src = t.src;
+    audio.preload = 'none';
+    const lyrics = document.createElement('div');
+    lyrics.className = 'daily-track-lyrics';
+    if (t.lyrics) lyrics.textContent = t.lyrics;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.daily-track audio').forEach((a) => { if (a !== audio) a.pause(); });
+      audio.play().catch(() => {});
+    });
+    li.append(btn, audio, lyrics);
+    list.appendChild(li);
+  });
+  container.appendChild(list);
+  document.title = (title || '每日歌单') + ' · 上帝之国';
 }
 
 /* ---------- 右侧章节导航：滚动高亮当前区块 ---------- */

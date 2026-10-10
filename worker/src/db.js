@@ -196,6 +196,30 @@ export async function getArchive(env) {
     });
   }
 
+  // 合并每日清单（扁平文件，public/daily-manifest.json）：把每天的文/诗/乐也按年月并进网格。
+  // Worker 无文件系统，靠 ASSETS 绑定读静态资源；读不到就只显示文章。
+  try {
+    if (env.ASSETS) {
+      const manRes = await env.ASSETS.fetch(new Request('https://assets.local/daily-manifest.json'));
+      if (manRes && manRes.ok) {
+        const daily = await manRes.json();
+        for (const d of daily) {
+          if (!byYear.has(d.year)) byYear.set(d.year, new Map());
+          const months = byYear.get(d.year);
+          if (!months.has(d.month)) months.set(d.month, []);
+          months.get(d.month).push({
+            title: d.title,
+            date: d.date.slice(5).replace('-', '.'),
+            href: d.href,
+            kind: 'daily',
+          });
+        }
+      }
+    }
+  } catch {
+    /* 清单不可用：仅展示文章 */
+  }
+
   return [...byYear.entries()]
     .sort((a, b) => b[0] - a[0])
     .map(([year, months]) => {
