@@ -1014,7 +1014,9 @@ articleItems.forEach((item) => {
 // a:not(.hero-cn-hl)：刊名里的「之」是管理台入口（一个 <a>），用户明确要求它不抖。
 // 抖动动画的选择器是 :is(a,…):hover .jitter-char——只要不把它拆成 .jitter-char，就抖不起来；
 // 而且它身上那枚反色取景窗是它的 ::before，拆字后视觉重心也会跟着变，索性整体放过。
-document.querySelectorAll('a:not(.month-post):not(.hero-cn-hl):not(.side-nav-item):not(.archive-random-link), .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit').forEach((el) => {
+// a:not(.museum-credit-link)：美术馆左下角署名里的「SyvApple」，
+//   用户要求此处不要抖动，悬停只出下划线，故同样不拆字。
+document.querySelectorAll('a:not(.month-post):not(.hero-cn-hl):not(.side-nav-item):not(.archive-random-link):not(.museum-credit-link), .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit').forEach((el) => {
   const ls = parseFloat(getComputedStyle(el).letterSpacing) || 0;
   if (ls) el.style.letterSpacing = '0px';
 

@@ -2475,6 +2475,12 @@ body.cursor-hidden * {
   animation: none;
 }
 
+/* 美术馆左下角署名不做抖动：悬停只出下划线。
+   上面的 JS 拆字选择器已把 .museum-credit-link 排除，这里同样兜一层保险 */
+.museum-credit-link:hover .jitter-char {
+  animation: none;
+}
+
 :is(a, .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit):hover .jitter-char:nth-child(2n) {
   animation-delay: 0.1s;
 }
