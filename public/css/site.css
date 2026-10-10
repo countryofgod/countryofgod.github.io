@@ -624,13 +624,14 @@ body {
 /* ---------- 卡片 ---------- */
 /* flex: 0 0 auto 阻止 flex 默认的 shrink：不写这个的话，
    多张卡加起来远超视口宽时会被自动压窄，"宽度一致"就失效了。
-   高度只有 54vh（高）与 38vh（矮）两种，由模板给的 --short 类交替。
+   高度只有 46vh（高）与 38vh（矮）两种，由模板给的 --short 类交替。
+   高的那档比矮的高出的部分已减半：原先 54-38=16vh，现在 46-38=8vh。
    刻意不用 :nth-child(even)：作品数是奇数时，克隆出来的第二、三套奇偶会整体翻转，
    同一张图在接缝两侧一高一矮，循环绕回时高度会跳；类跟着节点被 cloneNode 复制，天然一致 */
 .museum-card {
   flex: 0 0 auto;
   width: var(--card-w);
-  height: 54vh;
+  height: 46vh;
   display: flex;
   flex-direction: column;
   margin: 0;
@@ -760,7 +761,7 @@ body {
     --card-w: 62vw;
   }
   .museum-card {
-    height: 44vh;
+    height: 38vh;
   }
   .museum-card--short {
     height: 32vh;
