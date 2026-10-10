@@ -1181,11 +1181,46 @@ document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
   const intro = museum ? museum.querySelector('[data-museum-intro]') : null;
   const detailTitle = intro ? intro.querySelector('[data-museum-detail-title]') : null;
   if (intro) {
-    const showBatch = () => intro.classList.remove('is-detail');
+    const batchEl = intro.querySelector('[data-museum-batch]');
+    const detailEl = intro.querySelector('[data-museum-detail]');
+    const FADE_OUT = 120; // 与 CSS 里 museum-intro-out 的时长保持一致
+    let swapTimer = null;
+
+    // 切换右栏内容：当前这块先淡出，淡完才换 display、再让另一块淡入（不是交叉淡化）
+    const swap = (toDetail) => {
+      if (!batchEl || !detailEl) return;
+      const cur = intro.classList.contains('is-detail');
+      if (cur === toDetail) {
+        // 已经是目标状态：若上一轮的淡出还没走完就取消它，让当前这块淡回来
+        if (swapTimer) {
+          clearTimeout(swapTimer);
+          swapTimer = null;
+          const visible = cur ? detailEl : batchEl;
+          visible.classList.remove('is-leaving');
+          visible.classList.add('is-entering');
+        }
+        return;
+      }
+      clearTimeout(swapTimer);
+      const outgoing = cur ? detailEl : batchEl;
+      const incoming = toDetail ? detailEl : batchEl;
+      outgoing.classList.remove('is-entering');
+      outgoing.classList.add('is-leaving');
+      swapTimer = setTimeout(() => {
+        swapTimer = null;
+        intro.classList.toggle('is-detail', toDetail);
+        outgoing.classList.remove('is-leaving');
+        incoming.classList.remove('is-entering', 'is-leaving');
+        void incoming.offsetWidth; // 重排一次，淡入动画才会从头播
+        incoming.classList.add('is-entering');
+      }, FADE_OUT);
+    };
+
+    const showBatch = () => swap(false);
     const showDetail = (card) => {
       const t = card.querySelector('.museum-card-title');
       if (detailTitle) detailTitle.textContent = t ? t.textContent : '';
-      intro.classList.add('is-detail');
+      swap(true);
     };
     // 卡片上只挂 mouseenter：走到两张展品之间的空隙时不触发任何切换，
     // 右侧文字保持刚才那一件，不会闪回展览批次。

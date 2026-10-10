@@ -763,6 +763,25 @@ body {
 .museum-intro.is-detail .museum-intro-detail {
   display: block;
 }
+/* 批次 ↔ 作品介绍的切换：当前这块先淡出，淡完才换到另一块淡入——不是交叉淡化，
+   两块不会同时半透明地叠着。时序由 site.js 的 swap() 控制：
+   淡出 120ms 结束后才切 display，再播 180ms 的淡入 */
+@keyframes museum-intro-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes museum-intro-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.museum-intro-batch.is-leaving,
+.museum-intro-detail.is-leaving {
+  animation: museum-intro-out 120ms ease both;
+}
+.museum-intro-batch.is-entering,
+.museum-intro-detail.is-entering {
+  animation: museum-intro-in 180ms ease both;
+}
 .museum-intro-title {
   margin: 0 0 14px;
   font-family: var(--font-sans);
