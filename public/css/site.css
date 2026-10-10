@@ -839,7 +839,9 @@ body {
   border-bottom-color: var(--white);
 }
 /* 署名正下方的手型光标：现在嵌在 SyvApple 名字链接里，
-   绝对定位到名字正下方、相对名字水平居中（2 倍尺寸：64px） */
+   绝对定位到名字正下方、相对名字水平居中（2 倍尺寸：64px）。
+   上移：margin-top 取负，让光标略贴住名字底部（比原先 8px 间隙上移）。
+   独立图层：z-index 高于署名文字，确保压在美术馆上层覆盖图之上、不被行盒裁切 */
 .museum-credit-link {
   position: relative;
 }
@@ -849,9 +851,10 @@ body {
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  margin-top: 8px;
+  margin-top: -6px;
   width: 64px;
   height: 64px;
+  z-index: 3;
 }
 
 /* ---------- 底部控件 ---------- */
