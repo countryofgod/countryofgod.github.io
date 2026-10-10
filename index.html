@@ -466,7 +466,8 @@ body {
      近似衬线兜底。两款都是商用字体，没放授权 woff2 时浏览器会回退到 Caslon/Georgia 一系，
      导航与 iPod 走同一条回退链，所以观感一致 */
   font-family: var(--font-nav);
-  font-size: 13px;
+  /* 默认字号 13px → 15px（调大两号，按 1px 一档） */
+  font-size: 15px;
   letter-spacing: 1px;
   color: var(--gray-4);
   text-decoration: none;
@@ -643,7 +644,8 @@ body {
   display: flex;
   flex-direction: column;
   margin: 0;
-  background: rgba(0, 0, 0, 0.15); /* 暗底给图片加一层灰雾，提升文字在照片上的对比 */
+  /* 展品背景的黑色遮罩已去除：原先这层 rgba(0,0,0,0.15) 暗底会盖在图片上，
+     现在改为完全透明，直接透出版块本身的背景 */
   transition: width 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 .museum-card--short {
@@ -1741,7 +1743,14 @@ body {
   padding: 0 32px;
   border: 0 solid var(--gray-3);
   border-top: none;
-  background: var(--black);
+  /* 背景改为纯高斯模糊：不再压任何半透明黑，
+     完全交给 backdrop-filter 模糊元素背后的档案馆照片。
+     backdrop-filter 只模糊元素**背后**的画面，且天然被裁在元素自己的盒子里，
+     所以模糊只发生在列表框内这一块，不会糊到框外。
+     -webkit- 前缀给 Safari */
+  background: transparent;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   transition: max-height 0.38s ease, opacity 0.3s ease,
               padding 0.38s ease, border-width 0.38s ease;
 }
@@ -2697,11 +2706,11 @@ body.cursor-hidden * {
             <div class="archive-month"><span class="month-num">07</span><div class="month-posts"></div></div>
             <div class="archive-month"><span class="month-num">08</span><div class="month-posts"></div></div>
             <div class="archive-month"><span class="month-num">09</span><div class="month-posts"></div></div>
-            <div class="archive-month has-posts"><span class="month-num">10</span><div class="month-posts"><a href="https://gods-country.countryofgod.workers.dev/p/chuangkanhao" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a></div></div>
+            <div class="archive-month has-posts"><span class="month-num">10</span><div class="month-posts"><a href="https://gods-country.countryofgod.workers.dev/p/chuangkanhao" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/article" class="month-post"><span class="month-post-title">三等候车室</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/poem" class="month-post"><span class="month-post-title">致云雀</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/music" class="month-post"><span class="month-post-title">李斯特《爱之梦》</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/article" class="month-post"><span class="month-post-title">河的第三条岸</span><span class="month-post-date">10.09</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/poem" class="month-post"><span class="month-post-title">失去的美酒</span><span class="month-post-date">10.09</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/music" class="month-post"><span class="month-post-title">萨蒂《烦恼》</span><span class="month-post-date">10.09</span></a></div></div>
             <div class="archive-month"><span class="month-num">11</span><div class="month-posts"></div></div>
             <div class="archive-month"><span class="month-num">12</span><div class="month-posts"></div></div>
           </div>
-          <div class="month-posts-panel" data-month=""><a href="https://gods-country.countryofgod.workers.dev/p/chuangkanhao" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a></div>
+          <div class="month-posts-panel" data-month=""><a href="https://gods-country.countryofgod.workers.dev/p/chuangkanhao" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/article" class="month-post"><span class="month-post-title">三等候车室</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/poem" class="month-post"><span class="month-post-title">致云雀</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/music" class="month-post"><span class="month-post-title">李斯特《爱之梦》</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/article" class="month-post"><span class="month-post-title">河的第三条岸</span><span class="month-post-date">10.09</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/poem" class="month-post"><span class="month-post-title">失去的美酒</span><span class="month-post-date">10.09</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/music" class="month-post"><span class="month-post-title">萨蒂《烦恼》</span><span class="month-post-date">10.09</span></a></div>
         </div>
       </div>
     </div>
@@ -2757,14 +2766,6 @@ body.cursor-hidden * {
             <div class="museum-poster"><img src="/public/img/museum-4.jpg" alt="美术馆作品 04" loading="lazy" decoding="async"></div>
             <div class="museum-card-text">
               <p class="museum-card-title">作品 04</p>
-              <p class="museum-card-meta">作品　待填</p>
-            </div>
-          </article>
-
-          <article class="museum-card">
-            <div class="museum-poster"><img src="/public/img/museum-5.jpg" alt="美术馆作品 05" loading="lazy" decoding="async"></div>
-            <div class="museum-card-text">
-              <p class="museum-card-title">作品 05</p>
               <p class="museum-card-meta">作品　待填</p>
             </div>
           </article>
