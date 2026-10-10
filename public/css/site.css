@@ -785,7 +785,9 @@ body {
    整段（含句点）用与右侧导航同一套字体与字号；只有「SyvApple」换 shorelines_script */
 .museum-credit {
   position: absolute;
-  left: 48px;
+  /* 水平居中：left 50% 再往左挪自身一半 */
+  left: 50%;
+  transform: translateX(-50%);
   bottom: 28px;
   /* 与 .museum-inner 同为 2，压在 .museum::after（上层覆盖图，z-index 1）之上 */
   z-index: 2;
