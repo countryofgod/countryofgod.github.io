@@ -607,6 +607,10 @@ body {
 }
 .museum-track {
   display: flex;
+  /* 视口收到 75% 之后，卡片的 --card-w（22%）会按视口宽度解析，展品被整体缩小 25%。
+     把轨道撑回整条胶片的宽度（100% / 75% = 133.3333%），百分比基数就还原成整条胶片宽，
+     展品尺寸与收窄前逐像素一致。改视口比例时这两个数必须一起改 */
+  width: 133.3333%;
   gap: 24px;
   /* 关键：默认的 stretch 会把所有卡片拉成"最高的那张"的高度，
      "高低交替"就没了。flex-start 让每张卡按自己的高度、顶部对齐 */
@@ -718,15 +722,12 @@ body {
    英文 SYLVAPPLE 用美术馆英文小标同款（Founders Grotesk）；中文「的艺术会」用展品标题同款（--font-sans）。
    不加任何提示语，直接写 */
 .museum-intro-batch-en {
-  display: block;
   font-family: 'Founders Grotesk', 'Helvetica Neue', Arial, sans-serif;
   font-size: 13px;
   letter-spacing: 3px;
   text-transform: uppercase;
 }
 .museum-intro-batch-zh {
-  display: block;
-  margin-top: 10px;
   font-family: var(--font-sans);
   font-size: 30px;
   letter-spacing: 2px;
@@ -844,6 +845,10 @@ body {
   }
   .museum-stage > .museum-viewport {
     flex-basis: auto;
+  }
+  /* 窄屏视口已回到整宽，轨道不必再撑宽，否则会无端溢出 */
+  .museum-track {
+    width: auto;
   }
   .museum-intro {
     position: static;
