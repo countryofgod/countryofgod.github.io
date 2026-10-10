@@ -518,6 +518,27 @@ body {
     ),
     url('/public/img/museum.jpeg') center / cover no-repeat;
 }
+
+/* 美术馆顶部背景图（museum_upper.png）：
+   配置与 .museum 自己的背景（museum.jpeg）同款 —— center / cover no-repeat。
+   位置在版块顶部，也就是展品（.museum-strip 轨道）的上方。
+   用 z-index: -1 当背景层：.museum 有 z-index: 3 + position: relative，
+   本身就是层叠上下文，负 z 的子层画在 .museum 自己的背景之上、
+   又在标题正文与展品之下（负 z 属于第 2 步，正文/展品在其后），所以是"背景"而非遮挡。
+   pointer-events: none —— 该图层不可点击，不拦截轨道的拖拽与卡片交互 */
+.museum::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* 顶部区域：占据版块上半部分，落在展品上方 */
+  height: 50%;
+  background: url('/public/img/museum_upper.png') center / cover no-repeat;
+  pointer-events: none;
+  z-index: -1;
+}
+
 /* 标题栏：要和档案馆标题落在同一条左对齐线上。
    那条线是 48 而不是 96——.archive 本身是全宽的（.archive 里写了
    max-width: none 且 padding-left/right: 0），真正产生缩进的只有
