@@ -802,7 +802,8 @@ body {
 /* 竖排两件：上排是文字，下排是 Mac 手型光标。整块水平居中、钉在美术馆区块底部。
    文字：white-space: nowrap 保证横排一行不折行；
         整段（含句点）用与右侧导航同一套字体与字号，只有「SyvApple」换 shorelines_script。
-   光标：取自 daviddarnes/mac-cursors 的 handpointing.svg（32×32） */
+   光标：取自 daviddarnes/mac-cursors 的 handpointing.svg（当前 64×64，2 倍）；
+        嵌在 SyvApple 名字链接内，绝对定位到名字正下方 */
 .museum-credit {
   position: absolute;
   /* 水平居中：left 50% 再往左挪自身一半 */
@@ -837,11 +838,20 @@ body {
 .museum-credit-link:hover {
   border-bottom-color: var(--white);
 }
-/* 署名正下方的手型光标 */
+/* 署名正下方的手型光标：现在嵌在 SyvApple 名字链接里，
+   绝对定位到名字正下方、相对名字水平居中（2 倍尺寸：64px） */
+.museum-credit-link {
+  position: relative;
+}
 .museum-credit-cursor {
   display: block;
-  width: 32px;
-  height: 32px;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  width: 64px;
+  height: 64px;
 }
 
 /* ---------- 底部控件 ---------- */
@@ -1319,6 +1329,11 @@ body {
   line-height: 1.9;
   color: var(--gray-5);
   white-space: pre-line;
+}
+
+/* 每日馆右栏：整体下移半个正文字体高度（0.5em），视觉起点与左侧 iPod 错开 */
+.daily-content {
+  margin-top: 0.5em;
 }
 
 /* 诗：右栏里再分两栏。诗行短，单栏时右边空一大片；分两栏一眼能读完一首。
