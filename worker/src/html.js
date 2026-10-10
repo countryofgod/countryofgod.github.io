@@ -401,7 +401,10 @@ function renderHome({ articles, archive, notes, submitMail }) {
     <!-- 左下角署名：横排一行。「SyvApple」用 shorelines_script 并做成超链接
          （主页还没拿到，href 先留空占位，拿到后替换），悬停出下划线；
          其余文字（含句点）用与右侧导航同一套字体与字号 -->
-    <p class="museum-credit">Introductory Chapter of <a class="museum-credit-link" href="#">SyvApple</a>.</p>
+    <div class="museum-credit">
+      <p class="museum-credit-line">Introductory Chapter of <a class="museum-credit-link" href="#">SyvApple</a>.</p>
+      <img class="museum-credit-cursor" src="/img/cursor-handpointing.svg" width="32" height="32" alt="" aria-hidden="true">
+    </div>
   </section>
 
   <!-- Footer -->
