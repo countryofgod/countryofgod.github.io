@@ -32,6 +32,28 @@ cpSync(src, dest, { recursive: true });
 
 // 生成每日清单（public/daily-manifest.json）：把每天的文/诗/乐也并进档案馆网格。
 // Worker 无文件系统，靠 ASSETS 绑定读这份静态 JSON；Node 直接读文件。
+// 音乐文件首行是占位栏目标题（如"每日歌单（每日一曲）"），真正的歌名在
+// 每首 "歌名|直链" 这一行的 | 之前。与 parseMusic 同口径：按空行分块，
+// 每块首行才是歌名（其余行是副标题/歌词），所以只取每块首行。
+const musicTitle = (text) => {
+  const lines = text.split(/\r?\n/);
+  let i = 0;
+  while (i < lines.length && !lines[i].trim()) i++; // 跳过前导空行与首行占位标题
+  const names = [];
+  let inBlock = false;
+  for (let j = i + 1; j < lines.length; j++) {
+    const s = lines[j].trim();
+    if (!s) { inBlock = false; continue; } // 空行＝一首歌的分隔
+    if (!inBlock) {
+      const cut = s.indexOf('|');
+      const name = (cut >= 0 ? s.slice(0, cut) : s).trim();
+      if (name) names.push(name);
+      inBlock = true;
+    }
+  }
+  return names.join('、') || '每日歌单';
+};
+
 const manifest = [];
 for (const cat of ['article', 'poem', 'music']) {
   const dir = join(src, cat);
@@ -42,7 +64,8 @@ for (const cat of ['article', 'poem', 'music']) {
     if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n))) continue;
     const [y, mo, d] = parts;
     const iso = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const lines = readFileSync(join(dir, name), 'utf8').split(/\r?\n/);
+    const text = readFileSync(join(dir, name), 'utf8');
+    const lines = text.split(/\r?\n/);
     let i = 0;
     while (i < lines.length && !lines[i].trim()) i++;
     manifest.push({
@@ -50,7 +73,7 @@ for (const cat of ['article', 'poem', 'music']) {
       year: y,
       month: mo,
       category: cat,
-      title: (lines[i] || '').trim(),
+      title: cat === 'music' ? musicTitle(text) : (lines[i] || '').trim(),
       href: `/d/${iso}/${cat}`,
     });
   }

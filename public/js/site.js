@@ -656,14 +656,14 @@ function renderDailyTextPage(container, text, category) {
 /** 音乐单独页：歌单名 + 逐曲（点开即播、歌词原样），不依赖首页 iPod 播放器 */
 function renderDailyMusicPage(container, text) {
   container.textContent = '';
-  const { title } = splitDaily(text);
+  const tracks = parseMusic(text);
+  const title = tracks.map((t) => t.name).join('、');
   if (title) {
     const h = document.createElement('h1');
     h.className = 'sheet-title';
     h.textContent = title;
     container.appendChild(h);
   }
-  const tracks = parseMusic(text);
   if (!tracks.length) {
     const p = document.createElement('p');
     p.className = 'daily-page-err';
