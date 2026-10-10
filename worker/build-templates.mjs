@@ -59,7 +59,10 @@ const parts = [
   compile(read('partials/article-item.ejs'), 'articleItem', '{ article }'),
   compile(read('partials/archive-group.ejs'), 'archiveGroup', '{ group, open }'),
   compile(read('partials/guest-note.ejs'), 'guestNote', '{ note }'),
-  compile(read('daily.ejs'), 'renderDaily', '{}'),
+  // 参数必须留空字符串：写 '{}' 会编译成 function renderDaily({}) ——
+  // 那是"解构模式"而不是"无参数"，调用处 renderDaily() 不传参时
+  // 会对 undefined 解构，抛 TypeError → /d/ 页面 500。每日单独页不需要任何参数。
+  compile(read('daily.ejs'), 'renderDaily', ''),
   compile(read('index.ejs'), 'renderHome', '{ articles, archive, notes, submitMail }'),
   compile(read('article.ejs'), 'renderArticle', '{ article, archived, readable, echoes }'),
   compile(

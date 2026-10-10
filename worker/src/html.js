@@ -119,7 +119,7 @@ function guestNote({ note }) {
   return out;
 }
 
-function renderDaily({}) {
+function renderDaily() {
   let out = '';
   out += `<!DOCTYPE html>
 <html lang="zh-CN"><head>
@@ -207,7 +207,7 @@ function renderHome({ articles, archive, notes, submitMail }) {
        转盘上的四个按钮做成可点击热区；右侧是巴黎评论式的信息流。内容后续设计 -->
   <section class="section daily" id="daily">
     <p class="section-label">Daily</p>
-    <h2 class="section-title">每日</h2>
+    <h2 class="section-title">每日館</h2>
     <div class="daily-grid">
       <!-- 折叠视窗：机身与右栏正文都包在里面。裁切（max-height + overflow: hidden）
            必须挂在【这一层】：overflow 会建立 BFC，而 BFC 块盒会整体躲开浮动，
@@ -311,7 +311,7 @@ function renderHome({ articles, archive, notes, submitMail }) {
   <section class="section archive" id="archive">
     <div class="archive-head">
       <p class="section-label">Archive</p>
-      <h2 class="section-title">档案馆</h2>
+      <h2 class="section-title">檔案館</h2>
       <!-- 唯一的发现入口：不看时间、不看热度，随机翻一篇。
            旧文过了半年就不再摆在架子外面，这里是能碰到它们的门 -->
       <p class="archive-random"><a class="archive-random-link" href="/random">random →</a></p>
@@ -340,7 +340,7 @@ function renderHome({ articles, archive, notes, submitMail }) {
   <section class="section museum" id="museum">
     <div class="museum-inner">
       <p class="section-label">Museum</p>
-      <h2 class="section-title">美术馆</h2>
+      <h2 class="section-title">美術館</h2>
     </div>
 
     <!-- 轨道独立于 .museum-inner，铺满 .museum-stage 的左 75% 宽度；
@@ -391,7 +391,7 @@ function renderHome({ articles, archive, notes, submitMail }) {
     </div>
     <aside class="museum-intro" data-museum-intro aria-live="polite">
       <div class="museum-intro-batch" data-museum-batch>
-        <span class="museum-intro-batch-en">SYLVAPPLE</span><span class="museum-intro-batch-zh">艺术会</span>
+        <span class="museum-intro-batch-en">SYLVAPPLE</span><span class="museum-intro-batch-zh">藝術會</span>
       </div>
       <div class="museum-intro-detail" data-museum-detail>
         <p class="museum-intro-title" data-museum-detail-title></p>
