@@ -458,7 +458,8 @@ body {
      近似衬线兜底。两款都是商用字体，没放授权 woff2 时浏览器会回退到 Caslon/Georgia 一系，
      导航与 iPod 走同一条回退链，所以观感一致 */
   font-family: var(--font-nav);
-  font-size: 13px;
+  /* 默认字号 13px → 15px（调大两号，按 1px 一档） */
+  font-size: 15px;
   letter-spacing: 1px;
   color: var(--gray-4);
   text-decoration: none;

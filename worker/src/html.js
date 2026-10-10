@@ -334,8 +334,7 @@ function renderHome({ articles, archive, notes, submitMail }) {
   { img: '/img/museum-1.jpg', alt: '美术馆作品 01', title: '作品 01', meta: '作品　待填' },
   { img: '/img/museum-2.jpg', alt: '美术馆作品 02', title: '作品 02', meta: '作品　待填' },
   { img: '/img/museum-3.jpg', alt: '美术馆作品 03', title: '作品 03', meta: '作品　待填' },
-  { img: '/img/museum-4.jpg', alt: '美术馆作品 04', title: '作品 04', meta: '作品　待填' },
-  { img: '/img/museum-5.jpg', alt: '美术馆作品 05', title: '作品 05', meta: '作品　待填' }
+  { img: '/img/museum-4.jpg', alt: '美术馆作品 04', title: '作品 04', meta: '作品　待填' }
   ];
   out += `
   <section class="section museum" id="museum">
