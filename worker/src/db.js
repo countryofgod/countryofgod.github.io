@@ -1,4 +1,5 @@
 import { SCHEMA } from './schema.js';
+import { dailyManifest } from './daily-manifest.js';
 import { seedArticle, seedArchive, seedDaily } from '../../server/seed-data.js';
 import { Unavailable } from '../../server/validators.js';
 import { uploadToImgbb } from '../../server/imgbb.js';
@@ -196,27 +197,22 @@ export async function getArchive(env) {
     });
   }
 
-  // 合并每日清单（扁平文件，public/daily-manifest.json）：把每天的文/诗/乐也按年月并进网格。
-  // Worker 无文件系统，靠 ASSETS 绑定读静态资源；读不到就只显示文章。
-  try {
-    if (env.ASSETS) {
-      const manRes = await env.ASSETS.fetch(new Request('https://assets.local/daily-manifest.json'));
-      if (manRes && manRes.ok) {
-        const daily = await manRes.json();
-        for (const d of daily) {
-          if (!byYear.has(d.year)) byYear.set(d.year, new Map());
-          const months = byYear.get(d.year);
-          if (!months.has(d.month)) months.set(d.month, []);
-          months.get(d.month).push({
-            title: d.title,
-            date: d.date.slice(5).replace('-', '.'),
-            href: d.href,
-          });
-        }
-      }
-    }
-  } catch {
-    /* 清单不可用：仅展示文章 */
+  // 合并每日清单：把每天的文/诗/乐也按年月并进网格。
+  // 清单由 tools/sync-daily.mjs 生成，并额外产出 worker/src/daily-manifest.js
+  // 直接打包进 Worker —— 不再依赖 env.ASSETS：
+  //   线上实测 Worker 运行时并没有 ASSETS 绑定（assets 只让平台直接下发静态文件，
+  //   未匹配路由走 env.ASSETS.fetch 会抛异常→500）。原先写成 if (env.ASSETS)，
+  //   绑定不存在就整段静默跳过，Worker 版档案馆于是一条每日都看不到
+  //   （Node 版读磁盘所以一直正常）。
+  for (const d of dailyManifest) {
+    if (!byYear.has(d.year)) byYear.set(d.year, new Map());
+    const months = byYear.get(d.year);
+    if (!months.has(d.month)) months.set(d.month, []);
+    months.get(d.month).push({
+      title: d.title,
+      date: d.date.slice(5).replace('-', '.'),
+      href: d.href,
+    });
   }
 
   return [...byYear.entries()]

@@ -1,0 +1,3 @@
+// 由 tools/sync-daily.mjs 生成，请勿手改。
+// 每日清单的 Worker 版副本：打包进 Worker，供 getArchive 并进档案馆。
+export const dailyManifest = [{"date":"2026-10-10","year":2026,"month":10,"category":"article","title":"三等候车室","href":"/d/2026-10-10/article"},{"date":"2026-10-10","year":2026,"month":10,"category":"poem","title":"致云雀","href":"/d/2026-10-10/poem"},{"date":"2026-10-10","year":2026,"month":10,"category":"music","title":"李斯特《爱之梦》","href":"/d/2026-10-10/music"},{"date":"2026-10-09","year":2026,"month":10,"category":"article","title":"河的第三条岸","href":"/d/2026-10-09/article"},{"date":"2026-10-09","year":2026,"month":10,"category":"poem","title":"失去的美酒","href":"/d/2026-10-09/poem"},{"date":"2026-10-09","year":2026,"month":10,"category":"music","title":"萨蒂《烦恼》","href":"/d/2026-10-09/music"}];

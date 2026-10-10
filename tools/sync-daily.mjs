@@ -80,4 +80,18 @@ for (const cat of ['article', 'poem', 'music']) {
 }
 manifest.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 writeFileSync(join(root, 'public', 'daily-manifest.json'), JSON.stringify(manifest));
+
+// 同一份清单再生成一个 ES 模块，直接打包进 Worker。
+// 为什么需要：Worker 运行时并没有 ASSETS 绑定（assets 只让平台直接下发静态文件，
+// 不会给 Worker 注入 env.ASSETS；线上实测未匹配路由走 env.ASSETS.fetch 会抛异常→500）。
+// 原先 getArchive 里写的是 if (env.ASSETS)，绑定不存在就静默跳过，
+// 于是 Worker 版档案馆里一条每日都看不到（Node 版读磁盘所以正常）。
+// 生成成模块后打包进去，档案馆不再依赖任何运行时绑定。
+writeFileSync(
+  join(root, 'worker', 'src', 'daily-manifest.js'),
+  '// 由 tools/sync-daily.mjs 生成，请勿手改。\n' +
+    '// 每日清单的 Worker 版副本：打包进 Worker，供 getArchive 并进档案馆。\n' +
+    'export const dailyManifest = ' + JSON.stringify(manifest) + ';\n'
+);
+
 console.log(`daily/ → public/daily/ 已同步；daily-manifest.json 已生成（${manifest.length} 条）`);
