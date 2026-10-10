@@ -399,6 +399,9 @@ body {
 #latest {
   position: relative;
   z-index: 3;
+  /* pub（最新文章）末尾比常规多出一倍留白（120px → 240px），
+     与下方档案馆之间拉开更明显的呼吸位，再接 archive */
+  padding-bottom: 240px;
 }
 
 /* 版块标题：只放宽字距，保持左对齐——用户明确否掉了档案馆这一处的居中。

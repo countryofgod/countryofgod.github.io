@@ -159,7 +159,7 @@
     </div>
 
     <div class="archive-inner">
-<% archive.forEach((group, i) => { %><%- include('partials/archive-group', { group, open: i === 0 }) %><% }); %>
+<% archive.forEach((group) => { %><%- include('partials/archive-group', { group, open: group.year === 2026 }) %><% }); %>
     </div>
   </section>
 
