@@ -509,6 +509,8 @@ body {
   /* 与上方档案馆之间的分隔细线：纯白，2px */
   border-top: 2px solid var(--white);
   /* 仅底部向黑色渐变（顶端不再压黑、也不要模糊）：68% 起由透明过渡到实心黑 */
+  /* 下层背景图：museum.jpeg。上层图 museum_upper.png 见下面的 .museum::after，
+     它压在展品之上，与下层一起把展品夹在中间 */
   background:
     linear-gradient(
       to bottom,
@@ -519,24 +521,27 @@ body {
     url('/public/img/museum.jpeg') center / cover no-repeat;
 }
 
-/* 美术馆顶部背景图（museum_upper.png）：
-   配置与 .museum 自己的背景（museum.jpeg）同款 —— center / cover no-repeat。
-   位置在版块顶部，也就是展品（.museum-strip 轨道）的上方。
-   用 z-index: -1 当背景层：.museum 有 z-index: 3 + position: relative，
-   本身就是层叠上下文，负 z 的子层画在 .museum 自己的背景之上、
-   又在标题正文与展品之下（负 z 属于第 2 步，正文/展品在其后），所以是"背景"而非遮挡。
-   pointer-events: none —— 该图层不可点击，不拦截轨道的拖拽与卡片交互 */
-.museum::before {
+/* 上层背景图 museum_upper.png：画在展品（.museum-strip）之上，
+   于是形成「下层 museum.jpeg → 展品 → 上层 museum_upper」的夹心结构。
+   该图是 RGBA（colorType=6，带 alpha 通道），透明处会露出下面的展品，
+   不是整块糊死——这正是能"夹住展品"的前提。
+
+   与下层完全重合的关键：绝对定位伪元素的包含块就是 .museum 的 padding box，
+   inset: 0 正好铺满它；而 .museum 自己的背景定位区（background-origin
+   默认 padding-box）也是同一个盒子。两图都用 center / cover no-repeat，
+   cover 于是按完全相同的方式缩放与摆位，逐像素重合。
+   （若给它一个不同高度的盒子，cover 就按各自盒子重新裁切，两张图对不齐。）
+
+   z-index: 1 —— 展品 .museum-strip 是 position: relative 但 z-index auto，
+   画在 z-index 0/auto 那一步；这里给 1，稳稳压在展品之上。
+   pointer-events: none —— 该图层不可点击，不拦截轨道拖拽与卡片交互 */
+.museum::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  /* 顶部区域：占据版块上半部分，落在展品上方 */
-  height: 50%;
+  inset: 0;
   background: url('/public/img/museum_upper.png') center / cover no-repeat;
   pointer-events: none;
-  z-index: -1;
+  z-index: 1;
 }
 
 /* 标题栏：要和档案馆标题落在同一条左对齐线上。
@@ -554,6 +559,11 @@ body {
   max-width: var(--page-w);
   margin: 0 auto 48px; /* 标题栏底部留白，给轨道腾出空间 */
   padding: 0 48px;
+  /* 标题压到上层覆盖图之上（2 > .museum::after 的 1），
+     否则会被 museum_upper 不透明的部分糊住、读不出来。
+     展品不在此列：它留在覆盖图之下，才能被两层夹住 */
+  position: relative;
+  z-index: 2;
 }
 /* 标题（美术馆）与小标（Museum）在照片上改白色，保证可读。
    只改颜色，不动字体：标题仍用站点原有的 --font-title（衬线） */
