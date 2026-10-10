@@ -1124,7 +1124,8 @@ body {
   break-inside: avoid;
 }
 
-.daily-body.is-poem > p + p {
+/* 有空行分段时，节与节之间留间距；按行拆（daily-poem-line）则不加，避免每行都空一行 */
+.daily-body.is-poem > .daily-stanza + .daily-stanza {
   margin-top: 1.3em;
 }
 

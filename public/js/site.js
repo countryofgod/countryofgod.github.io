@@ -17,6 +17,13 @@ let showDailyCategory = () => {};
 let musicControl = () => {};
 
 if (ipodScreen) {
+  // 刷新（而非他人分享的深链）应回到菜单：music 屏会把 #ipod-music 写进地址栏，
+  // 浏览器刷新会保留它，于是刷新后停在 music 而非菜单。这里在初始化前抹掉持久化的
+  // #ipod-*，保证刷新一律回菜单视图（代价：别人分享的 #ipod-music 深链刷新后不再停留）
+  if (/^#ipod-/.test(location.hash)) {
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+
   const ipodViews = Array.from(ipodScreen.querySelectorAll('[data-ipod-view]'));
 
   const showIpodView = (name) => {
@@ -241,6 +248,12 @@ if (dailyGrid) {
     dailyToggle.addEventListener('click', () => {
       const expanded = dailyGrid.classList.toggle('expanded');
       dailyToggle.setAttribute('aria-expanded', String(expanded));
+      // 收起时把视口拉回「每日」区块顶部：展开后下滑读过，直接收起会停留在下方内容，
+      // 看起来像"没回到每日"。grid 顶部在展开/收起时位置不变，直接滚回去即可
+      if (!expanded) {
+        const top = dailyGrid.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
     });
   }
 
@@ -338,9 +351,29 @@ if (dailyGrid) {
         const isPoem = category === 'poem';
         body.className = isPoem ? 'daily-body is-poem' : 'daily-body';
         if (isPoem) {
-          entry.body.split(/\n\s*\n/).forEach((stanza) => {
+          // 按空行分段（节），每节一个 <p class="daily-stanza">；节内的换行靠 .daily-body 的
+          // pre-line 保留。若整首诗没有空行（单块），则退化成按行拆成多个 <p class="daily-poem-line">——
+          // 否则整首诗只有一个 <p>，会被 break-inside:avoid 卡在左栏、右栏空着，看起来就是"没分两列"。
+          // 无论哪种拆法，都是多个独立 <p>，才能在两栏之间正常流动。
+          const lines = entry.body.split(/\r?\n/);
+          const groups = [];
+          let cur = [];
+          for (const ln of lines) {
+            if (!ln.trim()) {
+              if (cur.length) { groups.push(cur.join('\n')); cur = []; }
+            } else {
+              cur.push(ln.replace(/\s+$/, ''));
+            }
+          }
+          if (cur.length) groups.push(cur.join('\n'));
+          const lineMode = groups.length <= 1;
+          const pieces = lineMode
+            ? (groups[0] || '').split(/\r?\n/).map((s) => s.replace(/\s+$/, ''))
+            : groups;
+          pieces.filter((s) => s.trim()).forEach((piece) => {
             const p = document.createElement('p');
-            p.textContent = stanza.replace(/^\n+|\n+$/g, '');
+            p.className = lineMode ? 'daily-poem-line' : 'daily-stanza';
+            p.textContent = piece;
             body.appendChild(p);
           });
         } else {
