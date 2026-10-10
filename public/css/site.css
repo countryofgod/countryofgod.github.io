@@ -132,6 +132,17 @@
   font-display: swap;
 }
 
+/* Shorelines Script：美术馆左下角署名里的「SyvApple」专用手写体。
+   源文件是仓库根的 Shorelines Script Bold.otf（需经 wrangler 静态资源下发，
+   所以拷贝进了 public/fonts/ShorelinesScript/）。家族名按用户口径写作 shorelines_script */
+@font-face {
+  font-family: 'shorelines_script';
+  src: url('/fonts/ShorelinesScript/ShorelinesScript-Bold.otf') format('opentype');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 *, *::before, *::after {
   margin: 0;
   padding: 0;
@@ -732,8 +743,8 @@ body {
 .museum-intro-batch-en {
   display: block;
   font-family: 'Founders Grotesk', 'Helvetica Neue', Arial, sans-serif; /* 美术馆英文小标 Museum 同款 */
-  font-size: 18px;
-  letter-spacing: 1px;
+  font-size: 24px;
+  letter-spacing: 0.5px; /* 与 Museum 小标同一字距 */
 }
 .museum-intro-batch-zh {
   display: block;
