@@ -211,7 +211,6 @@ export async function getArchive(env) {
             title: d.title,
             date: d.date.slice(5).replace('-', '.'),
             href: d.href,
-            kind: 'daily',
           });
         }
       }

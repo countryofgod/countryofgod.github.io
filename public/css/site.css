@@ -500,34 +500,15 @@ body {
   padding: 96px 0 80px;
   /* 与上方档案馆之间的分隔细线：纯白，2px */
   border-top: 2px solid var(--white);
-  /* 这层底图就是"美术馆的那面墙"：仅底部向黑色渐变（顶端不压黑、也不模糊），
-     68% 起由透明过渡到实心黑。
-     提成变量是因为下方的纵向留白带 .museum-gap 要把这面墙原样重绘一遍——
-     两处共用同一份，换墙只需改这一处 */
-  --museum-bg: linear-gradient(
+  /* 仅底部向黑色渐变（顶端不再压黑、也不要模糊）：68% 起由透明过渡到实心黑 */
+  background:
+    linear-gradient(
       to bottom,
       rgba(0, 0, 0, 0) 0%,
       rgba(0, 0, 0, 0) 68%,
       #000 100%
     ),
     url('/img/museum.jpeg') center / cover no-repeat;
-  background: var(--museum-bg);
-}
-
-/* 中部偏右的纵向留白带：定在视口 68% 处、宽 48px，作品漂到这里就被它盖住（视觉上"跳过"这一段）。
-   注意它**不是**一块色块，而是把 .museum 那面墙原样重绘在同一条竖条上——
-   所以盒子必须与 .museum 的 padding box 严丝合缝（inset: 0）：cover 的缩放基准
-   只有和底图完全一致，条带里的树枝与圆环才和两侧接得上，差一点就会露出横向接缝。
-   铺满整块再交给 clip-path 裁成一条，只留 68% 处那 48px 宽的一段。
-   pointer-events: none 是关键：它压在最上层，但必须把指针让给下面的胶片，
-   否则条带范围内既拖不动、也悬停不出放大、漂移也不会暂停 */
-.museum-gap {
-  position: absolute;
-  inset: 0; /* 定位基准是 .museum 的 padding box，正是底图的绘制区 */
-  z-index: 2; /* 高于轨道（.museum-strip 是 position: relative / z-index auto），低于浮层控件 */
-  pointer-events: none;
-  background: var(--museum-bg);
-  clip-path: inset(0 calc(100% - 68% - 48px) 0 68%);
 }
 /* 标题栏：要和档案馆标题落在同一条左对齐线上。
    那条线是 48 而不是 96——.archive 本身是全宽的（.archive 里写了
@@ -573,6 +554,27 @@ body {
   touch-action: pan-y;
   user-select: none;
   cursor: grab;
+  /* 中部偏右的纵向留白带：定在 68% 处、宽 = 半张展品卡（--card-w 由 .museum-strip 继承下来，
+     所以窄屏把卡片改成 62vw 时，这条留白也跟着一起变）。
+     做法不是盖一块色，而是把视口"挖掉"这一条：被挖掉的地方自然露出 .museum 那面墙，
+     露出的就是同一张底图，所以与左右两侧的墙面纹理天然对齐，不存在接缝。
+     挖空靠一条三段硬停的遮罩渐变（不透明 → 透明 → 不透明）实现。
+     遮罩挂在视口上——挖空的高度因此正好等于胶片高度，不会伸到底部圆点／箭头那一行
+     （那两个在 .museum-strip-foot 里，不在视口内）。
+     另外遮罩不影响命中测试：留白范围内照样能拖拽胶片、照样悬停暂停漂移 */
+  --gap-w: calc(var(--card-w) / 2);
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 0 68%,
+    transparent 68% calc(68% + var(--gap-w)),
+    #000 calc(68% + var(--gap-w)) 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    #000 0 68%,
+    transparent 68% calc(68% + var(--gap-w)),
+    #000 calc(68% + var(--gap-w)) 100%
+  );
 }
 .museum-viewport:active {
   cursor: grabbing;
@@ -1694,19 +1696,6 @@ body {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.5);
   white-space: nowrap;
-}
-
-/* 每日条目标记：与文章条目区分（内容来自每日扁平文件，不在 pub/最新文章里） */
-.month-post-daily {
-  font-family: var(--font-nav);
-  font-size: 9px;
-  letter-spacing: 1px;
-  color: var(--white);
-  background: var(--black);
-  padding: 2px 5px;
-  margin-right: 8px;
-  border-radius: 2px;
-  vertical-align: middle;
 }
 
 /* ---------- Footer ---------- */

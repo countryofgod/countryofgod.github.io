@@ -14,13 +14,7 @@ function monthPost({ post }) {
   let out = '';
   out += `<a href="`;
   out += esc(post.href);
-  out += `" class="month-post`;
-  out += esc(post.kind === 'daily' ? ' is-daily' : '');
-  out += `">`;
-  if (post.kind === 'daily') {
-  out += `<span class="month-post-daily">每日</span>`;
-  }
-  out += `<span class="month-post-title">`;
+  out += `" class="month-post"><span class="month-post-title">`;
   out += esc(post.title);
   out += `</span><span class="month-post-date">`;
   out += esc(post.date);
