@@ -851,7 +851,7 @@ body {
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  margin-top: -6px;
+  margin-top: -12px;
   width: 64px;
   height: 64px;
   z-index: 3;
