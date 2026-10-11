@@ -418,7 +418,13 @@ body {
 /* 版块标题：只放宽字距，保持左对齐——用户明确否掉了档案馆这一处的居中。
    放宽字距取自 fauux 站那种"松"的排法；卡片内的文章标题仍居中，那才是用户要的"标题居中" */
 .section-label {
-  font-family: 'Founders Grotesk', 'Helvetica Neue', Arial, sans-serif; /* 英文小标用 Founders Grotesk */
+  /* 英文／法文小标改用 Heldane Text：
+     Founders Grotesk 是试用版子集（全部字面只有 66 字形），不含 é/É 等音符，
+     法文小标（DÉVELOPPEMENT / RÉCAPITULATION / MUSÉE）的 É 只能掉到
+     Helvetica Neue / Arial 回退，字形与同一单词里其余字母不同源。
+     Heldane Text 含完整拉丁音符（417 字形，实测含 é/É），换它后音符与其余字母同源。
+     代价：小标由无衬线变为衬线——这是用户选定的取舍 */
+  font-family: 'Heldane Text', Georgia, serif;
   font-size: 11px;
   letter-spacing: 0.5px; /* 字距收紧到极紧，贴近常规英文排法 */
   text-transform: uppercase; /* 英文小标纯大写 */
