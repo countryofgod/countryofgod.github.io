@@ -427,7 +427,10 @@ body {
   font-family: 'Heldane Text', Georgia, serif;
   font-size: 11px;
   letter-spacing: 0.5px; /* 字距收紧到极紧，贴近常规英文排法 */
-  text-transform: uppercase; /* 英文小标纯大写 */
+  /* 小标纯小写：与右侧导航的法文（exposition / développement / …）同一套大小写风格。
+     用 CSS 转而不是改 HTML 里的字面，这样模板里的 Développement 仍保持法文正字法。
+     Heldane Text 含小写 é（U+00E9，已实测），Développement → développement 不会缺字形 */
+  text-transform: lowercase;
   color: var(--gray-4);
   margin-bottom: 6px;
 }
