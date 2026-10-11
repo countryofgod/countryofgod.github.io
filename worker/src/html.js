@@ -164,18 +164,19 @@ function renderHome({ articles, archive, notes, submitMail }) {
 </head>
 <body>
 
-  <!-- 右侧章节导航：daily / pub / archive / museum / end。
+  <!-- 右侧章节导航：exposition / développement / récapitulation / musée / fin。
        随滚动高亮当前所在区块（对应项变黑，见 site.js），点任意一项平滑跳到该区块。
-       映射：daily→#daily，pub→#latest（即「最新文章」），archive→#archive，
-            museum→#museum（新增、尚未策划的板块，仅占位），end→#about（页脚）。
+       映射：exposition→#daily（呈示部），développement→#latest（展開部），
+            récapitulation→#archive（再現部），musée→#museum（美術館），fin→#about（页脚）。
+       文案改法文后高亮逻辑不受影响：它按 href→区块 id 匹配（见 site.js），不比对文字。
        固定在视口右侧、垂直居中；窄屏（≤1120px）正文会顶到边，导航收起 -->
   <nav class="side-nav" aria-label="章节导航">
     <ul class="side-nav-list">
-      <li><a class="side-nav-item" href="#daily">daily</a></li>
-      <li><a class="side-nav-item" href="#latest">pub</a></li>
-      <li><a class="side-nav-item" href="#archive">archive</a></li>
-      <li><a class="side-nav-item" href="#museum">museum</a></li>
-      <li><a class="side-nav-item" href="#about">end</a></li>
+      <li><a class="side-nav-item" href="#daily">exposition</a></li>
+      <li><a class="side-nav-item" href="#latest">développement</a></li>
+      <li><a class="side-nav-item" href="#archive">récapitulation</a></li>
+      <li><a class="side-nav-item" href="#museum">musée</a></li>
+      <li><a class="side-nav-item" href="#about">fin</a></li>
     </ul>
   </nav>
 
@@ -206,8 +207,8 @@ function renderHome({ articles, archive, notes, submitMail }) {
        左侧是一台 iPod nano 4th gen（ipod-clean.jpg），屏幕改成白底框 + 三栏标签，
        转盘上的四个按钮做成可点击热区；右侧是巴黎评论式的信息流。内容后续设计 -->
   <section class="section daily" id="daily">
-    <p class="section-label">Daily</p>
-    <h2 class="section-title">每日館</h2>
+    <p class="section-label">Exposition</p>
+    <h2 class="section-title">呈示部</h2>
     <div class="daily-grid">
       <!-- 折叠视窗：机身与右栏正文都包在里面。裁切（max-height + overflow: hidden）
            必须挂在【这一层】：overflow 会建立 BFC，而 BFC 块盒会整体躲开浮动，
@@ -291,8 +292,11 @@ function renderHome({ articles, archive, notes, submitMail }) {
     </div>
   </section>
 
-  <!-- Latest Articles -->
+  <!-- Développement（展開部）：这一栏原先没有标题，现在与其它版块一样补上小标与大标，
+       结构对齐 daily 版块（label + title 直接放在 section 下） -->
   <section class="section" id="latest">
+    <p class="section-label">Développement</p>
+    <h2 class="section-title">展開部</h2>
     <div class="article-list">
       <!-- 这里原先有一串内联几何值（width: 704.01px / height: 376.189px / transform: translateY(16.111px)）。
            它们是可视化工具或保存页面时的运行期快照，不是设计意图：height 会把卡片钉死、
@@ -310,8 +314,8 @@ function renderHome({ articles, archive, notes, submitMail }) {
   <!-- Archive -->
   <section class="section archive" id="archive">
     <div class="archive-head">
-      <p class="section-label">Archive</p>
-      <h2 class="section-title">檔案館</h2>
+      <p class="section-label">Récapitulation</p>
+      <h2 class="section-title">再現部</h2>
       <!-- 唯一的发现入口：不看时间、不看热度，随机翻一篇。
            旧文过了半年就不再摆在架子外面，这里是能碰到它们的门 -->
       <p class="archive-random"><a class="archive-random-link" href="/random">random →</a></p>
@@ -339,7 +343,7 @@ function renderHome({ articles, archive, notes, submitMail }) {
   out += `
   <section class="section museum" id="museum">
     <div class="museum-inner">
-      <p class="section-label">Museum</p>
+      <p class="section-label">Musée</p>
       <h2 class="section-title">美術館</h2>
     </div>
 
