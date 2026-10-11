@@ -749,15 +749,20 @@ body {
   transform: translate(-50%, -50%);
   writing-mode: vertical-rl;
 }
+/* 批次名（SYLVAPPLE / 藝術會）改用与美术馆等版块大标同一档的字体：
+   西文 SYLVAPPLE → Heldane Text（与版块小标同一款，含完整拉丁字形）；
+   中文「藝術會」→ var(--font-title)（'LoveLetter', 'KeBenSong'），
+   LoveLetter 无汉字、逐字回退到 KeBenSong，即「美術館」这类大标的中文字体。
+   此前西文用 Founders Grotesk、中文用 --font-sans，两套都不是标题字体 */
 .museum-intro-batch-en {
   display: block;
-  font-family: 'Founders Grotesk', 'Helvetica Neue', Arial, sans-serif; /* 美术馆英文小标 Museum 同款 */
+  font-family: 'Heldane Text', Georgia, serif;
   font-size: 24px;
   letter-spacing: 0;
 }
 .museum-intro-batch-zh {
   display: block;
-  font-family: var(--font-sans); /* 展品标题同款 */
+  font-family: var(--font-title);
   font-size: 30px;
   letter-spacing: 2px;
   line-height: 1.2;

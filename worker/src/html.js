@@ -164,10 +164,10 @@ function renderHome({ articles, archive, notes, submitMail }) {
 </head>
 <body>
 
-  <!-- 右侧章节导航：exposition / développement / récapitulation / musée / fin。
+  <!-- 右侧章节导航：exposition / développement / récapitulation / musée / coda。
        随滚动高亮当前所在区块（对应项变黑，见 site.js），点任意一项平滑跳到该区块。
        映射：exposition→#daily（呈示部），développement→#latest（展開部），
-            récapitulation→#archive（再現部），musée→#museum（美術館），fin→#about（页脚）。
+            récapitulation→#archive（再現部），musée→#museum（美術館），coda→#about（页脚）。
        文案改法文后高亮逻辑不受影响：它按 href→区块 id 匹配（见 site.js），不比对文字。
        固定在视口右侧、垂直居中；窄屏（≤1120px）正文会顶到边，导航收起 -->
   <nav class="side-nav" aria-label="章节导航">
@@ -176,7 +176,7 @@ function renderHome({ articles, archive, notes, submitMail }) {
       <li><a class="side-nav-item" href="#latest">développement</a></li>
       <li><a class="side-nav-item" href="#archive">récapitulation</a></li>
       <li><a class="side-nav-item" href="#museum">musée</a></li>
-      <li><a class="side-nav-item" href="#about">fin</a></li>
+      <li><a class="side-nav-item" href="#about">coda</a></li>
     </ul>
   </nav>
 
@@ -402,11 +402,11 @@ function renderHome({ articles, archive, notes, submitMail }) {
         <p class="museum-intro-body" data-museum-detail-body>暂无</p>
       </div>
     </aside>
-    <!-- 左下角署名：横排一行。「SyvApple」用 shorelines_script 并做成超链接
+    <!-- 左下角署名：横排一行。「SylvApple」用 shorelines_script 并做成超链接
          （主页还没拿到，href 先留空占位，拿到后替换），悬停出下划线；
          其余文字（含句点）用与右侧导航同一套字体与字号 -->
     <div class="museum-credit">
-      <p class="museum-credit-line">Introductory Chapter of <a class="museum-credit-link" href="#">SyvApple<img class="museum-credit-cursor" src="/img/cursor-handpointing.svg" width="64" height="64" alt="" aria-hidden="true"></a>.</p>
+      <p class="museum-credit-line">Introductory Chapter of <a class="museum-credit-link" href="#">SylvApple<img class="museum-credit-cursor" src="/img/cursor-handpointing.svg" width="64" height="64" alt="" aria-hidden="true"></a>.</p>
     </div>
   </section>
 
