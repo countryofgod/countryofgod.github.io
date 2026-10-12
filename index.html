@@ -1574,11 +1574,44 @@ body {
 }
 
 /* 窄屏左页边放不下整条抽屉：整组收起（与 .side-nav 在 1120px 收起同思路）。
-   抽屉挂在版心左侧页边里，需要 vw 够宽（约 ≥1400px）才不裁切，故按此断点 */
+   抽屉挂在版心左侧页边里，需要 vw 够宽（约 ≥1400px）才不裁切，故按此断点。
+   右侧「下一篇」按钮跟着同一条断点一起收：它同样只挂在右侧空白页边里 */
 @media (max-width: 1400px) {
-  .pub-toc {
+  .pub-toc,
+  .pub-next {
     display: none;
   }
+}
+
+/* ---------- Pub 下一篇（右侧空白页边，与左侧目录把手对称）---------- */
+/* 与 .pub-toc-handle 同一套定位逻辑，只是镜像到右侧：
+   right:0 + translate(100%, -50%) 把整条挪到版心右缘之"右"，落在右侧空白页边里。
+   竖向居中；右下角那枚 fixed 的 side-nav（right/bottom 24px）在视口角落，与此不冲突。
+   配色沿用 .side-nav-item：灰字、悬停加深一档 */
+.pub-next {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translate(100%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 88px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--gray-4);
+  font-family: var(--font-nav);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+  z-index: 20;
+  transition: color 0.35s ease;
+}
+.pub-next:hover {
+  color: var(--gray-6);
 }
 
 .article-item {
@@ -2975,6 +3008,9 @@ body.cursor-hidden * {
         <ul class="pub-toc-list"></ul>
       </div>
     </aside>
+    <!-- 下一篇：对称落在 pub 区块右侧空白页边（与左侧目录把手镜像）。
+         点击渐隐当前文章、淡入下一篇，不跳页面；末篇之后绕回第一篇 -->
+    <button class="pub-next" type="button" aria-label="下一篇">→</button>
     <div class="article-list">
       <!-- 这里原先有一串内联几何值（width: 704.01px / height: 376.189px / transform: translateY(16.111px)）。
            它们是可视化工具或保存页面时的运行期快照，不是设计意图：height 会把卡片钉死、
