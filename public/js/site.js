@@ -1089,6 +1089,19 @@ articleItems.forEach((item) => {
     const open = pubToc.classList.toggle('is-open');
     handle.setAttribute('aria-expanded', String(open));
   });
+
+  // 下一篇按钮（右侧空白页边，与左侧目录把手对称）：渐隐当前、淡入下一篇，
+  // 走的是同一个 switchArticle，所以过渡与点目录完全一致。
+  // 末篇之后绕回第一篇（循环），与「下一页」箭头的常规行为一致；
+  // 只有一篇时目标就是自己，switchArticle 内部会直接 return，点了没反应
+  const nextBtn = document.querySelector('#latest .pub-next');
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      const idx = items.findIndex((it) => it.classList.contains('is-active'));
+      const next = items[(idx + 1) % items.length];
+      if (next) switchArticle(next.id);
+    });
+  }
 })();
 
 
