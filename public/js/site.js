@@ -2,7 +2,10 @@
 // 把留言接口和「每日」内容指回本站；本站（Worker）没有这两个变量，就走同源相对路径。
 // 设备号在 Cookie 里，跨域请求必须带上凭据才认得出是谁。
 const API_BASE = window.__API_BASE__ || '';
-const DAILY_BASE = window.__DAILY_BASE__ || 'daily/';
+// 本站是站点根下的绝对路径 /daily/，不是相对路径 'daily/'：
+// 「每日单独页」在 /d/<日期>/<分类> 两级深的位置，相对地址会解析成
+// /d/<日期>/daily/... 而 404（表现为「这一天还没有内容。」，见下方 /d/ 段）
+const DAILY_BASE = window.__DAILY_BASE__ || '/daily/';
 
 // 屏内视图切换：点 music 是在这块屏幕里换一屏，不跳 URL、不换页面。
 // 用 pushState 记一层，MENU 才能靠 history.back() 退回上一个视图；
@@ -1008,6 +1011,87 @@ articleItems.forEach((item) => {
   });
 });
 
+// 本期目录抽屉（pub 左侧空白页边）：按 .article-list 里的文章自动生成目录，
+// 点目录项只在当前页「淡出当前文章 → 淡入目标」（不跳新页面）。
+// 目前 pub 只有创刊号一篇；后续在 .article-list 里加 .article-item 会自动进目录。
+(function () {
+  const pubToc = document.querySelector('#latest .pub-toc');
+  const list = document.querySelector('#latest .article-list');
+  const tocList = document.querySelector('#latest .pub-toc-list');
+  const handle = document.querySelector('#latest .pub-toc-handle');
+  if (!pubToc || !list || !tocList || !handle) return;
+
+  const items = Array.from(list.querySelectorAll('.article-item'));
+  if (!items.length) return;
+
+  // 补稳定 id；没有 is-active 时默认第一篇为当前
+  items.forEach((item, i) => { if (!item.id) item.id = 'pub-article-' + i; });
+  if (!items.some((it) => it.classList.contains('is-active'))) {
+    items[0].classList.add('is-active');
+  }
+  // 非当前的先收起，避免多篇文章叠在一起
+  items.forEach((it) => {
+    if (!it.classList.contains('is-active')) it.classList.add('is-hidden');
+  });
+
+  // 生成目录项：标题取 .article-title 文本
+  items.forEach((item) => {
+    const titleEl = item.querySelector('.article-title');
+    const label = titleEl ? titleEl.textContent.trim() : item.id;
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.className = 'pub-toc-link';
+    a.href = '#' + item.id;
+    a.setAttribute('role', 'menuitem');
+    a.dataset.target = item.id;
+    a.textContent = label;
+    if (item.classList.contains('is-active')) a.classList.add('is-current');
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchArticle(item.id);
+    });
+    li.appendChild(a);
+    tocList.appendChild(li);
+  });
+
+  function markCurrent(id) {
+    tocList.querySelectorAll('.pub-toc-link').forEach((l) => {
+      l.classList.toggle('is-current', l.dataset.target === id);
+    });
+  }
+
+  // 淡出当前、淡入目标；同一篇则不动
+  function switchArticle(targetId) {
+    const current = list.querySelector('.article-item.is-active');
+    const next = document.getElementById(targetId);
+    if (!next || next === current) return;
+    if (current) {
+      current.classList.remove('is-active');
+      current.classList.add('is-fading-out');
+      // 淡出结束（350ms）后从文档流摘掉，避免占位
+      window.setTimeout(() => {
+        current.classList.add('is-hidden');
+        current.classList.remove('is-fading-out');
+      }, 360);
+    }
+    next.classList.remove('is-hidden', 'is-fading-out');
+    next.classList.add('is-prein'); // 起点 opacity:0
+    // 两帧后拉回 1，触发淡入，间距与 CSS 的 0.35s 过渡对齐
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      next.classList.remove('is-prein');
+      next.classList.add('is-active');
+    }));
+    markCurrent(targetId);
+  }
+
+  // 悬停展开由 CSS 的 .pub-toc:hover 负责；点击把手则「钉住/取消钉住」展开状态
+  handle.addEventListener('click', () => {
+    const open = pubToc.classList.toggle('is-open');
+    handle.setAttribute('aria-expanded', String(open));
+  });
+})();
+
+
 // 把可点击文字拆成单字 span，供悬停时逐字错相位抖动（见 CSS 的 .jitter-char）。
 // 字符变 inline-block 后 letter-spacing 不再作用于字符之间，所以先把父元素的原字距读出来，
 // 改写成每个 span 的 margin-right（末字也留一份，才能与原样逐像素对齐），再把父元素字距清零。
@@ -1020,9 +1104,12 @@ articleItems.forEach((item) => {
 // a:not(.hero-cn-hl)：刊名里的「之」是管理台入口（一个 <a>），用户明确要求它不抖。
 // 抖动动画的选择器是 :is(a,…):hover .jitter-char——只要不把它拆成 .jitter-char，就抖不起来；
 // 而且它身上那枚反色取景窗是它的 ::before，拆字后视觉重心也会跟着变，索性整体放过。
-// a:not(.museum-credit-link)：美术馆左下角署名里的「SyvApple」，
+// a:not(.museum-credit-link)：美术馆左下角署名里的「SylvApple」，
 //   用户要求此处不要抖动，悬停只出下划线，故同样不拆字。
-document.querySelectorAll('a:not(.month-post):not(.hero-cn-hl):not(.side-nav-item):not(.archive-random-link):not(.museum-credit-link), .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit').forEach((el) => {
+// a:not(.pub-toc-link)：展開部左侧目录里的文章项，要"类似 nav 导航栏"——
+//   导航项本身就被排除，且悬停只该出下划线渐现（见 .pub-toc-link::after），
+//   拆字会把单行标题变成多个 inline-block，下划线的起止也会跟着散，故排除。
+document.querySelectorAll('a:not(.month-post):not(.hero-cn-hl):not(.side-nav-item):not(.archive-random-link):not(.museum-credit-link):not(.pub-toc-link), .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit').forEach((el) => {
   const ls = parseFloat(getComputedStyle(el).letterSpacing) || 0;
   if (ls) el.style.letterSpacing = '0px';
 

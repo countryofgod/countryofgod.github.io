@@ -297,6 +297,19 @@ function renderHome({ articles, archive, notes, submitMail }) {
   <section class="section" id="latest">
     <p class="section-label">Développement</p>
     <h2 class="section-title">展開部</h2>
+    <!-- 本期目录抽屉：挂在 pub 区块左侧空白页边。把手是拉长的 ">"，悬停或点击展开。
+         列表由 site.js 按 .article-list 里的文章自动生成；点某篇会在当前页淡出当前文章、
+         淡入目标（不跳新页面）。目前 pub 只有创刊号一篇，后续新增 .article-item 会自动进目录 -->
+    <aside class="pub-toc" aria-label="本期目录">
+      <button class="pub-toc-handle" type="button" aria-expanded="false"
+              aria-controls="pub-toc-panel" aria-label="展开本期目录">
+        <span class="pub-toc-handle-glyph" aria-hidden="true">›</span>
+      </button>
+      <div class="pub-toc-panel" id="pub-toc-panel" role="menu" aria-label="本期文章">
+        <p class="pub-toc-title">目录</p>
+        <ul class="pub-toc-list"></ul>
+      </div>
+    </aside>
     <div class="article-list">
       <!-- 这里原先有一串内联几何值（width: 704.01px / height: 376.189px / transform: translateY(16.111px)）。
            它们是可视化工具或保存页面时的运行期快照，不是设计意图：height 会把卡片钉死、

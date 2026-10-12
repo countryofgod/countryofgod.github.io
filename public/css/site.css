@@ -1417,6 +1417,163 @@ body {
   padding-top: 16px;
 }
 
+/* ---------- Pub 本期目录抽屉（展開部左侧空白页边）---------- */
+/* .pub-toc 锚在 #latest 上（.section 自带 position: relative，绝对定位的包含块就是它的
+   padding box）：top:0 即版块顶部、left:0 即版心左缘。抽屉整体落在版心左侧的空白页边里，
+   不侵占正文。窄屏版边不够宽，按 .side-nav 的口径在 1400px 以下整组收起 */
+.pub-toc {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  z-index: 20;
+  /* 容器本身不拦事件：只有把手、面板与下方桥接区（pointer-events:auto）可命中 */
+  pointer-events: none;
+}
+
+/* 透明桥接区：面板在顶部、把手在垂直居中，二者之间有一截空白。
+   这层覆盖「面板顶部→区块底部」所在的整条左侧页边（恰好是版心左缘之左的空白带），
+   让鼠标从面板滑到把手途中有连续的可命中区域，纯悬停展开才不会在半路闪退。
+   它没有任何背景，只在左侧页边里接住 hover，不挡正文 */
+.pub-toc::before {
+  content: '';
+  position: absolute;
+  top: 120px;
+  bottom: 0;
+  left: 0;
+  width: 214px;
+  transform: translateX(-100%);
+  pointer-events: auto;
+}
+
+/* 拉长的 ">"：钉在版心左缘、pub 区块垂直居中，整条落在左侧空白页边里。
+   translateX(-100%) 把它挪到版心左缘之"左"。
+   字形本身是 ›（单右尖括号），靠 scaleY 竖直拉长，得到"竖长的 >"。
+   展开时整条变深一档提示可收起（图形是右指，不做翻转） */
+.pub-toc-handle {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translate(-100%, -50%);
+  width: 26px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--gray-4);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: color 0.35s ease;
+}
+.pub-toc-handle:hover,
+.pub-toc.is-open .pub-toc-handle {
+  color: var(--gray-6);
+}
+.pub-toc-handle-glyph {
+  display: block;
+  font-family: var(--font-nav);
+  font-size: 15px;
+  line-height: 1;
+  /* 竖直拉长：15px 的 › 拉成约 75px 的"竖长 >" */
+  transform: scaleY(5);
+  transform-origin: center;
+}
+
+/* 面板：标题 + 文章列表。纯透明背景（底色本白，无需再铺白）。
+   默认藏在把手更左 24px 处并透明；展开时归位到把手左侧、淡入。
+   用 transform 的位移做"抽屉滑出"的轻微位移感 */
+.pub-toc-panel {
+  position: absolute;
+  top: 120px; /* 与 .section 的 padding-top 对齐：目录从「展開部」高度开始向下排 */
+  left: 0;
+  width: 188px;
+  transform: translate(-100%, 0) translateX(-50px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.35s ease, transform 0.35s ease, visibility 0s linear 0.35s;
+}
+.pub-toc:hover .pub-toc-panel,
+.pub-toc.is-open .pub-toc-panel {
+  top: 120px;
+  transform: translate(-100%, 0) translateX(-26px);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 0.35s ease, transform 0.35s ease, visibility 0s;
+}
+
+.pub-toc-title {
+  margin: 0 0 14px;
+  font-family: var(--font-nav);
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: var(--gray-6);
+}
+
+.pub-toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 列表项：沿用右侧章节导航的同款字体/字号/字距/配色（见 .side-nav-item） */
+.pub-toc-link {
+  position: relative;
+  display: block;
+  font-family: var(--font-nav);
+  font-size: 15px;
+  letter-spacing: 1px;
+  line-height: 1.4;
+  color: var(--gray-4);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.35s ease;
+}
+.pub-toc-link:hover {
+  color: var(--gray-6);
+}
+/* 下划线渐现：scaleX 从 0 拉到 1，左对齐起笔 */
+.pub-toc-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  opacity: 0;
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+.pub-toc-link:hover::after {
+  transform: scaleX(1);
+  opacity: 0.85;
+}
+/* 当前正在展示的文章：黑字 + 常显下划线，与 nav 选中态同语言 */
+.pub-toc-link.is-current {
+  color: var(--black);
+}
+.pub-toc-link.is-current::after {
+  transform: scaleX(1);
+  opacity: 0.85;
+}
+
+/* 窄屏左页边放不下整条抽屉：整组收起（与 .side-nav 在 1120px 收起同思路）。
+   抽屉挂在版心左侧页边里，需要 vw 够宽（约 ≥1400px）才不裁切，故按此断点 */
+@media (max-width: 1400px) {
+  .pub-toc {
+    display: none;
+  }
+}
+
 .article-item {
   /* 不透明纯白。曾试过 rgba(255,255,255,0.55)（想让首屏的白场透过卡片连下来），
      用户看后决定改回纯白，故不要在"半透明"上再试：
@@ -1435,14 +1592,32 @@ body {
   cursor: pointer;
 }
 
-/* 反色渐显渐隐：底色、描边、文字同步过渡 */
+/* 反色渐显渐隐：底色、描边、文字同步过渡。opacity 一并在这里过渡，
+   供目录切文章的「淡出当前 → 淡入目标」使用（见下面 .article-item.is-fading-out / .is-prein） */
 .article-item,
 .article-meta,
 .article-author,
 .article-title,
 .article-excerpt,
 .article-full {
-  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease,
+              opacity 0.35s ease;
+}
+
+/* 目录切文章时用的中间态：is-hidden 直接从文档流摘掉；is-fading-out 只淡出不动布局；
+   is-prein 是淡入前的「起点」（opacity 0），下一帧去掉后由 .is-active 拉回 1。
+   三者都不带背景块——底色本就是白，叠加任何底色都会破坏 article 卡片的纯白约定 */
+.article-item.is-hidden {
+  display: none;
+}
+.article-item.is-fading-out {
+  opacity: 0;
+}
+.article-item.is-prein {
+  opacity: 0;
+}
+.article-item.is-active {
+  opacity: 1;
 }
 
 /* 悬停反色：与档案馆年份行同一套交互语言 */
