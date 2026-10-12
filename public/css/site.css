@@ -1446,10 +1446,9 @@ body {
   pointer-events: auto;
 }
 
-/* 拉长的 ">"：钉在版心左缘、pub 区块垂直居中，整条落在左侧空白页边里。
-   translateX(-100%) 把它挪到版心左缘之"左"。
-   字形本身是 ›（单右尖括号），靠 scaleY 竖直拉长，得到"竖长的 >"。
-   展开时整条变深一档提示可收起（图形是右指，不做翻转） */
+/* 把手：竖长条 + 空心小圆圈，钉在版心左缘、pub 区块垂直居中。
+   translateX(-100%) 把它整条挪到版心左缘之"左"，正好落在左侧空白页边里。
+   展开时整条变深一档提示可收起（圆圈是对称图形，无需翻转） */
 .pub-toc-handle {
   position: absolute;
   left: 0;
@@ -1472,14 +1471,14 @@ body {
 .pub-toc.is-open .pub-toc-handle {
   color: var(--gray-6);
 }
-.pub-toc-handle-glyph {
-  display: block;
-  font-family: var(--font-nav);
-  font-size: 15px;
-  line-height: 1;
-  /* 竖直拉长：15px 的 › 拉成约 75px 的"竖长 >" */
-  transform: scaleY(5);
-  transform-origin: center;
+/* 空心小圆圈：直径 20px、2px 描边、无填充，居中于把手竖条 */
+.pub-toc-handle::before {
+  content: '';
+  width: 20px;
+  height: 20px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  box-sizing: border-box;
 }
 
 /* 面板：标题 + 文章列表。纯透明背景（底色本白，无需再铺白）。
@@ -1523,10 +1522,12 @@ body {
   gap: 12px;
 }
 
-/* 列表项：沿用右侧章节导航的同款字体/字号/字距/配色（见 .side-nav-item） */
+/* 列表项：沿用右侧章节导航的同款字体/字号/字距/配色（见 .side-nav-item）。
+   display: inline-block 是关键：让链接盒子收缩到「文章标题那几个字」的宽度，
+   下划线（::after 的 width:100%）于是只落在标题文字下方，不会拉满整列 */
 .pub-toc-link {
   position: relative;
-  display: block;
+  display: inline-block;
   font-family: var(--font-nav);
   font-size: 15px;
   letter-spacing: 1px;
@@ -1539,7 +1540,8 @@ body {
 .pub-toc-link:hover {
   color: var(--gray-6);
 }
-/* 下划线渐现：scaleX 从 0 拉到 1，左对齐起笔 */
+/* 下划线：只在悬停到该文章标题时出现，且只覆盖标题那几个字。
+   scaleX 0→1 配 opacity，左对齐起笔、渐现 */
 .pub-toc-link::after {
   content: '';
   position: absolute;
@@ -1557,13 +1559,10 @@ body {
   transform: scaleX(1);
   opacity: 0.85;
 }
-/* 当前正在展示的文章：黑字 + 常显下划线，与 nav 选中态同语言 */
+/* 当前正在展示的文章：只用黑字标识。
+   用户要求删掉常显下划线——下划线只属于悬停态，不属于选中态 */
 .pub-toc-link.is-current {
   color: var(--black);
-}
-.pub-toc-link.is-current::after {
-  transform: scaleX(1);
-  opacity: 0.85;
 }
 
 /* 窄屏左页边放不下整条抽屉：整组收起（与 .side-nav 在 1120px 收起同思路）。

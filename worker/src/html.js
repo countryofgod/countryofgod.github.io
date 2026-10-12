@@ -302,9 +302,7 @@ function renderHome({ articles, archive, notes, submitMail }) {
          淡入目标（不跳新页面）。目前 pub 只有创刊号一篇，后续新增 .article-item 会自动进目录 -->
     <aside class="pub-toc" aria-label="本期目录">
       <button class="pub-toc-handle" type="button" aria-expanded="false"
-              aria-controls="pub-toc-panel" aria-label="展开本期目录">
-        <span class="pub-toc-handle-glyph" aria-hidden="true">›</span>
-      </button>
+              aria-controls="pub-toc-panel" aria-label="展开本期目录"></button>
       <div class="pub-toc-panel" id="pub-toc-panel" role="menu" aria-label="本期文章">
         <p class="pub-toc-title">目录</p>
         <ul class="pub-toc-list"></ul>
