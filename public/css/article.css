@@ -84,6 +84,14 @@
   color: var(--gray-6);
 }
 
+/* 每日单独页（/d/<日期>/<分类>）的正文来自扁平 txt，分段就是文件里的空行/换行，
+   必须 pre-line 才能原样显示；不加的话整篇会被折叠成一段。
+   不能加到上面的 .sheet-body：那是文章永久页共用的一条，正文是带 <br> 的富文本，
+   全局加 pre-line 会改变它。故只限本页（<main class="sheet sheet-daily">） */
+.sheet-daily .sheet-body {
+  white-space: pre-line;
+}
+
 /* 已入档：给一段摘要让人认得出它，正文不展开 */
 .sheet-excerpt {
   font-size: 15px;
