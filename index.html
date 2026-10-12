@@ -140,6 +140,17 @@
   font-display: swap;
 }
 
+/* Shorelines Script：美术馆左下角署名里的「SyvApple」专用手写体。
+   源文件是仓库根的 Shorelines Script Bold.otf（需经 wrangler 静态资源下发，
+   所以拷贝进了 public/fonts/ShorelinesScript/）。家族名按用户口径写作 shorelines_script */
+@font-face {
+  font-family: 'shorelines_script';
+  src: url('/public/fonts/ShorelinesScript/ShorelinesScript-Bold.otf') format('opentype');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 *, *::before, *::after {
   margin: 0;
   padding: 0;
@@ -415,10 +426,19 @@ body {
 /* 版块标题：只放宽字距，保持左对齐——用户明确否掉了档案馆这一处的居中。
    放宽字距取自 fauux 站那种"松"的排法；卡片内的文章标题仍居中，那才是用户要的"标题居中" */
 .section-label {
-  font-family: 'Founders Grotesk', 'Helvetica Neue', Arial, sans-serif; /* 英文小标用 Founders Grotesk */
+  /* 英文／法文小标改用 Heldane Text：
+     Founders Grotesk 是试用版子集（全部字面只有 66 字形），不含 é/É 等音符，
+     法文小标（DÉVELOPPEMENT / RÉCAPITULATION / MUSÉE）的 É 只能掉到
+     Helvetica Neue / Arial 回退，字形与同一单词里其余字母不同源。
+     Heldane Text 含完整拉丁音符（417 字形，实测含 é/É），换它后音符与其余字母同源。
+     代价：小标由无衬线变为衬线——这是用户选定的取舍 */
+  font-family: 'Heldane Text', Georgia, serif;
   font-size: 11px;
   letter-spacing: 0.5px; /* 字距收紧到极紧，贴近常规英文排法 */
-  text-transform: uppercase; /* 英文小标纯大写 */
+  /* 小标纯小写：与右侧导航的法文（exposition / développement / …）同一套大小写风格。
+     用 CSS 转而不是改 HTML 里的字面，这样模板里的 Développement 仍保持法文正字法。
+     Heldane Text 含小写 é（U+00E9，已实测），Développement → développement 不会缺字形 */
+  text-transform: lowercase;
   color: var(--gray-4);
   margin-bottom: 6px;
 }
@@ -737,15 +757,20 @@ body {
   transform: translate(-50%, -50%);
   writing-mode: vertical-rl;
 }
+/* 批次名（SYLVAPPLE / 藝術會）改用与美术馆等版块大标同一档的字体：
+   西文 SYLVAPPLE → Heldane Text（与版块小标同一款，含完整拉丁字形）；
+   中文「藝術會」→ var(--font-title)（'LoveLetter', 'KeBenSong'），
+   LoveLetter 无汉字、逐字回退到 KeBenSong，即「美術館」这类大标的中文字体。
+   此前西文用 Founders Grotesk、中文用 --font-sans，两套都不是标题字体 */
 .museum-intro-batch-en {
   display: block;
-  font-family: 'Founders Grotesk', 'Helvetica Neue', Arial, sans-serif; /* 美术馆英文小标 Museum 同款 */
+  font-family: 'Heldane Text', Georgia, serif;
   font-size: 24px;
   letter-spacing: 0;
 }
 .museum-intro-batch-zh {
   display: block;
-  font-family: var(--font-sans); /* 展品标题同款 */
+  font-family: var(--font-title);
   font-size: 30px;
   letter-spacing: 2px;
   line-height: 1.2;
@@ -793,6 +818,65 @@ body {
   font-size: 15px;
   line-height: 1.7;
   color: rgba(255, 255, 255, 0.78);
+}
+
+/* ---------- 左下角署名 ---------- */
+/* 竖排两件：上排是文字，下排是 Mac 手型光标。整块水平居中、钉在美术馆区块底部。
+   文字：white-space: nowrap 保证横排一行不折行；
+        整段（含句点）用与右侧导航同一套字体与字号，只有「SyvApple」换 shorelines_script。
+   光标：取自 daviddarnes/mac-cursors 的 handpointing.svg（当前 64×64，2 倍）；
+        嵌在 SyvApple 名字链接内，绝对定位到名字正下方 */
+.museum-credit {
+  position: absolute;
+  /* 水平居中：left 50% 再往左挪自身一半 */
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 28px;
+  /* 与 .museum-inner 同为 2，压在 .museum::after（上层覆盖图，z-index 1）之上 */
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.museum-credit-line {
+  margin: 0;
+  font-family: var(--font-nav);
+  font-size: 15px; /* 与 .side-nav-item 一致 */
+  letter-spacing: 1px;
+  color: var(--white);
+  white-space: nowrap;
+}
+/* 链接不换颜色。下划线改用 border-bottom 画而不是 text-decoration：
+   text-decoration 不可过渡，做不到渐显渐隐；border-color 可以。
+   常态全透明、悬停转白，0.35s 与全站其它悬停反馈同一时长 */
+.museum-credit-link {
+  font-family: 'shorelines_script', var(--font-nav);
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0);
+  transition: border-color 0.35s ease;
+}
+.museum-credit-link:hover {
+  border-bottom-color: var(--white);
+}
+/* 署名正下方的手型光标：现在嵌在 SyvApple 名字链接里，
+   绝对定位到名字正下方、相对名字水平居中（2 倍尺寸：64px）。
+   上移：margin-top 取负，让光标略贴住名字底部（比原先 8px 间隙上移）。
+   独立图层：z-index 高于署名文字，确保压在美术馆上层覆盖图之上、不被行盒裁切 */
+.museum-credit-link {
+  position: relative;
+}
+.museum-credit-cursor {
+  display: block;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: -16px;
+  width: 64px;
+  height: 64px;
+  z-index: 3;
 }
 
 /* ---------- 底部控件 ---------- */
@@ -1341,6 +1425,162 @@ body {
   padding-top: 16px;
 }
 
+/* ---------- Pub 本期目录抽屉（展開部左侧空白页边）---------- */
+/* .pub-toc 锚在 #latest 上（.section 自带 position: relative，绝对定位的包含块就是它的
+   padding box）：top:0 即版块顶部、left:0 即版心左缘。抽屉整体落在版心左侧的空白页边里，
+   不侵占正文。窄屏版边不够宽，按 .side-nav 的口径在 1400px 以下整组收起 */
+.pub-toc {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  z-index: 20;
+  /* 容器本身不拦事件：只有把手、面板与下方桥接区（pointer-events:auto）可命中 */
+  pointer-events: none;
+}
+
+/* 透明桥接区：面板在顶部、把手在垂直居中，二者之间有一截空白。
+   这层覆盖「面板顶部→区块底部」所在的整条左侧页边（恰好是版心左缘之左的空白带），
+   让鼠标从面板滑到把手途中有连续的可命中区域，纯悬停展开才不会在半路闪退。
+   它没有任何背景，只在左侧页边里接住 hover，不挡正文 */
+.pub-toc::before {
+  content: '';
+  position: absolute;
+  top: 120px;
+  bottom: 0;
+  left: 0;
+  width: 214px;
+  transform: translateX(-100%);
+  pointer-events: auto;
+}
+
+/* 把手：竖长条 + 空心小圆圈，钉在版心左缘、pub 区块垂直居中。
+   translateX(-100%) 把它整条挪到版心左缘之"左"，正好落在左侧空白页边里。
+   展开时整条变深一档提示可收起（圆圈是对称图形，无需翻转） */
+.pub-toc-handle {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translate(-100%, -50%);
+  width: 26px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--gray-4);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: color 0.35s ease;
+}
+.pub-toc-handle:hover,
+.pub-toc.is-open .pub-toc-handle {
+  color: var(--gray-6);
+}
+/* 空心小圆圈：直径 20px、2px 描边、无填充，居中于把手竖条 */
+.pub-toc-handle::before {
+  content: '';
+  width: 20px;
+  height: 20px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+/* 面板：标题 + 文章列表。纯透明背景（底色本白，无需再铺白）。
+   默认藏在把手更左 24px 处并透明；展开时归位到把手左侧、淡入。
+   用 transform 的位移做"抽屉滑出"的轻微位移感 */
+.pub-toc-panel {
+  position: absolute;
+  top: 120px; /* 与 .section 的 padding-top 对齐：目录从「展開部」高度开始向下排 */
+  left: 0;
+  width: 188px;
+  transform: translate(-100%, 0) translateX(-50px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.35s ease, transform 0.35s ease, visibility 0s linear 0.35s;
+}
+.pub-toc:hover .pub-toc-panel,
+.pub-toc.is-open .pub-toc-panel {
+  top: 120px;
+  transform: translate(-100%, 0) translateX(-26px);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 0.35s ease, transform 0.35s ease, visibility 0s;
+}
+
+.pub-toc-title {
+  margin: 0 0 14px;
+  font-family: var(--font-nav);
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: var(--gray-6);
+}
+
+.pub-toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 列表项：沿用右侧章节导航的同款字体/字号/字距/配色（见 .side-nav-item）。
+   display: inline-block 是关键：让链接盒子收缩到「文章标题那几个字」的宽度，
+   下划线（::after 的 width:100%）于是只落在标题文字下方，不会拉满整列 */
+.pub-toc-link {
+  position: relative;
+  display: inline-block;
+  font-family: var(--font-nav);
+  font-size: 15px;
+  letter-spacing: 1px;
+  line-height: 1.4;
+  color: var(--gray-4);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.35s ease;
+}
+.pub-toc-link:hover {
+  color: var(--gray-6);
+}
+/* 下划线：只在悬停到该文章标题时出现，且只覆盖标题那几个字。
+   scaleX 0→1 配 opacity，左对齐起笔、渐现 */
+.pub-toc-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  opacity: 0;
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+.pub-toc-link:hover::after {
+  transform: scaleX(1);
+  opacity: 0.85;
+}
+/* 当前正在展示的文章：只用黑字标识。
+   用户要求删掉常显下划线——下划线只属于悬停态，不属于选中态 */
+.pub-toc-link.is-current {
+  color: var(--black);
+}
+
+/* 窄屏左页边放不下整条抽屉：整组收起（与 .side-nav 在 1120px 收起同思路）。
+   抽屉挂在版心左侧页边里，需要 vw 够宽（约 ≥1400px）才不裁切，故按此断点 */
+@media (max-width: 1400px) {
+  .pub-toc {
+    display: none;
+  }
+}
+
 .article-item {
   /* 不透明纯白。曾试过 rgba(255,255,255,0.55)（想让首屏的白场透过卡片连下来），
      用户看后决定改回纯白，故不要在"半透明"上再试：
@@ -1359,14 +1599,32 @@ body {
   cursor: pointer;
 }
 
-/* 反色渐显渐隐：底色、描边、文字同步过渡 */
+/* 反色渐显渐隐：底色、描边、文字同步过渡。opacity 一并在这里过渡，
+   供目录切文章的「淡出当前 → 淡入目标」使用（见下面 .article-item.is-fading-out / .is-prein） */
 .article-item,
 .article-meta,
 .article-author,
 .article-title,
 .article-excerpt,
 .article-full {
-  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease,
+              opacity 0.35s ease;
+}
+
+/* 目录切文章时用的中间态：is-hidden 直接从文档流摘掉；is-fading-out 只淡出不动布局；
+   is-prein 是淡入前的「起点」（opacity 0），下一帧去掉后由 .is-active 拉回 1。
+   三者都不带背景块——底色本就是白，叠加任何底色都会破坏 article 卡片的纯白约定 */
+.article-item.is-hidden {
+  display: none;
+}
+.article-item.is-fading-out {
+  opacity: 0;
+}
+.article-item.is-prein {
+  opacity: 0;
+}
+.article-item.is-active {
+  opacity: 1;
 }
 
 /* 悬停反色：与档案馆年份行同一套交互语言 */
@@ -2472,6 +2730,12 @@ body.cursor-hidden * {
   animation: none;
 }
 
+/* 美术馆左下角署名不做抖动：悬停只出下划线。
+   上面的 JS 拆字选择器已把 .museum-credit-link 排除，这里同样兜一层保险 */
+.museum-credit-link:hover .jitter-char {
+  animation: none;
+}
+
 :is(a, .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit):hover .jitter-char:nth-child(2n) {
   animation-delay: 0.1s;
 }
@@ -2567,18 +2831,19 @@ body.cursor-hidden * {
 </head>
 <body>
 
-  <!-- 右侧章节导航：daily / pub / archive / museum / end。
+  <!-- 右侧章节导航：exposition / développement / récapitulation / musée / coda。
        随滚动高亮当前所在区块（对应项变黑，见 site.js），点任意一项平滑跳到该区块。
-       映射：daily→#daily，pub→#latest（即「最新文章」），archive→#archive，
-            museum→#museum（新增、尚未策划的板块，仅占位），end→#about（页脚）。
+       映射：exposition→#daily（呈示部），développement→#latest（展開部），
+            récapitulation→#archive（再現部），musée→#museum（美術館），coda→#about（页脚）。
+       文案改法文后高亮逻辑不受影响：它按 href→区块 id 匹配（见 site.js），不比对文字。
        固定在视口右侧、垂直居中；窄屏（≤1120px）正文会顶到边，导航收起 -->
   <nav class="side-nav" aria-label="章节导航">
     <ul class="side-nav-list">
-      <li><a class="side-nav-item" href="#daily">daily</a></li>
-      <li><a class="side-nav-item" href="#latest">pub</a></li>
-      <li><a class="side-nav-item" href="#archive">archive</a></li>
-      <li><a class="side-nav-item" href="#museum">museum</a></li>
-      <li><a class="side-nav-item" href="#about">end</a></li>
+      <li><a class="side-nav-item" href="#daily">exposition</a></li>
+      <li><a class="side-nav-item" href="#latest">développement</a></li>
+      <li><a class="side-nav-item" href="#archive">récapitulation</a></li>
+      <li><a class="side-nav-item" href="#museum">musée</a></li>
+      <li><a class="side-nav-item" href="#about">coda</a></li>
     </ul>
   </nav>
 
@@ -2609,8 +2874,8 @@ body.cursor-hidden * {
        左侧是一台 iPod nano 4th gen（ipod-clean.jpg），屏幕改成白底框 + 三栏标签，
        转盘上的四个按钮做成可点击热区；右侧是巴黎评论式的信息流。内容后续设计 -->
   <section class="section daily" id="daily">
-    <p class="section-label">Daily</p>
-    <h2 class="section-title">每日館</h2>
+    <p class="section-label">Exposition</p>
+    <h2 class="section-title">呈示部</h2>
     <div class="daily-grid">
       <!-- 折叠视窗：机身与右栏正文都包在里面。裁切（max-height + overflow: hidden）
            必须挂在【这一层】：overflow 会建立 BFC，而 BFC 块盒会整体躲开浮动，
@@ -2694,8 +2959,22 @@ body.cursor-hidden * {
     </div>
   </section>
 
-  <!-- Latest Articles -->
+  <!-- Développement（展開部）：这一栏原先没有标题，现在与其它版块一样补上小标与大标，
+       结构对齐 daily 版块（label + title 直接放在 section 下） -->
   <section class="section" id="latest">
+    <p class="section-label">Développement</p>
+    <h2 class="section-title">展開部</h2>
+    <!-- 本期目录抽屉：挂在 pub 区块左侧空白页边。把手是拉长的 ">"，悬停或点击展开。
+         列表由 site.js 按 .article-list 里的文章自动生成；点某篇会在当前页淡出当前文章、
+         淡入目标（不跳新页面）。目前 pub 只有创刊号一篇，后续新增 .article-item 会自动进目录 -->
+    <aside class="pub-toc" aria-label="本期目录">
+      <button class="pub-toc-handle" type="button" aria-expanded="false"
+              aria-controls="pub-toc-panel" aria-label="展开本期目录"></button>
+      <div class="pub-toc-panel" id="pub-toc-panel" role="menu" aria-label="本期文章">
+        <p class="pub-toc-title">目录</p>
+        <ul class="pub-toc-list"></ul>
+      </div>
+    </aside>
     <div class="article-list">
       <!-- 这里原先有一串内联几何值（width: 704.01px / height: 376.189px / transform: translateY(16.111px)）。
            它们是可视化工具或保存页面时的运行期快照，不是设计意图：height 会把卡片钉死、
@@ -2726,8 +3005,8 @@ body.cursor-hidden * {
   <!-- Archive -->
   <section class="section archive" id="archive">
     <div class="archive-head">
-      <p class="section-label">Archive</p>
-      <h2 class="section-title">檔案館</h2>
+      <p class="section-label">Récapitulation</p>
+      <h2 class="section-title">再現部</h2>
       <!-- 唯一的发现入口：不看时间、不看热度，随机翻一篇。
            旧文过了半年就不再摆在架子外面，这里是能碰到它们的门 -->
       <p class="archive-random"><a class="archive-random-link" href="https://gods-country.countryofgod.workers.dev/random">random →</a></p>
@@ -2747,11 +3026,11 @@ body.cursor-hidden * {
             <div class="archive-month"><span class="month-num">07</span><div class="month-posts"></div></div>
             <div class="archive-month"><span class="month-num">08</span><div class="month-posts"></div></div>
             <div class="archive-month"><span class="month-num">09</span><div class="month-posts"></div></div>
-            <div class="archive-month has-posts"><span class="month-num">10</span><div class="month-posts"><a href="https://gods-country.countryofgod.workers.dev/p/chuangkanhao" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/article" class="month-post"><span class="month-post-title">三等候车室</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/poem" class="month-post"><span class="month-post-title">致云雀</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/music" class="month-post"><span class="month-post-title">李斯特《爱之梦》</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/article" class="month-post"><span class="month-post-title">河的第三条岸</span><span class="month-post-date">10.09</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/poem" class="month-post"><span class="month-post-title">失去的美酒</span><span class="month-post-date">10.09</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/music" class="month-post"><span class="month-post-title">萨蒂《烦恼》</span><span class="month-post-date">10.09</span></a></div></div>
+            <div class="archive-month has-posts"><span class="month-num">10</span><div class="month-posts"><a href="https://gods-country.countryofgod.workers.dev/p/chuangkanhao" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-12/article" class="month-post"><span class="month-post-title">赛纳河畔的无名少女</span><span class="month-post-date">10.12</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-12/poem" class="month-post"><span class="month-post-title">园丁集·15</span><span class="month-post-date">10.12</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/article" class="month-post"><span class="month-post-title">三等候车室</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/poem" class="month-post"><span class="month-post-title">致云雀</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/music" class="month-post"><span class="month-post-title">李斯特《爱之梦》</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/article" class="month-post"><span class="month-post-title">河的第三条岸</span><span class="month-post-date">10.09</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/poem" class="month-post"><span class="month-post-title">失去的美酒</span><span class="month-post-date">10.09</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/music" class="month-post"><span class="month-post-title">萨蒂《烦恼》</span><span class="month-post-date">10.09</span></a></div></div>
             <div class="archive-month"><span class="month-num">11</span><div class="month-posts"></div></div>
             <div class="archive-month"><span class="month-num">12</span><div class="month-posts"></div></div>
           </div>
-          <div class="month-posts-panel" data-month=""><a href="https://gods-country.countryofgod.workers.dev/p/chuangkanhao" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/article" class="month-post"><span class="month-post-title">三等候车室</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/poem" class="month-post"><span class="month-post-title">致云雀</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/music" class="month-post"><span class="month-post-title">李斯特《爱之梦》</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/article" class="month-post"><span class="month-post-title">河的第三条岸</span><span class="month-post-date">10.09</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/poem" class="month-post"><span class="month-post-title">失去的美酒</span><span class="month-post-date">10.09</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/music" class="month-post"><span class="month-post-title">萨蒂《烦恼》</span><span class="month-post-date">10.09</span></a></div>
+          <div class="month-posts-panel" data-month=""><a href="https://gods-country.countryofgod.workers.dev/p/chuangkanhao" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-12/article" class="month-post"><span class="month-post-title">赛纳河畔的无名少女</span><span class="month-post-date">10.12</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-12/poem" class="month-post"><span class="month-post-title">园丁集·15</span><span class="month-post-date">10.12</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/article" class="month-post"><span class="month-post-title">三等候车室</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/poem" class="month-post"><span class="month-post-title">致云雀</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/music" class="month-post"><span class="month-post-title">李斯特《爱之梦》</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/article" class="month-post"><span class="month-post-title">河的第三条岸</span><span class="month-post-date">10.09</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/poem" class="month-post"><span class="month-post-title">失去的美酒</span><span class="month-post-date">10.09</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/music" class="month-post"><span class="month-post-title">萨蒂《烦恼》</span><span class="month-post-date">10.09</span></a></div>
         </div>
       </div>
     </div>
@@ -2763,7 +3042,7 @@ body.cursor-hidden * {
 
   <section class="section museum" id="museum">
     <div class="museum-inner">
-      <p class="section-label">Museum</p>
+      <p class="section-label">Musée</p>
       <h2 class="section-title">美術館</h2>
     </div>
 
@@ -2832,6 +3111,12 @@ body.cursor-hidden * {
         <p class="museum-intro-body" data-museum-detail-body>暂无</p>
       </div>
     </aside>
+    <!-- 左下角署名：横排一行。「SylvApple」用 shorelines_script 并做成超链接
+         （主页还没拿到，href 先留空占位，拿到后替换），悬停出下划线；
+         其余文字（含句点）用与右侧导航同一套字体与字号 -->
+    <div class="museum-credit">
+      <p class="museum-credit-line">Introductory Chapter of <a class="museum-credit-link" href="#">SylvApple<img class="museum-credit-cursor" src="/public/img/cursor-handpointing.svg" width="64" height="64" alt="" aria-hidden="true"></a>.</p>
+    </div>
   </section>
 
   <!-- Footer -->
