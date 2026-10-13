@@ -1608,8 +1608,8 @@ body {
 .pub-next:hover {
   color: var(--gray-6);
 }
-/* 箭头外面的圆圈：与左侧把手的空心圆圈同一套语言（2px 描边、无填充、currentColor）。
-   直径放大到 34px，才容得下 18px 的箭头（左侧那只圈里没有字，20px 就够）。
+/* 箭头外面的圆圈：与左侧把手的空心圆圈同一套语言（无填充、currentColor）。
+   描边从 2px 收到 1px——圈里要容箭头，2px 在 34px 的圈上显得过粗。
    绝对定位居中于按钮 */
 .pub-next::before {
   content: '';
@@ -1619,16 +1619,16 @@ body {
   transform: translate(-50%, -50%);
   width: 34px;
   height: 34px;
-  border: 2px solid currentColor;
+  border: 1px solid currentColor;
   border-radius: 50%;
   box-sizing: border-box;
 }
-/* 箭头文字压在圆圈之上：圆圈是绝对定位的伪元素，
-   不给这层 position: relative 的话它会盖住字形 */
+/* 箭头（内联 SVG）压在圆圈之上：圆圈是绝对定位的伪元素，
+   不给这层 position: relative 的话它会盖住箭头。
+   尺寸仍是 18px，与「下展开箭头」的字号对齐 */
 .pub-next-glyph {
   position: relative;
   display: block;
-  line-height: 1;
 }
 
 .article-item {

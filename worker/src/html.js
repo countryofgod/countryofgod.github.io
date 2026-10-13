@@ -309,8 +309,11 @@ function renderHome({ articles, archive, notes, submitMail }) {
       </div>
     </aside>
     <!-- 下一篇：对称落在 pub 区块右侧空白页边（与左侧目录把手镜像）。
-         点击渐隐当前文章、淡入下一篇，不跳页面；末篇之后绕回第一篇 -->
-    <button class="pub-next" type="button" aria-label="下一篇"><span class="pub-next-glyph">→</span></button>
+         点击渐隐当前文章、淡入下一篇，不跳页面；末篇之后绕回第一篇。
+         箭头用内联 SVG 而不是字符 →：字符受字体度量影响，在自己的字面框里
+         并不居中，塞进圆圈必然偏。SVG 的路径在 24×24 viewBox 里精确居中
+         （墨迹 x 3..21、y 5..19，中心都是 12），配合 flex 居中即与圆圈同心 -->
+    <button class="pub-next" type="button" aria-label="下一篇"><svg class="pub-next-glyph" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M3 12h18M15 5l6 7-6 7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div class="article-list">
       <!-- 这里原先有一串内联几何值（width: 704.01px / height: 376.189px / transform: translateY(16.111px)）。
            它们是可视化工具或保存页面时的运行期快照，不是设计意图：height 会把卡片钉死、
