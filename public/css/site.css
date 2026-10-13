@@ -2770,8 +2770,9 @@ body.cursor-hidden * {
   display: inline-block;
 }
 
-:is(a, .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit):hover .jitter-char {
+:is(a, .footer-about-label, .footer-guestbook-label, .footer-credit):hover .jitter-char {
   animation: char-jitter 0.6s linear infinite;
+  /* .footer-name 不参与这一档：它改为常驻抖动，见下方专门规则 */
 }
 
 /* 右侧章节导航不参与逐字抖动：英文小标是静态排版，抖起来反而干扰阅读；
@@ -2786,12 +2787,36 @@ body.cursor-hidden * {
   animation: none;
 }
 
-:is(a, .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit):hover .jitter-char:nth-child(2n) {
+:is(a, .footer-about-label, .footer-guestbook-label, .footer-credit):hover .jitter-char:nth-child(2n) {
   animation-delay: 0.1s;
 }
 
-:is(a, .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit):hover .jitter-char:nth-child(3n) {
+:is(a, .footer-about-label, .footer-guestbook-label, .footer-credit):hover .jitter-char:nth-child(3n) {
   animation-delay: 0.2s;
+}
+
+/* 页脚刊名「Einmal ist keinmal」：默认就抖，不需要悬停（用户要求）。
+   周期取 1.5s，是悬停那档 0.6s 的 2.5 倍——常驻动画必须比悬停反馈更慢：
+   悬停抖是"回应一次操作"，常驻抖是"一直在场的呼吸"，快了会变成故障特效，
+   也会把读者的注意力从正文上拽走。
+   错相位延迟按同一比例放慢（0.25s / 0.5s），"两档间隔 ÷ 周期"的比值不变，
+   抖动节奏才与悬停那档同构。
+   .footer-name 已从上面所有悬停名单里移除，否则 0.6s 会按特异度覆盖这一档 */
+.footer-name .jitter-char {
+  animation: char-jitter 1.5s linear infinite;
+}
+.footer-name .jitter-char:nth-child(2n) {
+  animation-delay: 0.25s;
+}
+.footer-name .jitter-char:nth-child(3n) {
+  animation-delay: 0.5s;
+}
+
+/* 常驻抖动对 prefers-reduced-motion 的用户是纯干扰，直接停掉 */
+@media (prefers-reduced-motion: reduce) {
+  .footer-name .jitter-char {
+    animation: none;
+  }
 }
 
 /* 位移在一像素量级：用户先说要"轻微"，看过之后要"再明显一点"，
@@ -2867,7 +2892,7 @@ body.cursor-hidden * {
     color: var(--gray-5);
   }
   /* 逐字抖动是"悬停才颤"的效果，触屏没有悬停这一说，别让它点一下就一直颤 */
-  :is(a, .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit):hover .jitter-char {
+  :is(a, .footer-about-label, .footer-guestbook-label, .footer-credit):hover .jitter-char {
     animation: none;
   }
   /* 跟随鼠标的反色圆在触屏上没有鼠标可跟；留着它只是一块固定定位的
