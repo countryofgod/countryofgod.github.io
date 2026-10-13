@@ -1594,8 +1594,11 @@ body {
   border: none;
   background: transparent;
   color: var(--gray-4);
-  font-family: var(--font-nav);
-  font-size: 15px;
+  /* 尺寸与「下展开箭头」（.daily-toggle / .article-toggle）完全一致：
+     同为 18px、var(--font-body)、line-height 1。位置盒子仍沿用 26×88，
+     只为与左侧目录把手等宽等高、观感对称，不影响字形大小 */
+  font-family: var(--font-body);
+  font-size: 18px;
   line-height: 1;
   cursor: pointer;
   pointer-events: auto;
