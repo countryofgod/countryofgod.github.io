@@ -1587,7 +1587,7 @@ body {
 /* 与 .pub-toc-handle 同一套定位逻辑，只是镜像到右侧：
    right:0 + translate(100%, -50%) 把整条挪到版心右缘之"右"，落在右侧空白页边里。
    竖向居中；右下角那枚 fixed 的 side-nav（right/bottom 24px）在视口角落，与此不冲突。
-   配色沿用 .side-nav-item：灰字、悬停加深一档 */
+   配色沿用 .side-nav-item：灰字，悬停加深一档 */
 .pub-next {
   position: absolute;
   right: 0;
@@ -1596,15 +1596,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
+  /* 加宽到能盖住 34px 的圆圈：原 26px 只够左侧把手那条细竖条 */
+  width: 38px;
   height: 88px;
   padding: 0;
   border: none;
   background: transparent;
   color: var(--gray-4);
-  /* 尺寸与「下展开箭头」（.daily-toggle / .article-toggle）完全一致：
-     同为 18px、var(--font-body)、line-height 1。位置盒子仍沿用 26×88，
-     只为与左侧目录把手等宽等高、观感对称，不影响字形大小 */
+  /* 字形尺寸与「下展开箭头」（.daily-toggle / .article-toggle）完全一致：
+     同为 18px、var(--font-body)、line-height 1。盒子仍竖向居中、与左侧把手等高 */
   font-family: var(--font-body);
   font-size: 18px;
   line-height: 1;
@@ -1615,6 +1615,28 @@ body {
 }
 .pub-next:hover {
   color: var(--gray-6);
+}
+/* 箭头外面的圆圈：与左侧把手的空心圆圈同一套语言（2px 描边、无填充、currentColor）。
+   直径放大到 34px，才容得下 18px 的箭头（左侧那只圈里没有字，20px 就够）。
+   绝对定位居中于按钮 */
+.pub-next::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 34px;
+  height: 34px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+/* 箭头文字压在圆圈之上：圆圈是绝对定位的伪元素，
+   不给这层 position: relative 的话它会盖住字形 */
+.pub-next-glyph {
+  position: relative;
+  display: block;
+  line-height: 1;
 }
 
 .article-item {
@@ -3013,7 +3035,7 @@ body.cursor-hidden * {
     </aside>
     <!-- 下一篇：对称落在 pub 区块右侧空白页边（与左侧目录把手镜像）。
          点击渐隐当前文章、淡入下一篇，不跳页面；末篇之后绕回第一篇 -->
-    <button class="pub-next" type="button" aria-label="下一篇">→</button>
+    <button class="pub-next" type="button" aria-label="下一篇"><span class="pub-next-glyph">→</span></button>
     <div class="article-list">
       <!-- 这里原先有一串内联几何值（width: 704.01px / height: 376.189px / transform: translateY(16.111px)）。
            它们是可视化工具或保存页面时的运行期快照，不是设计意图：height 会把卡片钉死、
