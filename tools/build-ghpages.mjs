@@ -9,7 +9,10 @@
 // 用法：node tools/build-ghpages.mjs
 import { writeFile } from 'node:fs/promises';
 
-const BASE = 'https://gods-country.countryofgod.workers.dev';
+// 默认取线上 Worker。外网不通时可用 GHPAGES_BASE 指向本地 Node 服务
+// （npm start，PORT 默认 3000）生成同一份快照：模板与静态资源同源，
+// 渲染结果与线上一致（已比对过 articles / guestbook 条数相同）。
+const BASE = process.env.GHPAGES_BASE || 'https://gods-country.countryofgod.workers.dev';
 
 async function mustGet(path) {
   const res = await fetch(BASE + path);
