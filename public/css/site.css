@@ -186,6 +186,20 @@
   --hero-fade-len: 240px;
 }
 
+/* 呈示部（#daily）与展开部（#latest）：这两个版块停用 LoveLetter。
+   缘由：LoveLetter 没有汉字，汉字向来命中不了它——受影响的只是夹在中文里的
+   拉丁字母与标点，它们会单独走一套英文字形，在一堆汉字里显得很跳。
+   摘掉之后：标题（--font-title）里的拉丁改由 KeBenSong 自带的拉丁出，
+   正文（--font-body）里的拉丁落到通用衬线，都不再是一套独立的英文字体。
+   做法是在版块上重定义变量，版块内凡写 var(--font-title) / var(--font-body)
+   的规则自动跟随，以后新增元素也一并生效，不必回来补。
+   --font-nav 不动：它的链条末尾本来就是 var(--font-title)，已经跟着变了 */
+#daily,
+#latest {
+  --font-title: 'KeBenSong', serif;
+  --font-body: serif;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -885,25 +899,12 @@ body {
   margin: 32px auto 0;
   padding: 0 48px;
 }
-.museum-dots {
-  display: flex;
-  gap: 10px;
-}
-.museum-dot {
-  width: 7px;
-  height: 7px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.35);
-  cursor: pointer;
-}
-.museum-dot[aria-current='true'] {
-  background: var(--white);
-}
 .museum-arrows {
   display: flex;
   gap: 10px;
+  /* 圆点撤掉后这一層是 foot 里唯一的子元素，margin-left: auto 把它推回右边那条线上，
+     位置与原先一致（space-between 只有一个孩子时会贴到左边） */
+  margin-left: auto;
 }
 .museum-arrow {
   width: 36px;
@@ -2105,7 +2106,10 @@ body {
 }
 
 .month-posts-panel.open {
-  max-height: 420px;
+  /* 420 → 560：文章改分页后面板里只有「一页文章 + 翻页器」，高度由内容决定、
+      这条 max-height 只是兜底上限。留到 560 是给窄屏兜底——标题在窄面板里会折行，
+      8 条折行的文章加翻页器接近 520px，420 会重新出现"裁掉一截"的老 bug */
+  max-height: 560px;
   opacity: 1;
   padding: 22px 32px;
   border-width: 1px;
@@ -2157,6 +2161,54 @@ body {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.5);
   white-space: nowrap;
+}
+
+/* 翻页器：月份文章多时按页看，面板文章列表底部一枚「← 1 / 3 →」。
+   上沿一条分隔线与文章行分开；排版沿用右侧章节导航的小字号、宽字距。
+   两端箭头、中间页码，space-between 摊满面板宽——与 .month-post 的
+   「标题—日期」两端对齐是同一种排法 */
+.month-posts-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  font-family: var(--font-nav);
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* display:flex 会压过 [hidden] 的 UA display:none，只有一页时必须在这补回来 */
+.month-posts-pager[hidden] {
+  display: none;
+}
+
+.month-posts-pager-btn {
+  padding: 2px 6px;
+  border: none;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: color 0.35s ease;
+}
+.month-posts-pager-btn:hover:not(:disabled) {
+  color: var(--white);
+}
+/* 到头了的箭头：淡出且不响应点击，但仍旧占位——页码保持在正中间不跳 */
+.month-posts-pager-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* 页码：「当前 / 总页数」。等宽数字，翻页时宽度不抖 */
+.month-posts-pager-info {
+  min-width: 44px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Footer ---------- */
