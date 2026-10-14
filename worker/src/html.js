@@ -297,24 +297,27 @@ function renderHome({ articles, archive, notes, submitMail }) {
   <section class="section" id="latest">
     <p class="section-label">Développement</p>
     <h2 class="section-title">展開部</h2>
-    <!-- 本期目录抽屉：挂在 pub 区块左侧空白页边。把手是拉长的 ">"，悬停或点击展开。
+    <!-- 本期目录抽屉：挂在文章框（.article-list）左侧空白页边。把手是拉长的 ">"，悬停或点击展开。
          列表由 site.js 按 .article-list 里的文章自动生成；点某篇会在当前页淡出当前文章、
-         淡入目标（不跳新页面）。目前 pub 只有创刊号一篇，后续新增 .article-item 会自动进目录 -->
-    <aside class="pub-toc" aria-label="本期目录">
-      <button class="pub-toc-handle" type="button" aria-expanded="false"
-              aria-controls="pub-toc-panel" aria-label="展开本期目录"></button>
-      <div class="pub-toc-panel" id="pub-toc-panel" role="menu" aria-label="本期文章">
-        <p class="pub-toc-title">目录</p>
-        <ul class="pub-toc-list"></ul>
-      </div>
-    </aside>
-    <!-- 下一篇：对称落在 pub 区块右侧空白页边（与左侧目录把手镜像）。
+         淡入目标（不跳新页面）。目前 pub 只有创刊号一篇，后续新增 .article-item 会自动进目录。
+         它必须是 .article-list 的子元素（而不是 #latest 的）：这样把手的 top:50% 相对文章框取值，
+         落在文章框的垂直居中位置，而不是整个展开部（section 带 120px 上内边距 + 240px 下内边距）
+         的居中位置。绝对定位不参与 flex 布局，卡片照旧逐张排 -->
+    <div class="article-list">
+      <aside class="pub-toc" aria-label="本期目录">
+        <button class="pub-toc-handle" type="button" aria-expanded="false"
+                aria-controls="pub-toc-panel" aria-label="展开本期目录"></button>
+        <div class="pub-toc-panel" id="pub-toc-panel" role="menu" aria-label="本期文章">
+          <p class="pub-toc-title">目录</p>
+          <ul class="pub-toc-list"></ul>
+        </div>
+      </aside>
+      <!-- 下一篇：对称落在文章框右侧空白页边（与左侧目录把手镜像）。
          点击渐隐当前文章、淡入下一篇，不跳页面；末篇之后绕回第一篇。
          箭头用内联 SVG 而不是字符 →：字符受字体度量影响，在自己的字面框里
          并不居中，塞进圆圈必然偏。SVG 的路径在 24×24 viewBox 里精确居中
          （墨迹 x 3..21、y 5..19，中心都是 12），配合 flex 居中即与圆圈同心 -->
-    <button class="pub-next" type="button" aria-label="下一篇"><svg class="pub-next-glyph" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M3 12h18M15 5l6 7-6 7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <div class="article-list">
+      <button class="pub-next" type="button" aria-label="下一篇"><svg class="pub-next-glyph" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M3 12h18M15 5l6 7-6 7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <!-- 这里原先有一串内联几何值（width: 704.01px / height: 376.189px / transform: translateY(16.111px)）。
            它们是可视化工具或保存页面时的运行期快照，不是设计意图：height 会把卡片钉死、
            展开长文时盒子长不高；width 写死后窄屏（内容宽 < 704px）会横向溢出。
@@ -403,7 +406,6 @@ function renderHome({ articles, archive, notes, submitMail }) {
       </div>
       </div>
       <div class="museum-strip-foot">
-        <div class="museum-dots" data-museum-dots></div>
         <div class="museum-arrows">
           <button type="button" class="museum-arrow" data-museum-prev aria-label="上一组">‹</button>
           <button type="button" class="museum-arrow" data-museum-next aria-label="下一组">›</button>
@@ -430,11 +432,62 @@ function renderHome({ articles, archive, notes, submitMail }) {
   <!-- Footer -->
   <footer class="footer" id="about">
     <div class="footer-inner">
+      <!-- 留言板：常驻展开。既然一直开着，原来那个「留言 →」折叠入口就没有意义了，
+           标签连着箭头一起撤掉（见 site.css：.footer-guestbook-label 整套规则已删）。
+           整块排在页脚最上，往下是「关于 / 投稿」那一行，再往下才是刊名 -->
+      <div class="footer-guestbook">
+        <div class="footer-guestbook-body">
+          <div class="footer-guestbook-inner">
+            <form class="guest-form">
+              <input class="guest-field guest-name" type="text" placeholder="名字" autocomplete="off" maxlength="24">
+
+              <label class="guest-upload">
+                <input class="guest-file" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+                <span class="guest-upload-text">Upload?</span>
+              </label>
+              <img class="guest-upload-preview" alt="待上传图片预览">
+
+              <textarea class="guest-field guest-textarea" placeholder="Mus es sein?" maxlength="500"></textarea>
+
+              <button class="guest-submit" type="submit">Es mus sein!</button>
+            </form>
+
+            <div class="guest-wall">
+`;
+  if (notes.length) { notes.forEach((note) => {
+  out += guestNote({ note });
+  }); } else {
+  out += `
+              <p class="guest-wall-empty">还没有留言</p>
+`;
+  }
+  out += `
+            </div>
+
+            <!-- 照片流：向左缓慢滚动、悬停暂停、两端淡出到黑。
+                 每帧的 --aspect 是这张照片的宽高比（宽÷高），用来分配帧宽：
+                 同一高度下宽度与比例成正比，于是照片按原始比例铺满、彼此紧挨。
+                 加照片：在第一组末尾追加一帧并带上它的 --aspect，
+                 再把整组复制一遍（后面那组只作无缝循环的替身） -->
+            <div class="guest-film">
+              <div class="guest-film-track">
+                <!-- 胶片带的图在页脚、要一路滚到底才看得到：一律懒加载；width/height 写出来是为了
+                     让三帧先按比例占好位，图片到位时轨道与高度都不会跳 -->
+                <figure class="guest-film-frame" style="--aspect: 1.3333"><img src="/img/lamp.webp" width="660" height="495" loading="lazy" decoding="async" alt="一盏蒂芙尼台灯"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3241"><img src="/img/still-1.webp" width="660" height="498" loading="lazy" decoding="async" alt="黑白剧照：咖啡馆对谈"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.25"><img src="/img/still-2.webp" width="660" height="528" loading="lazy" decoding="async" alt="黑白剧照：病房相见"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3333" aria-hidden="true"><img src="/img/lamp.webp" width="660" height="495" loading="lazy" decoding="async" alt=""></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3241" aria-hidden="true"><img src="/img/still-1.webp" width="660" height="498" loading="lazy" decoding="async" alt=""></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.25" aria-hidden="true"><img src="/img/still-2.webp" width="660" height="528" loading="lazy" decoding="async" alt=""></figure>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="footer-about">
         <div class="footer-links">
           <p class="footer-about-label" style="letter-spacing: 0px;"><span class="jitter-char" style="margin-right: 0.5px;">关</span><span class="jitter-char" style="margin-right: 0.5px;">于</span> <span class="footer-about-arrow" aria-hidden="true">→</span></p>
-
-          <p class="footer-guestbook-label" style="letter-spacing: 0px;"><span class="jitter-char" style="margin-right: 0.5px;">留</span><span class="jitter-char" style="margin-right: 0.5px;">言</span> <span class="footer-guestbook-arrow" aria-hidden="true">→</span></p>
 
           <a href="mailto:`;
   out += esc(submitMail);
@@ -473,56 +526,6 @@ function renderHome({ articles, archive, notes, submitMail }) {
               </a>
             </li>
           </ul>
-        </div>
-      </div>
-
-      <div class="footer-guestbook">
-        <div class="footer-guestbook-body">
-          <div class="footer-guestbook-inner">
-            <form class="guest-form">
-              <input class="guest-field guest-name" type="text" placeholder="名字" autocomplete="off" maxlength="24">
-
-              <label class="guest-upload">
-                <input class="guest-file" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
-                <span class="guest-upload-text">Upload?</span>
-              </label>
-              <img class="guest-upload-preview" alt="待上传图片预览">
-
-              <textarea class="guest-field guest-textarea" placeholder="Mus es sein?" maxlength="500"></textarea>
-
-              <button class="guest-submit" type="submit">Es mus sein!</button>
-            </form>
-
-            <div class="guest-wall">
-`;
-  if (notes.length) { notes.forEach((note) => {
-  out += guestNote({ note });
-  }); } else {
-  out += `
-              <p class="guest-wall-empty">还没有留言</p>
-`;
-  }
-  out += `
-            </div>
-
-            <!-- 照片流：向左缓慢滚动、悬停暂停、两端淡出到黑。
-                 每帧的 --aspect 是这张照片的宽高比（宽÷高），用来分配帧宽：
-                 同一高度下宽度与比例成正比，于是照片按原始比例铺满、彼此紧挨。
-                 加照片：在第一组末尾追加一帧并带上它的 --aspect，
-                 再把整组复制一遍（后面那组只作无缝循环的替身） -->
-            <div class="guest-film">
-              <div class="guest-film-track">
-                <!-- 胶片带的图在页脚、默认还是收起的：一律懒加载；width/height 写出来是为了
-                     让三帧先按比例占好位，图片到位时轨道与高度都不会跳 -->
-                <figure class="guest-film-frame" style="--aspect: 1.3333"><img src="/img/lamp.webp" width="660" height="495" loading="lazy" decoding="async" alt="一盏蒂芙尼台灯"></figure>
-                <figure class="guest-film-frame" style="--aspect: 1.3241"><img src="/img/still-1.webp" width="660" height="498" loading="lazy" decoding="async" alt="黑白剧照：咖啡馆对谈"></figure>
-                <figure class="guest-film-frame" style="--aspect: 1.25"><img src="/img/still-2.webp" width="660" height="528" loading="lazy" decoding="async" alt="黑白剧照：病房相见"></figure>
-                <figure class="guest-film-frame" style="--aspect: 1.3333" aria-hidden="true"><img src="/img/lamp.webp" width="660" height="495" loading="lazy" decoding="async" alt=""></figure>
-                <figure class="guest-film-frame" style="--aspect: 1.3241" aria-hidden="true"><img src="/img/still-1.webp" width="660" height="498" loading="lazy" decoding="async" alt=""></figure>
-                <figure class="guest-film-frame" style="--aspect: 1.25" aria-hidden="true"><img src="/img/still-2.webp" width="660" height="528" loading="lazy" decoding="async" alt=""></figure>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 

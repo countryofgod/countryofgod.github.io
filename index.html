@@ -661,7 +661,7 @@ body {
   animation: museum-drift var(--drift-dur, 80s) linear infinite;
 }
 /* 悬停＝暂停漂移 + 卡片放大（放大仍走 .museum-card:hover）。
-   只认视口区域：底部圆点／箭头在 .museum-strip-foot 里，不在 .museum-viewport 内，
+   只认视口区域：底部箭头在 .museum-strip-foot 里，不在 .museum-viewport 内，
    鼠标挪到控件上不会把漂移也停掉 */
 .museum-viewport:hover .museum-track,
 .museum-strip.is-dragging .museum-track {
@@ -894,11 +894,11 @@ body {
 }
 
 /* ---------- 底部控件 ---------- */
-/* 圆点和箭头也收在标题那条左右对齐线上（48px 与 .museum-inner 同理）；
+/* 箭头也收在标题那条左右对齐线上（48px 与 .museum-inner 同理）；
    视口铺满全宽，但控件不跟着撒到两边，避免过散 */
 .museum-strip-foot {
   /* width: 100% 与 .museum-inner 同理：一旦出现 auto 外边距，盒子会退化成"内容那么宽"，
-     圆点就不再压在「美術館」那条左线上了。写死 100% 才与标题共用同一个 960 版心 + 48px */
+     箭头就不再压在版心两端了。写死 100% 才与标题共用同一个 960 版心 + 48px */
   width: 100%;
   display: flex;
   align-items: center;
@@ -1418,6 +1418,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  /* 目录抽屉（.pub-toc）与「下一篇」（.pub-next）的定位包含块。
+     这俩要跟着文章框垂直居中，不能跟着整个 #latest：section 自带 120px 上内边距与
+     240px 下内边距，锚在它身上时 top:50% 落的是版块垂直中心，偏在文章框之外。
+     给这一层 position: relative 后，两个绝对定位子元素都以文章框为参照——top:50%
+     即文章框的垂直中心；文章切换、卡片展开导致文章框长高时，它们跟着一起挪。
+     绝对定位的子元素不参与 flex 布局，gap:20px 只作用于排 flow 的卡片 */
+  position: relative;
   /* 补回卡片被清掉的内联 transform: translateY(16.111px) 所产生的视觉位移。
      那串内联几何值（width/height/transform）是工具快照，不能留着——height 会把卡片钉死、
      展开长文时不长高；但它的"往下挪 16px"是用户已经看习惯的位置，所以改在这里用
@@ -1426,37 +1433,42 @@ body {
   padding-top: 16px;
 }
 
-/* ---------- Pub 本期目录抽屉（展開部左侧空白页边）---------- */
-/* .pub-toc 锚在 #latest 上（.section 自带 position: relative，绝对定位的包含块就是它的
-   padding box）：top:0 即版块顶部、left:0 即版心左缘。抽屉整体落在版心左侧的空白页边里，
-   不侵占正文。窄屏版边不够宽，按 .side-nav 的口径在 1400px 以下整组收起 */
+/* ---------- Pub 本期目录抽屉（文章框左侧空白页边）---------- */
+/* .pub-toc 锚在 .article-list 上（见上面 .article-list 的 position: relative），不再锚在
+   #latest 上：section 有 120px 上内边距 + 240px 下内边距，锚在它身上，top:50% 是整个
+   版块的垂直中心；锚在文章框上，top:50% 才是文章框的垂直中心。
+   left:-48px 是补回 .section 两侧 48px 的内边距——.article-list 的左缘比 section 的
+   padding box 右移了 48px，不减这 48px，整条抽屉（含把手、面板、桥接区）会跟着文章框
+   一起右移 48px。减了之后，各部件落点与原先锚在 section 上时逐像素相同 */
 .pub-toc {
   position: absolute;
   top: 0;
-  left: 0;
+  left: -48px;
   height: 100%;
   z-index: 20;
   /* 容器本身不拦事件：只有把手、面板与下方桥接区（pointer-events:auto）可命中 */
   pointer-events: none;
 }
 
-/* 透明桥接区：面板在顶部、把手在垂直居中，二者之间有一截空白。
-   这层覆盖「面板顶部→区块底部」所在的整条左侧页边（恰好是版心左缘之左的空白带），
+/* 透明桥接区：面板在文章框顶部、把手在文章框垂直居中，二者之间有一截空白。
+   这层覆盖「面板顶部→文章框底部」所在的整条左侧页边（恰好是版心左缘之左的空白带），
    让鼠标从面板滑到把手途中有连续的可命中区域，纯悬停展开才不会在半路闪退。
-   它没有任何背景，只在左侧页边里接住 hover，不挡正文 */
+   top:0/bottom:0 是文章框的整高——面板与把手如今都长在文章框里，走廊只需覆盖这一截。
+   left:-48px 与 .pub-toc 同义：补回 section 的 48px 侧内边距，落点不变 */
 .pub-toc::before {
   content: '';
   position: absolute;
-  top: 120px;
+  top: 0;
   bottom: 0;
-  left: 0;
+  left: -48px;
   width: 214px;
   transform: translateX(-100%);
   pointer-events: auto;
 }
 
-/* 把手：竖长条 + 空心小圆圈，钉在版心左缘、pub 区块垂直居中。
+/* 把手：竖长条 + 空心小圆圈，钉在版心左缘、文章框垂直居中。
    translateX(-100%) 把它整条挪到版心左缘之"左"，正好落在左侧空白页边里。
+   top:50% 现在相对文章框（.article-list）取值，不再相对整个 #latest。
    展开时整条变深一档提示可收起（圆圈是对称图形，无需翻转） */
 .pub-toc-handle {
   position: absolute;
@@ -1495,7 +1507,7 @@ body {
    用 transform 的位移做"抽屉滑出"的轻微位移感 */
 .pub-toc-panel {
   position: absolute;
-  top: 120px; /* 与 .section 的 padding-top 对齐：目录从「展開部」高度开始向下排 */
+  top: 0; /* 目录从文章框顶边开始向下排（.article-list 的 padding box 顶边） */
   left: 0;
   width: 188px;
   transform: translate(-100%, 0) translateX(-50px);
@@ -1506,7 +1518,7 @@ body {
 }
 .pub-toc:hover .pub-toc-panel,
 .pub-toc.is-open .pub-toc-panel {
-  top: 120px;
+  top: 0;
   transform: translate(-100%, 0) translateX(-26px);
   opacity: 1;
   visibility: visible;
@@ -1584,14 +1596,17 @@ body {
   }
 }
 
-/* ---------- Pub 下一篇（右侧空白页边，与左侧目录把手对称）---------- */
-/* 与 .pub-toc-handle 同一套定位逻辑，只是镜像到右侧：
-   right:0 + translate(100%, -50%) 把整条挪到版心右缘之"右"，落在右侧空白页边里。
-   竖向居中；右下角那枚 fixed 的 side-nav（right/bottom 24px）在视口角落，与此不冲突。
+/* ---------- Pub 下一篇（文章框右侧空白页边，与左侧目录把手对称）---------- */
+/* 与 .pub-toc-handle 同一套定位逻辑，只是镜像到右侧，且同样改锚在 .article-list 上：
+   right:-48px 补回 .section 两侧 48px 的内边距（.article-list 右缘比 section 的
+   padding box 左移了 48px），不减这 48px 按钮会跟着文章框一起左移；
+   translate(100%, -50%) 把整条挪到版心右缘之"右"，落在右侧空白页边里。
+   top:50% 现在取的是文章框的垂直中心，与左侧把手同高，不再跟整个 #latest 的中心对齐。
+   右下角那枚 fixed 的 side-nav（right/bottom 24px）在视口角落，与此不冲突。
    配色沿用 .side-nav-item：灰字，悬停加深一档 */
 .pub-next {
   position: absolute;
-  right: 0;
+  right: -48px;
   top: 50%;
   transform: translate(100%, -50%);
   display: flex;
@@ -1659,7 +1674,7 @@ body {
 }
 
 /* 反色渐显渐隐：底色、描边、文字同步过渡。opacity 一并在这里过渡，
-   供目录切文章的「淡出当前 → 淡入目标」使用（见下面 .article-item.is-fading-out / .is-prein） */
+   供目录切文章的「淡出当前 → 淡入目标」使用（见下面 .article-item.is-leaving / .is-entering） */
 .article-item,
 .article-meta,
 .article-author,
@@ -1670,20 +1685,58 @@ body {
               opacity 0.35s ease;
 }
 
-/* 目录切文章时用的中间态：is-hidden 直接从文档流摘掉；is-fading-out 只淡出不动布局；
-   is-prein 是淡入前的「起点」（opacity 0），下一帧去掉后由 .is-active 拉回 1。
-   三者都不带背景块——底色本就是白，叠加任何底色都会破坏 article 卡片的纯白约定 */
+/* 目录切文章时的四态。都不带背景块——底色本就是白，
+   叠加任何底色都会破坏 article 卡片的纯白约定 */
 .article-item.is-hidden {
   display: none;
 }
-.article-item.is-fading-out {
+/* 旧卡片：脱离文档流，钉在容器左上角那一格（top 补回 .article-list 的 padding-top 16px，
+   位置才与它还在流里时一致），边淡出边向上退 10px。
+   脱流是整套动作的关键：容器高度从此只由新卡片决定，两篇不再同时占位把版面撑高 */
+.article-item.is-leaving {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  right: 0;
   opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
 }
-.article-item.is-prein {
+/* 新卡片：先在流里就位（容器的高度从此就是它的高度），再从下方 10px 升入、淡入 */
+.article-item.is-entering {
   opacity: 0;
+  transform: translateY(10px);
 }
 .article-item.is-active {
   opacity: 1;
+}
+
+/* 卡片自身的位移：切文章时新卡片升入、旧卡片上退，与淡入淡出同一条时长。
+   写在上面那条共享规则之后，一并接管 .article-item 的过渡（位移不该落到子元素上） */
+.article-item {
+  transition: background-color 0.35s ease, border-color 0.35s ease, opacity 0.4s ease,
+              transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* 切文章那一瞬：容器高度由脚本从旧卡片的高度写到新卡片的高度，
+   overflow 把交叠的两篇裁在框内——没有它，卡片区会先撑成两倍高再猛地收回，
+   档案馆等下半截页面跟着上下跳一下 */
+.article-list.is-swapping {
+  overflow: hidden;
+  transition: height 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .article-item {
+    transition: background-color 0.35s ease, border-color 0.35s ease, opacity 0.35s ease;
+  }
+  .article-list.is-swapping {
+    transition: none;
+  }
+  .article-item.is-leaving,
+  .article-item.is-entering {
+    transform: none;
+  }
 }
 
 /* 悬停反色：与档案馆年份行同一套交互语言 */
@@ -2219,6 +2272,17 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* 翻页渐显渐隐：换页时旧内容整体淡出 → 换成新一页 → 淡入，不再硬换。
+   时长与 JS 的 PAGE_FADE_MS（250ms）对齐；淡出期间禁掉指针事件，
+   免得点到"马上就要被换掉"的那一行 */
+.month-posts-page {
+  transition: opacity 0.25s ease;
+}
+.month-posts-page.is-fading {
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* ---------- Footer ---------- */
 .footer {
   position: relative;
@@ -2234,10 +2298,10 @@ body {
   margin: 0 auto;
 }
 
-/* 页脚入口行：关于 / 留言板 / 投稿，一左一中一右。
-   baseline 对齐让三者文字压在同一条基线上（两个链接自带 20px 上下内边距，
-   若用 flex-start 会让「关于」比它们高出 20px）。
-   「留言板」恰好落在中线上：首尾两项「关于」「投稿」都是两个字，宽度相等 */
+/* 页脚入口行：关于 / 投稿，一左一右。
+   这一行紧跟在常驻展开的留言板下面、刊名「Einmal ist keinmal」的上一行。
+   baseline 对齐让两项文字压在同一条基线上（「投稿」自带 20px 上下内边距，
+   若用 flex-start 会让「关于」比它高出 20px） */
 .footer-links {
   display: flex;
   justify-content: space-between;
@@ -2362,51 +2426,13 @@ body {
 }
 
 /* ---------- Footer / 留言板 ---------- */
-/* 「留言板」的标签留在入口行里（与「关于」同行），展开区挂在行的下方——
-   与「关于」同一套结构，只是标签在行内、正文在行外。
-   两块互斥：展开其一时另一块收起，收起走同一段 max-height 过渡，自带动效 */
-.footer-guestbook-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  font-family: var(--font-title);
-  font-size: 22px;
-  letter-spacing: 0.5px;
-  color: var(--white);
-  padding: 20px 0;
-  cursor: pointer;
-}
-
-/* 与「关于」同款手势：悬停只挪箭头，文字不动 */
-.footer-guestbook-arrow {
-  font-size: 18px;
-  letter-spacing: 0;
-  transition: translate 0.3s ease, transform 0.3s ease;
-}
-
-.footer-guestbook-label:hover .footer-guestbook-arrow {
-  translate: 12px 0;
-}
-
-/* 标签在入口行里、内容壳在行外，是两个元素，所以箭头看的是标签自己身上这份展开态 */
-.footer-guestbook-label.expanded .footer-guestbook-arrow {
-  transform: rotate(90deg);
-}
-
-.footer-guestbook-body {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.6s ease;
-}
-
-/* max-height 需要给"内容长到顶"留够余量：留言墙本身封顶 360px（见下），
-   所以表单+留言墙的总高有上界；底部又多了一条 .guest-film（约 162px 高 + 28px 上间距 + 44px 下间距）。
-   最坏情况是"选了图（预览 220px）+ 留言墙撑满 + 底部胶片"同时发生，约 1180px，
-   故取 1280px 留一档余量，不会出现内容被裁掉。
-   注意：胶片的下间距一改，这里的总高也要跟着往上调，否则末尾会被裁掉一截 */
-.footer-guestbook.expanded .footer-guestbook-body {
-  max-height: 1280px;
-}
+/* 留言板常驻展开：不再是"点一下才长出来"的折叠区，max-height 那一套
+   （高度上限 / overflow 裁切 / 0.6s 过渡）整段撤除——内容多长就占多高，
+   也就不会再有"留言墙写满或选了图就被裁掉一截"这个上限问题。
+   .footer-guestbook-body 只留作这一块的包裹元素，不再需要样式。
+   原来那个「留言 →」入口连标签带箭头一并撤掉：一直开着的东西不需要开关，
+   所以 .footer-guestbook-label / -arrow 的规则在此整段删除
+   （拆字脚本与抖动选择器里的同名项也一并摘掉） */
 
 /* 展开区宽度 ≈ 上面文章卡片的 60%：卡片在 --page-w（960px）容器里两侧各退 48px 内边距 = 864px，
    其 60% ≈ 518px。用 60% 起步、518px 封顶，窄窗口下随容器同比例收窄
@@ -3099,24 +3125,27 @@ body.cursor-hidden * {
   <section class="section" id="latest">
     <p class="section-label">Développement</p>
     <h2 class="section-title">展開部</h2>
-    <!-- 本期目录抽屉：挂在 pub 区块左侧空白页边。把手是拉长的 ">"，悬停或点击展开。
+    <!-- 本期目录抽屉：挂在文章框（.article-list）左侧空白页边。把手是拉长的 ">"，悬停或点击展开。
          列表由 site.js 按 .article-list 里的文章自动生成；点某篇会在当前页淡出当前文章、
-         淡入目标（不跳新页面）。目前 pub 只有创刊号一篇，后续新增 .article-item 会自动进目录 -->
-    <aside class="pub-toc" aria-label="本期目录">
-      <button class="pub-toc-handle" type="button" aria-expanded="false"
-              aria-controls="pub-toc-panel" aria-label="展开本期目录"></button>
-      <div class="pub-toc-panel" id="pub-toc-panel" role="menu" aria-label="本期文章">
-        <p class="pub-toc-title">目录</p>
-        <ul class="pub-toc-list"></ul>
-      </div>
-    </aside>
-    <!-- 下一篇：对称落在 pub 区块右侧空白页边（与左侧目录把手镜像）。
+         淡入目标（不跳新页面）。目前 pub 只有创刊号一篇，后续新增 .article-item 会自动进目录。
+         它必须是 .article-list 的子元素（而不是 #latest 的）：这样把手的 top:50% 相对文章框取值，
+         落在文章框的垂直居中位置，而不是整个展开部（section 带 120px 上内边距 + 240px 下内边距）
+         的居中位置。绝对定位不参与 flex 布局，卡片照旧逐张排 -->
+    <div class="article-list">
+      <aside class="pub-toc" aria-label="本期目录">
+        <button class="pub-toc-handle" type="button" aria-expanded="false"
+                aria-controls="pub-toc-panel" aria-label="展开本期目录"></button>
+        <div class="pub-toc-panel" id="pub-toc-panel" role="menu" aria-label="本期文章">
+          <p class="pub-toc-title">目录</p>
+          <ul class="pub-toc-list"></ul>
+        </div>
+      </aside>
+      <!-- 下一篇：对称落在文章框右侧空白页边（与左侧目录把手镜像）。
          点击渐隐当前文章、淡入下一篇，不跳页面；末篇之后绕回第一篇。
          箭头用内联 SVG 而不是字符 →：字符受字体度量影响，在自己的字面框里
          并不居中，塞进圆圈必然偏。SVG 的路径在 24×24 viewBox 里精确居中
          （墨迹 x 3..21、y 5..19，中心都是 12），配合 flex 居中即与圆圈同心 -->
-    <button class="pub-next" type="button" aria-label="下一篇"><svg class="pub-next-glyph" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M3 12h18M15 5l6 7-6 7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <div class="article-list">
+      <button class="pub-next" type="button" aria-label="下一篇"><svg class="pub-next-glyph" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M3 12h18M15 5l6 7-6 7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <!-- 这里原先有一串内联几何值（width: 704.01px / height: 376.189px / transform: translateY(16.111px)）。
            它们是可视化工具或保存页面时的运行期快照，不是设计意图：height 会把卡片钉死、
            展开长文时盒子长不高；width 写死后窄屏（内容宽 < 704px）会横向溢出。
@@ -3236,7 +3265,6 @@ body.cursor-hidden * {
       </div>
       </div>
       <div class="museum-strip-foot">
-        <div class="museum-dots" data-museum-dots></div>
         <div class="museum-arrows">
           <button type="button" class="museum-arrow" data-museum-prev aria-label="上一组">‹</button>
           <button type="button" class="museum-arrow" data-museum-next aria-label="下一组">›</button>
@@ -3263,11 +3291,56 @@ body.cursor-hidden * {
   <!-- Footer -->
   <footer class="footer" id="about">
     <div class="footer-inner">
+      <!-- 留言板：常驻展开。既然一直开着，原来那个「留言 →」折叠入口就没有意义了，
+           标签连着箭头一起撤掉（见内联样式：.footer-guestbook-label 整套规则已删）。
+           整块排在页脚最上，往下是「关于 / 投稿」那一行，再往下才是刊名 -->
+      <div class="footer-guestbook">
+        <div class="footer-guestbook-body">
+          <div class="footer-guestbook-inner">
+            <form class="guest-form">
+              <input class="guest-field guest-name" type="text" placeholder="名字" autocomplete="off" maxlength="24">
+
+              <label class="guest-upload">
+                <input class="guest-file" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+                <span class="guest-upload-text">Upload?</span>
+              </label>
+              <img class="guest-upload-preview" alt="待上传图片预览">
+
+              <textarea class="guest-field guest-textarea" placeholder="Mus es sein?" maxlength="500"></textarea>
+
+              <button class="guest-submit" type="submit">Es mus sein!</button>
+            </form>
+
+            <div class="guest-wall">
+
+              <p class="guest-wall-empty">还没有留言</p>
+
+            </div>
+
+            <!-- 照片流：向左缓慢滚动、悬停暂停、两端淡出到黑。
+                 每帧的 --aspect 是这张照片的宽高比（宽÷高），用来分配帧宽：
+                 同一高度下宽度与比例成正比，于是照片按原始比例铺满、彼此紧挨。
+                 加照片：在第一组末尾追加一帧并带上它的 --aspect，
+                 再把整组复制一遍（后面那组只作无缝循环的替身） -->
+            <div class="guest-film">
+              <div class="guest-film-track">
+                <!-- 胶片带的图在页脚、要一路滚到底才看得到：一律懒加载；width/height 写出来是为了
+                     让三帧先按比例占好位，图片到位时轨道与高度都不会跳 -->
+                <figure class="guest-film-frame" style="--aspect: 1.3333"><img src="/public/img/lamp.webp" width="660" height="495" loading="lazy" decoding="async" alt="一盏蒂芙尼台灯"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3241"><img src="/public/img/still-1.webp" width="660" height="498" loading="lazy" decoding="async" alt="黑白剧照：咖啡馆对谈"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.25"><img src="/public/img/still-2.webp" width="660" height="528" loading="lazy" decoding="async" alt="黑白剧照：病房相见"></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3333" aria-hidden="true"><img src="/public/img/lamp.webp" width="660" height="495" loading="lazy" decoding="async" alt=""></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.3241" aria-hidden="true"><img src="/public/img/still-1.webp" width="660" height="498" loading="lazy" decoding="async" alt=""></figure>
+                <figure class="guest-film-frame" style="--aspect: 1.25" aria-hidden="true"><img src="/public/img/still-2.webp" width="660" height="528" loading="lazy" decoding="async" alt=""></figure>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="footer-about">
         <div class="footer-links">
           <p class="footer-about-label" style="letter-spacing: 0px;"><span class="jitter-char" style="margin-right: 0.5px;">关</span><span class="jitter-char" style="margin-right: 0.5px;">于</span> <span class="footer-about-arrow" aria-hidden="true">→</span></p>
-
-          <p class="footer-guestbook-label" style="letter-spacing: 0px;"><span class="jitter-char" style="margin-right: 0.5px;">留</span><span class="jitter-char" style="margin-right: 0.5px;">言</span> <span class="footer-guestbook-arrow" aria-hidden="true">→</span></p>
 
           <a href="mailto:afterrainnn@outlook.com" class="footer-submit" id="submit">
             <span class="jitter-char">投</span><span class="jitter-char">稿</span> <span class="footer-submit-arrow">→</span>
@@ -3304,50 +3377,6 @@ body.cursor-hidden * {
               </a>
             </li>
           </ul>
-        </div>
-      </div>
-
-      <div class="footer-guestbook">
-        <div class="footer-guestbook-body">
-          <div class="footer-guestbook-inner">
-            <form class="guest-form">
-              <input class="guest-field guest-name" type="text" placeholder="名字" autocomplete="off" maxlength="24">
-
-              <label class="guest-upload">
-                <input class="guest-file" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
-                <span class="guest-upload-text">Upload?</span>
-              </label>
-              <img class="guest-upload-preview" alt="待上传图片预览">
-
-              <textarea class="guest-field guest-textarea" placeholder="Mus es sein?" maxlength="500"></textarea>
-
-              <button class="guest-submit" type="submit">Es mus sein!</button>
-            </form>
-
-            <div class="guest-wall">
-
-              <p class="guest-wall-empty">还没有留言</p>
-
-            </div>
-
-            <!-- 照片流：向左缓慢滚动、悬停暂停、两端淡出到黑。
-                 每帧的 --aspect 是这张照片的宽高比（宽÷高），用来分配帧宽：
-                 同一高度下宽度与比例成正比，于是照片按原始比例铺满、彼此紧挨。
-                 加照片：在第一组末尾追加一帧并带上它的 --aspect，
-                 再把整组复制一遍（后面那组只作无缝循环的替身） -->
-            <div class="guest-film">
-              <div class="guest-film-track">
-                <!-- 胶片带的图在页脚、默认还是收起的：一律懒加载；width/height 写出来是为了
-                     让三帧先按比例占好位，图片到位时轨道与高度都不会跳 -->
-                <figure class="guest-film-frame" style="--aspect: 1.3333"><img src="/public/img/lamp.webp" width="660" height="495" loading="lazy" decoding="async" alt="一盏蒂芙尼台灯"></figure>
-                <figure class="guest-film-frame" style="--aspect: 1.3241"><img src="/public/img/still-1.webp" width="660" height="498" loading="lazy" decoding="async" alt="黑白剧照：咖啡馆对谈"></figure>
-                <figure class="guest-film-frame" style="--aspect: 1.25"><img src="/public/img/still-2.webp" width="660" height="528" loading="lazy" decoding="async" alt="黑白剧照：病房相见"></figure>
-                <figure class="guest-film-frame" style="--aspect: 1.3333" aria-hidden="true"><img src="/public/img/lamp.webp" width="660" height="495" loading="lazy" decoding="async" alt=""></figure>
-                <figure class="guest-film-frame" style="--aspect: 1.3241" aria-hidden="true"><img src="/public/img/still-1.webp" width="660" height="498" loading="lazy" decoding="async" alt=""></figure>
-                <figure class="guest-film-frame" style="--aspect: 1.25" aria-hidden="true"><img src="/public/img/still-2.webp" width="660" height="528" loading="lazy" decoding="async" alt=""></figure>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
