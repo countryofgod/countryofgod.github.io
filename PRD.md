@@ -4,7 +4,7 @@
 |---|---|
 | 文档版本 | v1.3 |
 | 日期 | 2026-10-09 |
-| 状态 | v1.0 已实现（详见 README.md 的「快速开始」与「接口」两节）；v1.1 增补 §14 每日音乐；v1.2 增补 §15 美术馆；v1.3 细化 §15 并调整章节导航位置 |
+| 状态 | v1.0 已实现（详见 README.md 的「快速开始」与「接口」两节）；v1.1 增补 §14 每日音乐；v1.2 增补 §15 美术馆；v1.3 细化 §15 并调整章节导航位置；v1.4 §15 所述板块更名为「華彩段 / Cadenza」 |
 | 适用范围 | 现有静态单页站点 `index.html` 的重构与后端接口建设；§14、§15 为增量功能 |
 | 关联仓库 | `d:\Desktop\Gods Country`（git 已初始化，基线提交 `272cb75`） |
 
@@ -422,8 +422,13 @@ Daily 区左侧的 iPod 早已在菜单里列出 `music` 一项，但点进去�
 
 ---
 
-## 15. 增量功能：美术馆（Museum）
+## 15. 增量功能：華彩段（Cadenza）
 
+> **v1.4 更名**：本节所述板块原称「美术馆 / Musée」，v1.4 起更名为「華彩段 / Cadenza」——
+> 法文小标 `Cadenza`、中文大标 `華彩段`。只改章节名与导航文案，
+> 视觉规格、交互规格、DOM 结构与 `.museum-*` 类名一律不变。
+> 下文中「美术馆」三字均指同一板块，为保留历史记录不再逐处改写。
+>
 > 本节为 v1.2 新增。美术馆原为占位板块（只有「Museum / 美术馆 / 策划中」三行字），
 > 本期把它做成 **一屏高的横向胶片**。视觉与交互参照 [浦东美术馆官网](https://www.museumofartpd.org.cn/)
 > 的调研结论（见 §15.1）。**本轮只做陈列与横滑，不做内容维护、不做卡片详情页。**
@@ -471,7 +476,7 @@ DOM 结构（`server/views/index.ejs` 内联 `museumItems` 数组渲染）：
 section.section.museum#museum
 ├─ div.museum-inner                      ← 960 版心居中，与档案馆标题同一条左右对齐线
 │  ├─ p.section-label  "Museum"
-│  └─ h2.section-title "美术馆"
+│  └─ h2.section-title "華彩段"
 └─ div.museum-strip[data-museum-strip][tabindex=0][role=group]   ← 与 .museum-inner 平级，铺满全宽
    ├─ div.museum-viewport[data-museum-viewport]   ← overflow:hidden，裁掉溢出
    │  └─ div.museum-track[data-museum-track]      ← display:flex; gap:24px; align-items:flex-start
@@ -519,7 +524,7 @@ section.section.museum#museum
 
 ### 15.6 验收清单（A 系列）
 
-1. 美术馆板块高度 ≥ 视口高度，标题**左边缘**与档案馆标题对齐（允许 1px 误差）。
+1. 華彩段板块高度 ≥ 视口高度，标题**左边缘**与档案馆标题对齐（允许 1px 误差）。
 2. 桌面端所有卡片**宽度完全一致**；高度**只有两种值**且奇高偶矮交替；所有卡片**顶边对齐**。
 3. 鼠标悬停任意一张卡片：卡片宽度、图片尺寸、邻居位置**均不变**。
 4. 点 ›：轨道左移一张，动画结束后 `style.transform` 被静默归位（虚拟索引回到中间那套）。

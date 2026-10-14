@@ -9,10 +9,10 @@
 </head>
 <body>
 
-  <!-- 右侧章节导航：exposition / développement / récapitulation / musée / coda。
+  <!-- 右侧章节导航：exposition / développement / récapitulation / cadenza / coda。
        随滚动高亮当前所在区块（对应项变黑，见 site.js），点任意一项平滑跳到该区块。
        映射：exposition→#daily（呈示部），développement→#latest（展開部），
-            récapitulation→#archive（再現部），musée→#museum（美術館），coda→#about（页脚）。
+            récapitulation→#archive（再現部），cadenza→#museum（華彩段），coda→#about（页脚）。
        文案改法文后高亮逻辑不受影响：它按 href→区块 id 匹配（见 site.js），不比对文字。
        固定在视口右侧、垂直居中；窄屏（≤1120px）正文会顶到边，导航收起 -->
   <nav class="side-nav" aria-label="章节导航">
@@ -20,7 +20,7 @@
       <li><a class="side-nav-item" href="#daily">exposition</a></li>
       <li><a class="side-nav-item" href="#latest">développement</a></li>
       <li><a class="side-nav-item" href="#archive">récapitulation</a></li>
-      <li><a class="side-nav-item" href="#museum">musée</a></li>
+      <li><a class="side-nav-item" href="#museum">cadenza</a></li>
       <li><a class="side-nav-item" href="#about">coda</a></li>
     </ul>
   </nav>
@@ -187,26 +187,26 @@
     </div>
   </section>
 
-  <!-- Museum：美术馆——一屏高的横向胶片（视觉参考浦东美术馆官网：无衬线、极简）。
+  <!-- Cadenza：華彩段——一屏高的横向胶片（视觉参考浦东美术馆官网：无衬线、极简）。
        图片取自仓库根的 museum/ 目录（已复制进 public/img/museum-N.jpg）；卡片暂不可点，只有横滑。
        维护通道留待后续接留言板的上传通道，本轮不做后端 -->
 <%
 const museumItems = [
-  { img: '/img/museum-1.jpg', alt: '美术馆作品 01', title: '作品 01', meta: '作品　待填' },
-  { img: '/img/museum-2.jpg', alt: '美术馆作品 02', title: '作品 02', meta: '作品　待填' },
-  { img: '/img/museum-3.jpg', alt: '美术馆作品 03', title: '作品 03', meta: '作品　待填' },
-  { img: '/img/museum-4.jpg', alt: '美术馆作品 04', title: '作品 04', meta: '作品　待填' }
+  { img: '/img/museum-1.jpg', alt: '作品 01', title: '作品 01', meta: '作品　待填' },
+  { img: '/img/museum-2.jpg', alt: '作品 02', title: '作品 02', meta: '作品　待填' },
+  { img: '/img/museum-3.jpg', alt: '作品 03', title: '作品 03', meta: '作品　待填' },
+  { img: '/img/museum-4.jpg', alt: '作品 04', title: '作品 04', meta: '作品　待填' }
 ];
 %>
   <section class="section museum" id="museum">
     <div class="museum-inner">
-      <p class="section-label">Musée</p>
-      <h2 class="section-title">美術館</h2>
+      <p class="section-label">Cadenza</p>
+      <h2 class="section-title">華彩段</h2>
     </div>
 
     <!-- 轨道独立于 .museum-inner，铺满 .museum-stage 的左 75% 宽度；
          标题仍在上方 960 版心里；右 25% 是展览介绍区 -->
-    <div class="museum-strip" data-museum-strip tabindex="0" role="group" aria-label="美术馆作品横滑胶片">
+    <div class="museum-strip" data-museum-strip tabindex="0" role="group" aria-label="華彩段作品横滑胶片">
       <div class="museum-stage">
       <div class="museum-viewport" data-museum-viewport>
         <!-- 两层位移：.museum-shift 由脚本写 translateX（箭头/圆点/拖拽的离散翻页），
@@ -261,7 +261,9 @@ const museumItems = [
            整块排在页脚最上，往下是「关于 / 投稿」那一行，再往下才是刊名 -->
       <div class="footer-guestbook">
         <div class="footer-guestbook-body">
-          <p class="footer-guestbook-label">留言</p>
+          <!-- 「留言」二字换成 coda.jpeg：图本身就是这段的标题，居中落在页脚中轴上。
+               width/height 写的是显示尺寸，先把比例占好，图到位时不跳 -->
+          <img class="footer-guestbook-label" src="/img/coda.jpeg" alt="coda" width="260" height="37" loading="lazy" decoding="async">
 
           <div class="footer-guestbook-inner">
             <form class="guest-form">

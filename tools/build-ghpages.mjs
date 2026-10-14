@@ -59,6 +59,6 @@ await writeFile(new URL('../index.html', import.meta.url), html, 'utf8');
 
 console.log('已生成 index.html');
 console.log('  字节数：', Buffer.byteLength(html));
-for (const kw of ['museum', '美术馆', '档案馆', 'archive', '留言']) {
+for (const kw of ['museum', '華彩段', '档案馆', 'archive', '留言']) {
   console.log(`  含「${kw}」：`, html.includes(kw));
 }

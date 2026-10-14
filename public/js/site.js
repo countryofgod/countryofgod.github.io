@@ -1136,6 +1136,34 @@ function initPubToc() {
     });
   }
 
+  // 收起态的卡片统一钉成一个高度：每篇的摘要长短不一，不钉住的话切一篇换一个高度，
+  // 容器跟着上下跳一次。高度取所有篇里最高的那一张——先摘掉上次的固定值，量到的才是
+  // 自然高度；量完立刻把隐藏／展开的状态放回去。整段在同一个任务里跑完，
+  // 中间不会绘制，看不出闪。展开态不吃这条约束：全文多长盒子就多高（见 CSS）
+  function syncCollapsedHeight() {
+    list.style.removeProperty('--pub-collapsed-h');
+    let max = 0;
+    items.forEach((it) => {
+      const wasHidden = it.classList.contains('is-hidden');
+      const wasExpanded = it.classList.contains('expanded');
+      it.classList.remove('is-hidden', 'expanded');
+      max = Math.max(max, it.offsetHeight);
+      if (wasExpanded) it.classList.add('expanded');
+      if (wasHidden) it.classList.add('is-hidden');
+    });
+    if (max) list.style.setProperty('--pub-collapsed-h', max + 'px');
+  }
+  syncCollapsedHeight();
+
+  // 窗口一改宽度，摘要的折行数就变，高度得重新量一遍。字体到位时也要重来一次——
+  // 首屏那次量的是回退字体的高度，跟真正排出来的不是一回事
+  let heightTimer = 0;
+  window.addEventListener('resize', () => {
+    window.clearTimeout(heightTimer);
+    heightTimer = window.setTimeout(syncCollapsedHeight, 150);
+  });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncCollapsedHeight);
+
   // 切换时长：与 CSS 里 height / transform 的 0.45s 对齐，多留 60ms 收尾，
   // 免得清场早于动画结束、末尾又硬跳一下
   const SWAP_MS = 450;
@@ -1219,7 +1247,7 @@ pubCardsReady.then(initPubToc);
 // a:not(.hero-cn-hl)：刊名里的「之」是管理台入口（一个 <a>），用户明确要求它不抖。
 // 抖动动画的选择器是 :is(a,…):hover .jitter-char——只要不把它拆成 .jitter-char，就抖不起来；
 // 而且它身上那枚反色取景窗是它的 ::before，拆字后视觉重心也会跟着变，索性整体放过。
-// a:not(.museum-credit-link)：美术馆左下角署名里的「SylvApple」，
+// a:not(.museum-credit-link)：華彩段左下角署名里的「SylvApple」，
 //   用户要求此处不要抖动，悬停只出下划线，故同样不拆字。
 // a:not(.pub-toc-link)：展開部左侧目录里的文章项，要"类似 nav 导航栏"——
 //   导航项本身就被排除，且悬停只该出下划线渐现（见 .pub-toc-link::after），
@@ -1426,7 +1454,7 @@ document.querySelectorAll('.archive-month').forEach(month => {
   });
 });
 
-// 美术馆横滑胶片：全宽铺开，卡片宽度一致、高度高低交替，切到尽头会绕回开头。
+// 華彩段横滑胶片：全宽铺开，卡片宽度一致、高度高低交替，切到尽头会绕回开头。
 // 索引按"第几张"记账而不是按像素——窗口变窄变宽后一张卡的宽度会变，
 // 记死的像素值立刻失效；所以每次尺寸变化都重新用 offsetLeft 量一遍落点。
 // 箭头 / 拖拽 / ←→ 三个入口改的都是同一个虚拟索引 v，再各自渲染。
@@ -1519,7 +1547,7 @@ document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
     });
     viewport.addEventListener('mouseleave', showBatch);
 
-    // 悬停时的作品介绍从「美术馆」那三个字的高度开始：量出标题相对 .museum 上边缘的距离，
+    // 悬停时的作品介绍从「華彩段」那三个字的高度开始：量出标题相对 .museum 上边缘的距离，
     // 写成介绍栏的 padding-top。不能直接写死像素——.museum 是 flex 列 + 垂直居中，
     // 内容不满一屏时整组会往下挪，标题的实际高度随窗口变化。
     // 批次（未悬停时）是绝对定位居中的，不受这个 padding-top 影响。

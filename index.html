@@ -140,7 +140,7 @@
   font-display: swap;
 }
 
-/* Shorelines Script：美术馆左下角署名里的「SyvApple」专用手写体。
+/* Shorelines Script：華彩段左下角署名里的「SyvApple」专用手写体。
    源文件是仓库根的 Shorelines Script Bold.otf（需经 wrangler 静态资源下发，
    所以拷贝进了 public/fonts/ShorelinesScript/）。家族名按用户口径写作 shorelines_script */
 @font-face {
@@ -170,7 +170,7 @@
   --font-body: 'LoveLetter', serif;
   /* 右侧章节导航 / 档案馆「random」共用的拉丁字体：Podium Sans → Adobe Caslon Pro → 近似衬线兜底 */
   --font-nav: 'Podium Sans', 'PodiumSans', 'Podium Sans Web', 'Adobe Caslon Pro', 'Adobe Caslon', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', var(--font-title), serif;
-  /* 美术馆专用无衬线：拉丁字母先命中 Founders Grotesk；汉字它没有，浏览器会按字符逐字
+  /* 華彩段专用无衬线：拉丁字母先命中 Founders Grotesk；汉字它没有，浏览器会按字符逐字
      回退到系统无衬线（PingFang SC / 微软雅黑）。仓库里没有中文无衬线 webfont，
      所以中文这一半只能交给系统字体——这是刻意的取舍，不新增字体文件 */
   --font-sans: 'Founders Grotesk', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
@@ -442,7 +442,7 @@ body {
 .section-label {
   /* 英文／法文小标改用 Heldane Text：
      Founders Grotesk 是试用版子集（全部字面只有 66 字形），不含 é/É 等音符，
-     法文小标（DÉVELOPPEMENT / RÉCAPITULATION / MUSÉE）的 É 只能掉到
+     法文小标（DÉVELOPPEMENT / RÉCAPITULATION）的 É 只能掉到
      Helvetica Neue / Arial 回退，字形与同一单词里其余字母不同源。
      Heldane Text 含完整拉丁音符（417 字形，实测含 é/É），换它后音符与其余字母同源。
      代价：小标由无衬线变为衬线——这是用户选定的取舍 */
@@ -528,7 +528,7 @@ body {
   }
 }
 
-/* Museum：美术馆——一屏高的横滑海报墙。
+/* Cadenza：華彩段——一屏高的横滑海报墙。
    参考浦美官网的「展览」横排与用户给的样子：卡片宽度一致、高度只有高低两种交替，
    顶部对齐。标题居中在 960 版心内，轨道独立出来铺满视口全宽。 */
 .museum {
@@ -600,7 +600,7 @@ body {
   position: relative;
   z-index: 2;
 }
-/* 标题（美术馆）与小标（Museum）在照片上改白色，保证可读。
+/* 标题（華彩段）与小标（Museum）在照片上改白色，保证可读。
    只改颜色，不动字体：标题仍用站点原有的 --font-title（衬线） */
 .museum .section-label,
 .museum .section-title {
@@ -736,7 +736,7 @@ body {
 
 /* ---------- 胶片占左 75%，右侧 25% 是介绍栏 ---------- */
 /* 胶片只占左 75%（右侧 25% 不挂展品）；介绍栏是 .museum 的绝对定位子元素，
-   top:0 / bottom:0 让它从上到下贯穿整个美术馆区块。
+   top:0 / bottom:0 让它从上到下贯穿整个華彩段区块。
    介绍栏没有独立壁纸：不设 background，露出 .museum 那面墙本身。
    介绍区默认显示当前展览批次（悬停展品时切换成该件作品的介绍，见 site.js） */
 .museum-stage {
@@ -748,7 +748,7 @@ body {
   min-width: 0; /* 容纳 flex 子项的轨道，避免被内容撑破 75% 上限 */
 }
 /* z-index: 2 压在 .museum::after（上层覆盖图，z-index: 1）之上，才不会被它糊住。
-   padding-top 由 site.js 量出「美术馆」标题所在高度后写入：悬停时的作品介绍从标题那一行开始 */
+   padding-top 由 site.js 量出「華彩段」标题所在高度后写入：悬停时的作品介绍从标题那一行开始 */
 .museum-intro {
   position: absolute;
   top: 0;
@@ -763,7 +763,7 @@ body {
 /* 默认（未悬停展品）：展览批次。与右侧章节导航同一套竖排（vertical-rl），
    两条竖列——第一行 SYLVAPPLE、第二行 艺术会；不加任何提示语。
    只有这个批次在右栏正中间居中——绝对定位，因此不受上面的 padding-top 影响；
-   悬停时的作品介绍不居中，仍从「美术馆」标题那一行开始 */
+   悬停时的作品介绍不居中，仍从「華彩段」标题那一行开始 */
 .museum-intro-batch {
   position: absolute;
   top: 50%;
@@ -771,10 +771,10 @@ body {
   transform: translate(-50%, -50%);
   writing-mode: vertical-rl;
 }
-/* 批次名（SYLVAPPLE / 藝術會）改用与美术馆等版块大标同一档的字体：
+/* 批次名（SYLVAPPLE / 藝術會）改用与華彩段等版块大标同一档的字体：
    西文 SYLVAPPLE → Heldane Text（与版块小标同一款，含完整拉丁字形）；
    中文「藝術會」→ var(--font-title)（'LoveLetter', 'KeBenSong'），
-   LoveLetter 无汉字、逐字回退到 KeBenSong，即「美術館」这类大标的中文字体。
+   LoveLetter 无汉字、逐字回退到 KeBenSong，即「華彩段」这类大标的中文字体。
    此前西文用 Founders Grotesk、中文用 --font-sans，两套都不是标题字体 */
 .museum-intro-batch-en {
   display: block;
@@ -835,7 +835,7 @@ body {
 }
 
 /* ---------- 左下角署名 ---------- */
-/* 竖排两件：上排是文字，下排是 Mac 手型光标。整块水平居中、钉在美术馆区块底部。
+/* 竖排两件：上排是文字，下排是 Mac 手型光标。整块水平居中、钉在華彩段区块底部。
    文字：white-space: nowrap 保证横排一行不折行；
         整段（含句点）用与右侧导航同一套字体与字号，只有「SyvApple」换 shorelines_script。
    光标：取自 daviddarnes/mac-cursors 的 handpointing.svg（当前 64×64，2 倍）；
@@ -877,7 +877,7 @@ body {
 /* 署名正下方的手型光标：现在嵌在 SyvApple 名字链接里，
    绝对定位到名字正下方、相对名字水平居中（2 倍尺寸：64px）。
    上移：margin-top 取负，让光标略贴住名字底部（比原先 8px 间隙上移）。
-   独立图层：z-index 高于署名文字，确保压在美术馆上层覆盖图之上、不被行盒裁切 */
+   独立图层：z-index 高于署名文字，确保压在華彩段上层覆盖图之上、不被行盒裁切 */
 .museum-credit-link {
   position: relative;
 }
@@ -1690,6 +1690,12 @@ body {
 .article-item.is-hidden {
   display: none;
 }
+/* 收起态钉成统一高度：值由 site.js 量出所有篇里最高那一张，写进 --pub-collapsed-h。
+   每篇摘要长短不一，不钉住的话切一篇换一个高度，容器跟着上下跳一次。
+   展开态不吃这条约束——全文多长，盒子就多高 */
+.article-item:not(.expanded) {
+  height: var(--pub-collapsed-h, auto);
+}
 /* 旧卡片：脱离文档流，钉在容器左上角那一格（top 补回 .article-list 的 padding-top 16px，
    位置才与它还在流里时一致），边淡出边向上退 10px。
    脱流是整套动作的关键：容器高度从此只由新卡片决定，两篇不再同时占位把版面撑高 */
@@ -2453,20 +2459,14 @@ body {
    也就不会再有"留言墙写满或选了图就被裁掉一截"这个上限问题。
    .footer-guestbook-body 只留作这一块的包裹元素，不再需要样式 */
 
-/* 「留言」二字照旧留在中轴上，只是不再当开关：箭头、cursor: pointer、
-   悬停手势、展开态与逐字抖动一并取消——它现在只是一句标题，不是入口，
-   抖动是留给可点之物的反馈，留在标题上只会平白晃眼。
-   因此拆字脚本与抖动选择器清单里都不含 .footer-guestbook-label，
-   字距就走这一条 letter-spacing: 0.5px，与「关于」「投稿」同一档 */
+/* 「留言」二字换成了 coda.jpeg：图本身就是这段的标题，字体字号字距那套文字样式
+   随之作废，只留居中与到正文的间距。display:block + margin-inline:auto
+   让它落在页脚中轴上；宽 260px 是按原 22px 字标的比例取的（原图 3889×556） */
 .footer-guestbook-label {
-  font-family: var(--font-title);
-  font-size: 22px;
-  letter-spacing: 0.5px;
-  color: var(--white);
-  text-align: center;
-  /* 12px + .footer-guestbook-inner 的 padding-top 8px = 20px，
-     与「关于」标签到它正文之间那一档间距相同 */
-  margin-bottom: 12px;
+  display: block;
+  width: 260px;
+  height: auto;
+  margin: 0 auto 12px;
 }
 
 /* 展开区宽度 ≈ 上面文章卡片的 60%：卡片在 --page-w（960px）容器里两侧各退 48px 内边距 = 864px，
@@ -2899,7 +2899,7 @@ body.cursor-hidden * {
   animation: none;
 }
 
-/* 美术馆左下角署名不做抖动：悬停只出下划线。
+/* 華彩段左下角署名不做抖动：悬停只出下划线。
    上面的 JS 拆字选择器已把 .museum-credit-link 排除，这里同样兜一层保险 */
 .museum-credit-link:hover .jitter-char {
   animation: none;
@@ -3036,10 +3036,10 @@ body.cursor-hidden * {
 </head>
 <body>
 
-  <!-- 右侧章节导航：exposition / développement / récapitulation / musée / coda。
+  <!-- 右侧章节导航：exposition / développement / récapitulation / cadenza / coda。
        随滚动高亮当前所在区块（对应项变黑，见 site.js），点任意一项平滑跳到该区块。
        映射：exposition→#daily（呈示部），développement→#latest（展開部），
-            récapitulation→#archive（再現部），musée→#museum（美術館），coda→#about（页脚）。
+            récapitulation→#archive（再現部），cadenza→#museum（華彩段），coda→#about（页脚）。
        文案改法文后高亮逻辑不受影响：它按 href→区块 id 匹配（见 site.js），不比对文字。
        固定在视口右侧、垂直居中；窄屏（≤1120px）正文会顶到边，导航收起 -->
   <nav class="side-nav" aria-label="章节导航">
@@ -3047,7 +3047,7 @@ body.cursor-hidden * {
       <li><a class="side-nav-item" href="#daily">exposition</a></li>
       <li><a class="side-nav-item" href="#latest">développement</a></li>
       <li><a class="side-nav-item" href="#archive">récapitulation</a></li>
-      <li><a class="side-nav-item" href="#museum">musée</a></li>
+      <li><a class="side-nav-item" href="#museum">cadenza</a></li>
       <li><a class="side-nav-item" href="#about">coda</a></li>
     </ul>
   </nav>
@@ -3250,19 +3250,19 @@ body.cursor-hidden * {
     </div>
   </section>
 
-  <!-- Museum：美术馆——一屏高的横向胶片（视觉参考浦东美术馆官网：无衬线、极简）。
+  <!-- Cadenza：華彩段——一屏高的横向胶片（视觉参考浦东美术馆官网：无衬线、极简）。
        图片取自仓库根的 museum/ 目录（已复制进 public/img/museum-N.jpg）；卡片暂不可点，只有横滑。
        维护通道留待后续接留言板的上传通道，本轮不做后端 -->
 
   <section class="section museum" id="museum">
     <div class="museum-inner">
-      <p class="section-label">Musée</p>
-      <h2 class="section-title">美術館</h2>
+      <p class="section-label">Cadenza</p>
+      <h2 class="section-title">華彩段</h2>
     </div>
 
     <!-- 轨道独立于 .museum-inner，铺满 .museum-stage 的左 75% 宽度；
          标题仍在上方 960 版心里；右 25% 是展览介绍区 -->
-    <div class="museum-strip" data-museum-strip tabindex="0" role="group" aria-label="美术馆作品横滑胶片">
+    <div class="museum-strip" data-museum-strip tabindex="0" role="group" aria-label="華彩段作品横滑胶片">
       <div class="museum-stage">
       <div class="museum-viewport" data-museum-viewport>
         <!-- 两层位移：.museum-shift 由脚本写 translateX（箭头/圆点/拖拽的离散翻页），
@@ -3273,7 +3273,7 @@ body.cursor-hidden * {
         <div class="museum-track" data-museum-track>
 
           <article class="museum-card">
-            <div class="museum-poster"><img src="/public/img/museum-1.jpg" alt="美术馆作品 01" loading="lazy" decoding="async"></div>
+            <div class="museum-poster"><img src="/public/img/museum-1.jpg" alt="作品 01" loading="lazy" decoding="async"></div>
             <div class="museum-card-text">
               <p class="museum-card-title">作品 01</p>
               <p class="museum-card-meta">作品　待填</p>
@@ -3281,7 +3281,7 @@ body.cursor-hidden * {
           </article>
 
           <article class="museum-card museum-card--short">
-            <div class="museum-poster"><img src="/public/img/museum-2.jpg" alt="美术馆作品 02" loading="lazy" decoding="async"></div>
+            <div class="museum-poster"><img src="/public/img/museum-2.jpg" alt="作品 02" loading="lazy" decoding="async"></div>
             <div class="museum-card-text">
               <p class="museum-card-title">作品 02</p>
               <p class="museum-card-meta">作品　待填</p>
@@ -3289,7 +3289,7 @@ body.cursor-hidden * {
           </article>
 
           <article class="museum-card">
-            <div class="museum-poster"><img src="/public/img/museum-3.jpg" alt="美术馆作品 03" loading="lazy" decoding="async"></div>
+            <div class="museum-poster"><img src="/public/img/museum-3.jpg" alt="作品 03" loading="lazy" decoding="async"></div>
             <div class="museum-card-text">
               <p class="museum-card-title">作品 03</p>
               <p class="museum-card-meta">作品　待填</p>
@@ -3297,7 +3297,7 @@ body.cursor-hidden * {
           </article>
 
           <article class="museum-card museum-card--short">
-            <div class="museum-poster"><img src="/public/img/museum-4.jpg" alt="美术馆作品 04" loading="lazy" decoding="async"></div>
+            <div class="museum-poster"><img src="/public/img/museum-4.jpg" alt="作品 04" loading="lazy" decoding="async"></div>
             <div class="museum-card-text">
               <p class="museum-card-title">作品 04</p>
               <p class="museum-card-meta">作品　待填</p>
@@ -3341,7 +3341,9 @@ body.cursor-hidden * {
            整块排在页脚最上，往下是「关于 / 投稿」那一行，再往下才是刊名 -->
       <div class="footer-guestbook">
         <div class="footer-guestbook-body">
-          <p class="footer-guestbook-label">留言</p>
+          <!-- 「留言」二字换成 coda.jpeg：图本身就是这段的标题，居中落在页脚中轴上。
+               width/height 写的是显示尺寸，先把比例占好，图到位时不跳 -->
+          <img class="footer-guestbook-label" src="/public/img/coda.jpeg" alt="coda" width="260" height="37" loading="lazy" decoding="async">
 
           <div class="footer-guestbook-inner">
             <form class="guest-form">
@@ -3359,9 +3361,10 @@ body.cursor-hidden * {
             </form>
 
             <div class="guest-wall">
-
-              <p class="guest-wall-empty">还没有留言</p>
-
+              <div class="guest-note" data-id="10">
+                <p class="guest-note-head"><span class="guest-note-name">afterRain</span><span>2026.10.14</span></p>
+                <p class="guest-note-text">Welcome to the country of god&#39;s.</p>
+              </div>
             </div>
 
             <!-- 照片流：向左缓慢滚动、悬停暂停、两端淡出到黑。
