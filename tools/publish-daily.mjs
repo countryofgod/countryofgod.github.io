@@ -7,10 +7,12 @@
  *   npm run daily -- --no-deploy   # 提交 + push；跳过本地部署（等 CI 自动部署）
  *
  * 每天往 daily/article、daily/poem 或 daily/music 里写一个 txt（文件名 = 发布日期，
- * 如 2026_10_9.txt；article/poem 第一行标题、其余正文，music 见 README「每日内容」），
+ * 如 2026_10_9.txt；article/poem 第一行标题、其余正文，music 见 README「每日内容」）；
+ * 展开部的投稿写在 daily/pub/ 下（同样是 年_月_日.txt，前三行是标题 / 作者 / 摘要）。
  * 然后跑这一条命令。它会：
- *   1. 校验文件名与内容——写错名字（如 2026_10_08，月日多补了零）或空文件会被挡下：
- *      这两种情况前端都只是静默不显示，先挡比事后上线了才发现快；
+ *   1. 校验文件名与内容——写错名字（如 2026_10_08，月日多补了零）、空文件、
+ *      投稿缺作者或摘要，都会被挡下：这些情况前端都是静默不显示（或卡片缺一块），
+ *      先挡比事后上线了才发现快；
  *   2. git add -A daily/ 并提交，提交信息取标题；
  *   3. git push origin main —— GitHub Pages 随之更新，CI 也会部署一次 Workers；
  *   4. npm run deploy —— 本地再立即部署一次 Workers（predeploy 会把 daily/ 同步进 public/）。
@@ -73,6 +75,13 @@ for (const c of changes) {
     continue;
   }
   if (c.path.endsWith('.gitkeep')) continue; // 占位文件，忽略
+  // 投稿清单：由 tools/sync-daily.mjs 生成，没有标题行、不参与校验，但必须一起提交——
+  // GitHub Pages 直接读仓库根这份，Workers 版读同步进 public/ 的那份，少了它卡片一张都不会出现
+  if (c.path.endsWith('manifest.json')) {
+    if (!c.path.startsWith('daily/pub/')) fail(`清单只归 daily/pub/：${c.path}`);
+    assets.push(c.path);
+    continue;
+  }
   // 歌单可以自托管音频：这些文件没有"标题行"，跳过下面那套 txt 校验，
   // 但仍要进提交（歌单里写的 /daily/music/xxx.mp3 指的就是它们）
   if (/\.(mp3|m4a|ogg|oga|opus|wav|flac)$/i.test(c.path)) {
@@ -89,8 +98,10 @@ for (const c of changes) {
   }
   if (!c.path.endsWith('.txt')) fail(`daily/ 下只放 .txt 内容文件（音频与配图只放 daily/music/）：${c.path}`);
 
-  const m = c.path.match(/^daily\/(article|poem|music)\/(.+)\.txt$/);
-  if (!m) fail(`路径不对：${c.path}（应为 daily/article/… 、daily/poem/… 或 daily/music/…）`);
+  const m = c.path.match(/^daily\/(article|poem|music|pub)\/(.+)\.txt$/);
+  if (!m) {
+    fail(`路径不对：${c.path}（应为 daily/article/… 、daily/poem/… 、daily/music/… 或 daily/pub/…）`);
+  }
   const category = m[1];
   const name = m[2];
 
@@ -112,7 +123,17 @@ for (const c of changes) {
   const title = (lines[i] || '').trim();
   if (!title) fail(`${c.path} 是空的（第一行要写标题；空文件前端会当成"这天没有"）`);
 
-  touched.push({ category, name, num: dayNum(y, mo, d), title, path: c.path });
+  // 展开部投稿：卡片上前三行分别是标题 / 作者 / 摘要。
+  // 缺了作者或摘要，卡片不会报错、只会缺一块（署名空、摘要空），所以在这里挡下来
+  let author = '';
+  if (category === 'pub') {
+    author = (lines[i + 1] || '').trim();
+    const excerpt = (lines[i + 2] || '').trim();
+    if (!author) fail(`${c.path} 第二行要写作者`);
+    if (!excerpt) fail(`${c.path} 第三行要写摘要（卡片上显示的那句）`);
+  }
+
+  touched.push({ category, name, num: dayNum(y, mo, d), title, author, path: c.path });
 }
 
 if (!touched.length && !removed.length && !assets.length) {
@@ -124,8 +145,13 @@ if (!touched.length && !removed.length && !assets.length) {
 log('');
 log('本次将发布：');
 for (const t of touched) {
-  const future = t.num > todayNum ? '  ← 未来日期：到那天才会出现在首页' : '';
-  log(`  + daily/${t.category}/${t.name}.txt  「${t.title}」${future}`);
+  // 「未来日期」只对每日成立：右栏按今天往回找，取不到未来那天。
+  // 展开部的投稿是清单里有就渲染，不挑日期
+  const future = t.category !== 'pub' && t.num > todayNum
+    ? '  ← 未来日期：到那天才会出现在首页'
+    : '';
+  const who = t.category === 'pub' ? ` —— ${t.author}` : '';
+  log(`  + daily/${t.category}/${t.name}.txt  「${t.title}」${who}${future}`);
 }
 for (const p of removed) log(`  - ${p}（删除）`);
 for (const p of assets) {
@@ -134,14 +160,20 @@ for (const p of assets) {
 }
 
 /* ---------- 4. 提交 ---------- */
-const headline = touched.length
-  ? `每日内容：${touched
-      .slice(0, 2)
-      .map((t) => `${t.title}（${t.name}）`)
-      .join('、')}${touched.length > 2 ? ` 等 ${touched.length} 篇` : ''}`
-  : removed.length
-    ? `每日内容：删除 ${removed.length} 个文件`
-    : `每日内容：素材 ${assets.length} 个（音频 / 配图）`;
+const pub = touched.filter((t) => t.category === 'pub');
+const daily = touched.filter((t) => t.category !== 'pub');
+const names = (arr) =>
+  `${arr
+    .slice(0, 2)
+    .map((t) => `${t.title}（${t.name}）`)
+    .join('、')}${arr.length > 2 ? ` 等 ${arr.length} 篇` : ''}`;
+const headline = pub.length
+  ? `展开部投稿：${names(pub)}`
+  : daily.length
+    ? `每日内容：${names(daily)}`
+    : removed.length
+      ? `每日内容：删除 ${removed.length} 个文件`
+      : `每日内容：素材 ${assets.length} 个（音频 / 配图）`;
 const body = [...touched.map((t) => `+ ${t.path}`), ...removed.map((p) => `- ${p}`)].join('\n');
 
 if (dryRun) {

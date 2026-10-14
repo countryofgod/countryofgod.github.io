@@ -133,12 +133,20 @@ function diffTokens(a, b) {
 const devSetCookie = homeRes.headers.get('set-cookie') || '';
 check('首页给新设备登记身份', devSetCookie.startsWith('gc_dev='), devSetCookie.split(';')[0].slice(0, 24));
 const devCookie = devSetCookie.split(';')[0];
-// 标签里的字被拆成单字 span，不能按整串匹配，取标签那一段来判断
-const labelSeg = homeHtml.slice(homeHtml.indexOf('footer-guestbook-label'));
-const labelText = labelSeg.slice(0, labelSeg.indexOf('footer-guestbook-arrow'));
+// 页脚布局：留言板常驻展开、折叠入口连标签带箭头一起撤掉，
+// 「关于 / 投稿」那一排紧跟其后、落在刊名的上一行
+const footerHtml = homeHtml.slice(homeHtml.indexOf('<footer'));
 check(
-  '底部标签已从「留言板」改为「留言」',
-  labelText.includes('>留<') && labelText.includes('>言<') && !labelText.includes('>板<')
+  '留言板常驻展开、「留言」居中保留、折叠入口已撤',
+  footerHtml.includes('footer-guestbook-label') &&
+    !homeHtml.includes('footer-guestbook-arrow') &&
+    footerHtml.includes('footer-guestbook-body') &&
+    footerHtml.indexOf('footer-guestbook') < footerHtml.indexOf('footer-links')
+);
+check(
+  '「关于 / 投稿」居中同一行、排在刊名之上一行',
+  footerHtml.indexOf('footer-about-label') < footerHtml.indexOf('footer-submit') &&
+    footerHtml.indexOf('footer-links') < footerHtml.indexOf('footer-bottom')
 );
 
 const mine0 = await (await call('/api/guestbook/mine', { headers: { Cookie: devCookie } })).json();

@@ -6,6 +6,10 @@ const API_BASE = window.__API_BASE__ || '';
 // 「每日单独页」在 /d/<日期>/<分类> 两级深的位置，相对地址会解析成
 // /d/<日期>/daily/... 而 404（表现为「这一天还没有内容。」，见下方 /d/ 段）
 const DAILY_BASE = window.__DAILY_BASE__ || '/daily/';
+// 展开部投稿：daily/pub/<年>_<月>_<日>.txt。
+// 与每日同形 —— 本站是 /daily/pub/；github.io 那份静态副本也直取仓库根的 daily/pub/
+// （根目录的 daily/ 是入库的，public/daily/ 不是），所以三处同一个地址都命中
+const PUB_BASE = window.__PUB_BASE__ || '/daily/pub/';
 
 // 屏内视图切换：点 music 是在这块屏幕里换一屏，不跳 URL、不换页面。
 // 用 pushState 记一层，MENU 才能靠 history.back() 退回上一个视图；
@@ -774,38 +778,19 @@ if (HOVER_CAPABLE) {
   });
 }
 
-// 页脚「关于」与「留言板」：两块互斥——展开其中一块时把另一块收起。
-// 收起就是删掉 .expanded，走的是同一条 max-height 过渡，所以"关掉"天然带 0.6s 动效
+// 页脚「关于」：点一下展开社交标识，再点一下收起。
+// 收起就是删掉 .expanded，走的是同一条 max-height 过渡，所以"关掉"天然带 0.6s 动效。
+// 留言板已改为常驻展开（入口标签一并撤掉），不再与「关于」互斥，也就没有第二块要管
 const footerAbout = document.querySelector('.footer-about');
-const footerGuestbook = document.querySelector('.footer-guestbook');
-
-// 「留言板」的标签在入口行里，展开区在行外，是两个元素，
-// 所以展开态要同时挂到两者上：一个管展开区高度，一个管箭头方向
-const guestbookLabel = document.querySelector('.footer-guestbook-label');
 
 if (footerAbout) {
   footerAbout.addEventListener('click', (e) => {
-    // 入口行也包在这一块里，点「投稿」链接和「留言板」标签都要放行给它们自己。
+    // 入口行也包在这一块里，点「投稿」链接要放行给它自己。
     // .footer-social-item：社交链接在展开区里面，点击会冒泡上来被当成"再点一次关于"而收起面板——
     // 链接必须放行，否则点完图标面板就自己关了
     if (e.target.closest && (e.target.closest('.footer-submit') ||
-        e.target.closest('.footer-guestbook-label') ||
         e.target.closest('.footer-social-item'))) return;
-    const expanding = !footerAbout.classList.contains('expanded');
     footerAbout.classList.toggle('expanded');
-    if (expanding && footerGuestbook) {
-      footerGuestbook.classList.remove('expanded');
-      if (guestbookLabel) guestbookLabel.classList.remove('expanded');
-    }
-  });
-}
-
-if (guestbookLabel && footerGuestbook) {
-  guestbookLabel.addEventListener('click', () => {
-    const expanding = !footerGuestbook.classList.contains('expanded');
-    footerGuestbook.classList.toggle('expanded', expanding);
-    guestbookLabel.classList.toggle('expanded', expanding);
-    if (expanding && footerAbout) footerAbout.classList.remove('expanded');
   });
 }
 
@@ -1011,10 +996,101 @@ articleItems.forEach((item) => {
   });
 });
 
+// 展开部投稿卡片：daily/pub/ 下的 .txt 按 manifest.json 渲染成卡片，
+// 按日期接在 #latest .article-list 末尾（第一篇仍是创刊号）。
+// 与「每日」同一套手续：丢一个文件进去、跑 npm run daily，卡片自己就出现，
+// 不动 HTML、不进管理台。
+// 卡片里的图片基准从 __DAILY_BASE__ 上剥出来：静态副本是 /public/daily/ → /public/，
+// 本站是 /daily/ → /，两边的 logo 都命中
+const ASSET_BASE = (window.__DAILY_BASE__ || '/daily/').replace(/daily\/?$/, '');
+
+function buildPubCard(text, name) {
+  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/);
+  let i = 0;
+  while (i < lines.length && !lines[i].trim()) i += 1;            // 跳过前导空行
+  const title = (lines[i] || '').trim(); i += 1;                  // 第一行：标题
+  const author = (lines[i] || '').trim(); i += 1;                 // 第二行：作者
+  const excerpt = (lines[i] || '').trim(); i += 1;                // 第三行：摘要
+  const body = lines.slice(i).join('\n').trim();                  // 其余：正文
+
+  const parts = name.replace(/\.txt$/, '').split('_').map(Number);
+  const date = parts.length === 3 && !parts.some((n) => !Number.isFinite(n))
+    ? `${parts[0]}.${String(parts[1]).padStart(2, '0')}.${String(parts[2]).padStart(2, '0')}`
+    : '';
+
+  const card = document.createElement('article');
+  card.className = 'article-item';
+  card.innerHTML =
+    '<span class="article-logo">' +
+      '<img class="logo-base" src="' + ASSET_BASE + 'img/logo.webp" alt="上帝之国">' +
+      '<img class="logo-inv" src="' + ASSET_BASE + 'img/logo.webp" alt="" aria-hidden="true">' +
+    '</span>' +
+    '<h3 class="article-title" style="font-size: 25px;"></h3>' +
+    '<p class="article-author"></p>' +
+    '<p class="article-meta"></p>' +
+    '<div class="article-content">' +
+      '<p class="article-excerpt" style="font-size: 18px;"></p>' +
+      '<p class="article-full" style="font-size: 18px;"></p>' +
+    '</div>' +
+    '<span class="article-toggle">↓</span>';
+  card.querySelector('.article-title').textContent = title;
+  card.querySelector('.article-author').textContent = author ? '— ' + author : '';
+  card.querySelector('.article-meta').textContent = date;
+  card.querySelector('.article-excerpt').textContent = excerpt;
+
+  // 正文：空行分段（段间两个 <br>），段内换行留一个 <br> ——
+  // 作者自己的换行是内容的一部分，不该被折成空格
+  const full = card.querySelector('.article-full');
+  let first = true;
+  for (const block of body.split(/\n[ \t]*\n/)) {
+    const ls = block.split('\n').map((s) => s.trim()).filter(Boolean);
+    if (!ls.length) continue;
+    if (!first) {
+      full.appendChild(document.createElement('br'));
+      full.appendChild(document.createElement('br'));
+    }
+    first = false;
+    ls.forEach((ln, k) => {
+      if (k) full.appendChild(document.createElement('br'));
+      full.appendChild(document.createTextNode(ln));
+    });
+  }
+  card.addEventListener('click', () => card.classList.toggle('expanded'));
+  return card;
+}
+
+// 卡片是异步取来的：目录抽屉与「下一篇」必须等它到齐再建索引，
+// 否则目录里只有创刊号、下一篇也循环不起来
+const pubCardsReady = (async () => {
+  const list = document.querySelector('#latest .article-list');
+  if (!list) return;
+  let entries = [];
+  try {
+    const res = await fetch(PUB_BASE + 'manifest.json', { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) entries = data;
+    }
+  } catch {
+    return; // 没有清单（或网络不通）：一篇都不加，创刊号照常显示
+  }
+  for (const entry of entries) {
+    const file = typeof entry === 'string' ? entry : entry.file;
+    if (!file) continue;
+    try {
+      const r = await fetch(PUB_BASE + file, { cache: 'no-store' });
+      if (!r.ok) continue;
+      list.appendChild(buildPubCard(await r.text(), file));
+    } catch {
+      /* 单篇读不到就跳过，不影响其它篇 */
+    }
+  }
+})();
+
 // 本期目录抽屉（pub 左侧空白页边）：按 .article-list 里的文章自动生成目录，
 // 点目录项只在当前页「淡出当前文章 → 淡入目标」（不跳新页面）。
-// 目前 pub 只有创刊号一篇；后续在 .article-list 里加 .article-item 会自动进目录。
-(function () {
+// 目录在投稿卡片到齐之后才建（见下方 pubCardsReady.then）
+function initPubToc() {
   const pubToc = document.querySelector('#latest .pub-toc');
   const list = document.querySelector('#latest .article-list');
   const tocList = document.querySelector('#latest .pub-toc-list');
@@ -1060,28 +1136,51 @@ articleItems.forEach((item) => {
     });
   }
 
-  // 淡出当前、淡入目标；同一篇则不动
+  // 切换时长：与 CSS 里 height / transform 的 0.45s 对齐，多留 60ms 收尾，
+  // 免得清场早于动画结束、末尾又硬跳一下
+  const SWAP_MS = 450;
+  let swapping = false;
+
+  // 旧卡片脱流淡出、新卡片就位淡入，容器高度同步从旧高度走到新高度；同一篇则不动
   function switchArticle(targetId) {
     const current = list.querySelector('.article-item.is-active');
     const next = document.getElementById(targetId);
-    if (!next || next === current) return;
-    if (current) {
-      current.classList.remove('is-active');
-      current.classList.add('is-fading-out');
-      // 淡出结束（350ms）后从文档流摘掉，避免占位
-      window.setTimeout(() => {
-        current.classList.add('is-hidden');
-        current.classList.remove('is-fading-out');
-      }, 360);
+    if (!next || next === current || swapping) return;
+    markCurrent(targetId);
+
+    if (!current) {
+      next.classList.remove('is-hidden', 'is-entering');
+      next.classList.add('is-active');
+      return;
     }
-    next.classList.remove('is-hidden', 'is-fading-out');
-    next.classList.add('is-prein'); // 起点 opacity:0
-    // 两帧后拉回 1，触发淡入，间距与 CSS 的 0.35s 过渡对齐
+
+    swapping = true;
+    const from = list.offsetHeight; // 旧卡片撑出的高度
+    // 旧卡片脱流：它一走，容器的高度就只由新卡片决定
+    current.classList.remove('is-active');
+    current.classList.add('is-leaving');
+    next.classList.remove('is-hidden');
+    next.classList.add('is-entering');
+    const to = list.offsetHeight; // 新卡片撑出的高度
+
+    list.style.height = from + 'px'; // 先钉回旧高度（此刻还没有过渡，不会动）
+    requestAnimationFrame(() => {
+      list.classList.add('is-swapping'); // 下一帧才装过渡并给目标值，高度才会动
+      list.style.height = to + 'px';
+    });
+    // 位移与透明的起点要先落一帧，摘掉 is-entering 才走得到过渡
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      next.classList.remove('is-prein');
+      next.classList.remove('is-entering');
       next.classList.add('is-active');
     }));
-    markCurrent(targetId);
+
+    window.setTimeout(() => {
+      current.classList.remove('is-leaving');
+      current.classList.add('is-hidden');
+      list.classList.remove('is-swapping');
+      list.style.height = ''; // 高度交回 CSS：卡片自己展开时长高不受限
+      swapping = false;
+    }, SWAP_MS + 60);
   }
 
   // 悬停展开由 CSS 的 .pub-toc:hover 负责；点击把手则「钉住/取消钉住」展开状态
@@ -1102,7 +1201,10 @@ articleItems.forEach((item) => {
       if (next) switchArticle(next.id);
     });
   }
-})();
+}
+
+// 等投稿卡片到齐再建目录；清单缺失时 pubCardsReady 直接就 resolve 了
+pubCardsReady.then(initPubToc);
 
 
 // 把可点击文字拆成单字 span，供悬停时逐字错相位抖动（见 CSS 的 .jitter-char）。
@@ -1122,7 +1224,7 @@ articleItems.forEach((item) => {
 // a:not(.pub-toc-link)：展開部左侧目录里的文章项，要"类似 nav 导航栏"——
 //   导航项本身就被排除，且悬停只该出下划线渐现（见 .pub-toc-link::after），
 //   拆字会把单行标题变成多个 inline-block，下划线的起止也会跟着散，故排除。
-document.querySelectorAll('a:not(.month-post):not(.hero-cn-hl):not(.side-nav-item):not(.archive-random-link):not(.museum-credit-link):not(.pub-toc-link), .footer-about-label, .footer-guestbook-label, .footer-name, .footer-credit').forEach((el) => {
+document.querySelectorAll('a:not(.month-post):not(.hero-cn-hl):not(.side-nav-item):not(.archive-random-link):not(.museum-credit-link):not(.pub-toc-link), .footer-about-label, .footer-name, .footer-credit').forEach((el) => {
   const ls = parseFloat(getComputedStyle(el).letterSpacing) || 0;
   if (ls) el.style.letterSpacing = '0px';
 
@@ -1224,7 +1326,88 @@ document.addEventListener('click', (e) => {
   document.querySelectorAll('.archive-group.open').forEach(closeArchiveGroup);
 });
 
-// 月份方块：点一下把该月文章列表搬进下方面板展开，再点一下收起
+// 月份方块：点一下把该月文章列表按页搬进下方面板展开，再点一下收起。
+// 以前是整月文章一次性塞进面板，文章多的月份会被 .month-posts-panel 的
+// max-height 连锅裁掉——超出那一截直接看不见，也没有任何办法翻到它。
+// 现在每页只放 MONTH_PAGE_SIZE 条，面板底部一枚翻页器（← 1 / 3 →）翻着看，
+// 一个月文章再多，列表也条条都看得见
+const MONTH_PAGE_SIZE = 8;
+const PAGE_FADE_MS = 250; // 翻页渐显渐隐时长，须与 .month-posts-page 的过渡时长一致
+
+// 每个面板的翻页状态：{ posts: Element[], page: number }。记在 WeakMap 里，
+// 不占用 DOM 属性，面板被整页换掉时状态自然跟着回收
+const monthPanelPages = new WeakMap();
+// 翻页淡出计时器与渲染代号：连点翻页键时，旧一轮的淡出作废，只认最后一下，
+// 不会出现"两轮淡出抢着换内容"的闪跳
+const monthPanelTimers = new WeakMap();
+const monthPanelGen = new WeakMap();
+
+// 第一次用某个面板前，把服务端直渲染在里面的文章行清掉，重建出
+// 「文章行容器 + 翻页器」两层结构。之后再翻页只替换文章行容器的内容，
+// 翻页器不被冲掉（它身上带着当前年份/月份的翻页事件）
+function buildMonthPanel(panel) {
+  if (panel.dataset.paged) return;
+  panel.innerHTML = '';
+  const pageBox = document.createElement('div');
+  pageBox.className = 'month-posts-page';
+  const pager = document.createElement('div');
+  pager.className = 'month-posts-pager';
+  pager.innerHTML =
+    '<button type="button" class="month-posts-pager-btn" data-pager="prev" aria-label="上一页">←</button>' +
+    '<span class="month-posts-pager-info"></span>' +
+    '<button type="button" class="month-posts-pager-btn" data-pager="next" aria-label="下一页">→</button>';
+  pager.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-pager]');
+    if (!btn) return;
+    const state = monthPanelPages.get(panel);
+    if (!state) return;
+    // 翻的还是当前这个月：换月份时下方统一重置回第 1 页
+    renderMonthPage(panel, state.posts, state.page + (btn.dataset.pager === 'prev' ? -1 : 1));
+  });
+  panel.append(pageBox, pager);
+  panel.dataset.paged = '1';
+}
+
+// 把 posts 的第 page 页渲染进面板，并同步翻页器的页码与箭头可用状态。
+// 面板已经展开着的时候（翻页 / 换月）走渐显渐隐：旧内容先淡出，换好再淡入，
+// 不硬换；首次渲染（面板正从收起展开）不叠这一层，交给面板自己的入场动效
+function renderMonthPage(panel, posts, page) {
+  const pages = Math.max(1, Math.ceil(posts.length / MONTH_PAGE_SIZE));
+  const cur = Math.min(Math.max(1, page), pages); // 夹在合法页域内，越界当边界处理
+  const pageBox = panel.querySelector('.month-posts-page');
+
+  const paint = () => {
+    pageBox.innerHTML = '';
+    posts
+      .slice((cur - 1) * MONTH_PAGE_SIZE, cur * MONTH_PAGE_SIZE)
+      .forEach((el) => pageBox.appendChild(el.cloneNode(true)));
+
+    monthPanelPages.set(panel, { posts, page: cur });
+    const pager = panel.querySelector('.month-posts-pager');
+    // 一页就放得下：翻页器整枚藏掉，与从前没有翻页时长得一模一样
+    pager.hidden = pages <= 1;
+    pager.querySelector('.month-posts-pager-info').textContent = cur + ' / ' + pages;
+    pager.querySelector('[data-pager="prev"]').disabled = cur <= 1;
+    pager.querySelector('[data-pager="next"]').disabled = cur >= pages;
+    pageBox.classList.remove('is-fading'); // 拉回不透明：淡入
+  };
+
+  // 展开中的面板换内容才先淡出；收起→首次打开由面板的 max-height/opacity 负责入场
+  if (panel.classList.contains('open') && pageBox.children.length > 0) {
+    const gen = (monthPanelGen.get(panel) || 0) + 1;
+    monthPanelGen.set(panel, gen);
+    pageBox.classList.add('is-fading');
+    window.clearTimeout(monthPanelTimers.get(panel));
+    monthPanelTimers.set(panel, window.setTimeout(() => {
+      if (monthPanelGen.get(panel) !== gen) return; // 又有更新的渲染顶来，这一轮作废
+      paint();
+    }, PAGE_FADE_MS));
+    return;
+  }
+  window.clearTimeout(monthPanelTimers.get(panel));
+  paint();
+}
+
 document.querySelectorAll('.archive-month').forEach(month => {
   const list = month.querySelector('.month-posts');
   if (!list || list.children.length === 0) return;
@@ -1236,7 +1419,8 @@ document.querySelectorAll('.archive-month').forEach(month => {
       panel.dataset.month = '';
       return;
     }
-    panel.innerHTML = list.innerHTML;
+    buildMonthPanel(panel);
+    renderMonthPage(panel, Array.from(list.children), 1); // 换月份一律从头翻起
     panel.dataset.month = key;
     panel.classList.add('open');
   });
@@ -1245,7 +1429,7 @@ document.querySelectorAll('.archive-month').forEach(month => {
 // 美术馆横滑胶片：全宽铺开，卡片宽度一致、高度高低交替，切到尽头会绕回开头。
 // 索引按"第几张"记账而不是按像素——窗口变窄变宽后一张卡的宽度会变，
 // 记死的像素值立刻失效；所以每次尺寸变化都重新用 offsetLeft 量一遍落点。
-// 箭头 / 圆点 / 拖拽 / ←→ 四个入口改的都是同一个虚拟索引 v，再各自渲染。
+// 箭头 / 拖拽 / ←→ 三个入口改的都是同一个虚拟索引 v，再各自渲染。
 // 位移走 translateX、视口 overflow:hidden 切掉溢出，与浦东美术馆官网的做法一致。
 document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
   const viewport = strip.querySelector('[data-museum-viewport]');
@@ -1253,10 +1437,9 @@ document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
   // 离散翻页的位移写在 .museum-shift 这层（轨道那份 transform 归自动漂移的 CSS 动画）。
   // 模板没给这层时退回 track：此时漂移动画会与脚本打架，但至少不会直接报错
   const shift = strip.querySelector('[data-museum-shift]') || track;
-  const dotsBox = strip.querySelector('[data-museum-dots]');
   const prevBtn = strip.querySelector('[data-museum-prev]');
   const nextBtn = strip.querySelector('[data-museum-next]');
-  if (!viewport || !track || !dotsBox || track.children.length === 0) return;
+  if (!viewport || !track || track.children.length === 0) return;
 
   const DRIFT_SPEED = 20; // 自动漂移速度，px/秒（"缓慢"：一张卡约 12 秒走过去）
 
@@ -1427,26 +1610,6 @@ document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
     // 先归位再写目标：两步在同一次同步执行里完成，中间不给浏览器插帧的机会
     normalize();
     shift.style.transform = `translateX(${-pos[v]}px)`;
-
-    // 圆点 = 一套作品一张。只在"个数变了"时重建：
-    // 否则悬停让落点个数一有变化就会销毁重建按钮，指针底下那个会闪
-    if (dotsBox.children.length !== SET) {
-      dotsBox.innerHTML = '';
-      originals.forEach((_, i) => {
-        const dot = document.createElement('button');
-        dot.type = 'button';
-        dot.className = 'museum-dot';
-        dot.setAttribute('aria-label', `第 ${i + 1} 张`);
-        dot.addEventListener('click', () => { v = SET + i; render(); });
-        dotsBox.appendChild(dot);
-      });
-    }
-    // v 落在第几张：虚拟索引对一套取模即可
-    const active = ((v % SET) + SET) % SET;
-    Array.from(dotsBox.children).forEach((dot, i) => {
-      if (i === active) dot.setAttribute('aria-current', 'true');
-      else dot.removeAttribute('aria-current');
-    });
   };
 
   const step = (delta) => { v += delta; render(); };

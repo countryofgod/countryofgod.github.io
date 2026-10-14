@@ -479,7 +479,6 @@ section.section.museum#museum
    │        ├─ div.museum-poster > img
    │        └─ div.museum-card-text > p.museum-card-title + p.museum-card-meta
    └─ div.museum-strip-foot
-      ├─ div.museum-dots[data-museum-dots]        ← 圆点由 JS 生成，一件作品一个（6 个）
       └─ button.museum-arrow × 2                  ← ‹ / ›（循环列表，恒可用）
 ```
 

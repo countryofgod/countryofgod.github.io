@@ -1905,6 +1905,11 @@ body {
   max-width: none;
   padding-left: 0;
   padding-right: 0;
+  /* 最小一整面：年份全收起时本区只有 ~710px，比一屏矮一截，照片带像是被裁断。
+     用 --vp-h 而不是裸 100vh——移动端它自动换成的 100svh 才是"用户真正看得见的一屏"
+     （地址栏伸缩时 100vh 会高出一截）。与首图共用同一个"一屏高"口径。
+     min-height 只兜底下限：任一年份展开后自然高过它，展开态的版式一丝不变 */
+  min-height: var(--vp-h);
   /* 与上方 pub（最新文章）之间的分隔线：浅一丢丢的灰 + 90% 不透明度（10% 透明），2px */
   border-top: 2px solid rgba(119, 119, 119, 0.85);
 }
@@ -2298,22 +2303,27 @@ body {
   margin: 0 auto;
 }
 
-/* 页脚入口行：关于 / 投稿，一左一右。
+/* 页脚入口行：关于 / 投稿，两项居中并排（与上方「留言」同一个中轴）。
    这一行紧跟在常驻展开的留言板下面、刊名「Einmal ist keinmal」的上一行。
+   justify-content: center：留出「留言」之后，这一行不再做左右分居——
+   三项各自贴边会让页脚的重心散掉，居中才与刊名那一行上下对齐。
    baseline 对齐让两项文字压在同一条基线上（「投稿」自带 20px 上下内边距，
    若用 flex-start 会让「关于」比它高出 20px） */
 .footer-links {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: baseline;
   gap: 40px;
 }
 
 /* 「关于」的整块：上排是入口行，正文挂在行的下方。
-   正文若留在这一行内，展开时会撑宽「关于」那一格、把后两项顶走，
-   所以它必须是行的兄弟节点而不是行内项目 */
+   正文若留在这一行内，展开时会撑宽「关于」那一格、把「投稿」顶走，
+   所以它必须是行的兄弟节点而不是行内项目。
+   留言板已常驻展开并移到页脚最上方，这一块因此变成页脚的倒数第二块 */
 .footer-about {
-  margin-bottom: 24px;
+  /* 16px + 预留的 44px = 60px，与原先"展开之后"入口行到刊名那一档间距相同：
+     只是这一段间距现在恒在，不随展开与否变化 */
+  margin-bottom: 16px;
   cursor: pointer;
 }
 
@@ -2346,31 +2356,43 @@ body {
   transform: rotate(90deg);
 }
 
-/* 正文在行的下方、不参与那一行的宽度计算，所以展开只会向下长，
-   不会把「留言板」「投稿」往右顶 */
+/* 正文在行的下方、不参与那一行的宽度计算，所以展开不会把「投稿」往右顶。
+   高度是**恒定**的：这一块等于给图标预留好的一行空地（44px = 30px 图标 + 上下留白），
+   收起时它就已经占着位，展开只是把图标淡进这块空地——
+   于是底部的刊名与版权行一动不动，不会被顶下去。
+   （早先那版用 max-height: 0 → 400px 撑开，本质是"长高"，必然挤走下面所有东西） */
 .footer-about-body {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.6s ease;
-}
-
-.footer-about.expanded .footer-about-body {
-  max-height: 400px;
+  height: 44px;
 }
 
 /* 「关于」展开区：4 枚社交标识（QQ / 小红书 / 微信 / GitHub），横排一行 4 枚。
-   去掉平台名后每格只剩一枚图标，列宽改为随内容（auto）并靠左排列——
+   去掉平台名后每格只剩一枚图标，列宽改为随内容（auto）并居中排列——
    原先用 1fr 是为了给"图标 + 文字"留等宽的两栏；现在文字没了，
    1fr 会在每格右侧留出 ~110px 空档，把两枚图标拉得很散。
    网格也不再需要宽度上限：4 枚 30px 图标 + 3 道间距 ≈ 204px，
-   伸不到「留言板」底下，原先那条 calc(50% - 96px) 的约束随之作废 */
+   伸不到「留言板」底下，原先那条 calc(50% - 96px) 的约束随之作废。
+   高度撑满上面预留的那一格，图标在其中垂直居中；
+   显隐走 opacity + visibility（而不是 height），所以收起/展开不改布局高度 */
 .footer-social {
   display: grid;
   grid-template-columns: repeat(4, auto);
-  justify-content: start;
+  /* 居中：入口行「关于 / 投稿」已经居中，图标跟着落在同一条中轴上；
+     原先 justify-content: start 是靠左那个时代留下来的（那时图标挂在左端的「关于」下面） */
+  justify-content: center;
+  align-content: center;
   gap: 28px;
-  margin-top: 6px;
+  height: 100%;
   list-style: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+/* 展开 = 图标淡进预留的空地。visibility 一起切换：
+   收着的时候链接既不显形也不可聚焦，Tab 不会跳进看不见的图标里 */
+.footer-about.expanded .footer-social {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* 一格 = 一枚官方标识，整枚是一个链接。
@@ -2429,10 +2451,23 @@ body {
 /* 留言板常驻展开：不再是"点一下才长出来"的折叠区，max-height 那一套
    （高度上限 / overflow 裁切 / 0.6s 过渡）整段撤除——内容多长就占多高，
    也就不会再有"留言墙写满或选了图就被裁掉一截"这个上限问题。
-   .footer-guestbook-body 只留作这一块的包裹元素，不再需要样式。
-   原来那个「留言 →」入口连标签带箭头一并撤掉：一直开着的东西不需要开关，
-   所以 .footer-guestbook-label / -arrow 的规则在此整段删除
-   （拆字脚本与抖动选择器里的同名项也一并摘掉） */
+   .footer-guestbook-body 只留作这一块的包裹元素，不再需要样式 */
+
+/* 「留言」二字照旧留在中轴上，只是不再当开关：箭头、cursor: pointer、
+   悬停手势、展开态与逐字抖动一并取消——它现在只是一句标题，不是入口，
+   抖动是留给可点之物的反馈，留在标题上只会平白晃眼。
+   因此拆字脚本与抖动选择器清单里都不含 .footer-guestbook-label，
+   字距就走这一条 letter-spacing: 0.5px，与「关于」「投稿」同一档 */
+.footer-guestbook-label {
+  font-family: var(--font-title);
+  font-size: 22px;
+  letter-spacing: 0.5px;
+  color: var(--white);
+  text-align: center;
+  /* 12px + .footer-guestbook-inner 的 padding-top 8px = 20px，
+     与「关于」标签到它正文之间那一档间距相同 */
+  margin-bottom: 12px;
+}
 
 /* 展开区宽度 ≈ 上面文章卡片的 60%：卡片在 --page-w（960px）容器里两侧各退 48px 内边距 = 864px，
    其 60% ≈ 518px。用 60% 起步、518px 封顶，窄窗口下随容器同比例收窄
@@ -2625,11 +2660,9 @@ body {
    左右两端用遮罩淡出到页脚的黑，让照片流看起来是从黑里出来的 */
 .guest-film {
   overflow: hidden;
-  /* 下间距比上间距（28px）大：上头贴的是留言墙，下头要隔开的是页脚的刊名与版权行。
-     两件事分量不一样 —— 留言墙是"刚才发生的话"，刊名是"这本刊物是谁"；
-     紧挨着会让胶片看起来像页脚的装饰条，而不是留言栏自己的收尾。
-     只在展开留言栏时才出现（收起时 .footer-guestbook-body 是 max-height:0），
-     所以这个数字不动收起状态下的页脚排版 */
+  /* 下间距比上间距（28px）大：上头贴的是留言墙，下头要隔开的是「关于 / 投稿」那一行。
+     两件事分量不一样 —— 留言墙是"刚才发生的话"，那一行是"这本刊物还留了哪些门"；
+     紧挨着会让胶片看起来像页脚的装饰条，而不是留言栏自己的收尾 */
   margin: 28px 0 48px;
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
@@ -2790,11 +2823,10 @@ body {
   .footer {
     padding: 60px 24px 40px;
   }
-  /* 窄屏放不下并排，退回上下排列（两项都靠左） */
+  /* 窄屏也保持同一行：「关于」「投稿」各两字，加窄一点的间距就放得下，
+     拆成上下两行反而把这一行的重心打散，也跟「留言」的中轴对不上 */
   .footer-links {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+    gap: 24px;
   }
   /* 窄屏再取 60% 就太窄了，留言区铺满容器 */
   .footer-guestbook-inner {
@@ -2856,7 +2888,7 @@ body.cursor-hidden * {
   display: inline-block;
 }
 
-:is(a, .footer-about-label, .footer-guestbook-label, .footer-credit):hover .jitter-char {
+:is(a, .footer-about-label, .footer-credit):hover .jitter-char {
   animation: char-jitter 0.6s linear infinite;
   /* .footer-name 不参与这一档：它改为常驻抖动，见下方专门规则 */
 }
@@ -2873,11 +2905,11 @@ body.cursor-hidden * {
   animation: none;
 }
 
-:is(a, .footer-about-label, .footer-guestbook-label, .footer-credit):hover .jitter-char:nth-child(2n) {
+:is(a, .footer-about-label, .footer-credit):hover .jitter-char:nth-child(2n) {
   animation-delay: 0.1s;
 }
 
-:is(a, .footer-about-label, .footer-guestbook-label, .footer-credit):hover .jitter-char:nth-child(3n) {
+:is(a, .footer-about-label, .footer-credit):hover .jitter-char:nth-child(3n) {
   animation-delay: 0.2s;
 }
 
@@ -2889,7 +2921,10 @@ body.cursor-hidden * {
    抖动节奏才与悬停那档同构。
    .footer-name 已从上面所有悬停名单里移除，否则 0.6s 会按特异度覆盖这一档 */
 .footer-name .jitter-char {
-  animation: char-jitter 1.5s linear infinite;
+  /* 幅度换用 char-jitter-soft：常驻的那一档要把幅度压到悬停那一档的一半（1px → 0.5px）。
+     悬停抖是"回应一次操作"，一晃就完；常驻抖一直在场，同样的幅度看久了就变成故障特效，
+     也压过正文的存在感 */
+  animation: char-jitter-soft 1.5s linear infinite;
 }
 .footer-name .jitter-char:nth-child(2n) {
   animation-delay: 0.25s;
@@ -2914,6 +2949,15 @@ body.cursor-hidden * {
   25% { transform: translate(-1px, 1px); }
   50% { transform: translate(1px, -1px); }
   75% { transform: translate(-0.8px, -1px); }
+}
+
+/* 常驻那一档（页脚刊名）专用的小幅度版本：四个关键帧等比压到一半（1px → 0.5px），
+   相位与节奏跟上面完全一致，只是幅度小——所以看起来还是同一种"颤"，不是另一种效果 */
+@keyframes char-jitter-soft {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-0.5px, 0.5px); }
+  50% { transform: translate(0.5px, -0.5px); }
+  75% { transform: translate(-0.4px, -0.5px); }
 }
 
 /* ---------- 触屏：去掉"点了就赖着不走"的悬停态 ---------- */
@@ -2978,7 +3022,7 @@ body.cursor-hidden * {
     color: var(--gray-5);
   }
   /* 逐字抖动是"悬停才颤"的效果，触屏没有悬停这一说，别让它点一下就一直颤 */
-  :is(a, .footer-about-label, .footer-guestbook-label, .footer-credit):hover .jitter-char {
+  :is(a, .footer-about-label, .footer-credit):hover .jitter-char {
     animation: none;
   }
   /* 跟随鼠标的反色圆在触屏上没有鼠标可跟；留着它只是一块固定定位的
@@ -3291,11 +3335,14 @@ body.cursor-hidden * {
   <!-- Footer -->
   <footer class="footer" id="about">
     <div class="footer-inner">
-      <!-- 留言板：常驻展开。既然一直开着，原来那个「留言 →」折叠入口就没有意义了，
-           标签连着箭头一起撤掉（见内联样式：.footer-guestbook-label 整套规则已删）。
+      <!-- 留言板：常驻展开。「留言」二字留在原来的中轴上作标题，只是不再当开关——
+           箭头、悬停手势与逐字抖动一并撤掉（一直开着的东西不需要开关），
+           也不再拆字：字距直接走 CSS 那条 0.5px，与「关于」「投稿」同一档。
            整块排在页脚最上，往下是「关于 / 投稿」那一行，再往下才是刊名 -->
       <div class="footer-guestbook">
         <div class="footer-guestbook-body">
+          <p class="footer-guestbook-label">留言</p>
+
           <div class="footer-guestbook-inner">
             <form class="guest-form">
               <input class="guest-field guest-name" type="text" placeholder="名字" autocomplete="off" maxlength="24">

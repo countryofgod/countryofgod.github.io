@@ -25,6 +25,29 @@ if (!existsSync(src)) {
   process.exit(0);
 }
 
+// 展开部投稿清单：daily/pub/<年>_<月>_<日>.txt 一个个文件就是一篇投稿。
+// 清单先写进源目录，下面的整目录复制会把它一起带进 public/。
+// 于是「丢一个 .txt 进去 → 跑本脚本（或 npm run daily）→ 前端自动多一张卡片」，
+// 与每日同一套手续，不必动 HTML、也不必进管理台。
+// 文件三行开头固定：标题 / 作者 / 摘要，之后是正文（空行分段）。
+const pubDir = join(src, 'pub');
+const pubManifest = [];
+if (existsSync(pubDir)) {
+  for (const name of readdirSync(pubDir)) {
+    if (!name.endsWith('.txt')) continue;
+    const parts = name.replace(/\.txt$/, '').split('_').map(Number);
+    if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n))) continue;
+    const [y, mo, d] = parts;
+    pubManifest.push({
+      file: name,
+      date: `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
+    });
+  }
+  // 早的在前：展开部第一篇是创刊号，投稿按日期接在它后面
+  pubManifest.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  writeFileSync(join(pubDir, 'manifest.json'), JSON.stringify(pubManifest));
+}
+
 // 先整目录重建：源里删掉的文件不能在 public/ 里留下残影
 rmSync(dest, { recursive: true, force: true });
 mkdirSync(dest, { recursive: true });
@@ -94,4 +117,7 @@ writeFileSync(
     'export const dailyManifest = ' + JSON.stringify(manifest) + ';\n'
 );
 
-console.log(`daily/ → public/daily/ 已同步；daily-manifest.json 已生成（${manifest.length} 条）`);
+console.log(
+  `daily/ → public/daily/ 已同步；daily-manifest.json 已生成（${manifest.length} 条）；` +
+    `展开部投稿 ${pubManifest.length} 篇`
+);

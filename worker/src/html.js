@@ -432,11 +432,14 @@ function renderHome({ articles, archive, notes, submitMail }) {
   <!-- Footer -->
   <footer class="footer" id="about">
     <div class="footer-inner">
-      <!-- 留言板：常驻展开。既然一直开着，原来那个「留言 →」折叠入口就没有意义了，
-           标签连着箭头一起撤掉（见 site.css：.footer-guestbook-label 整套规则已删）。
+      <!-- 留言板：常驻展开。「留言」二字留在原来的中轴上作标题，只是不再当开关——
+           箭头、悬停手势与逐字抖动一并撤掉（一直开着的东西不需要开关），
+           也不再拆字：字距直接走 CSS 那条 0.5px，与「关于」「投稿」同一档。
            整块排在页脚最上，往下是「关于 / 投稿」那一行，再往下才是刊名 -->
       <div class="footer-guestbook">
         <div class="footer-guestbook-body">
+          <p class="footer-guestbook-label">留言</p>
+
           <div class="footer-guestbook-inner">
             <form class="guest-form">
               <input class="guest-field guest-name" type="text" placeholder="名字" autocomplete="off" maxlength="24">
