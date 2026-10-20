@@ -13,6 +13,8 @@
 
 ## 快速开始（本机）
 
+Android 安装包与构建说明见 [android/README.md](android/README.md)。安卓端直接呈现原网页，不增减站点交互元素。
+
 ```bash
 npm install
 npm start           # → http://localhost:3000

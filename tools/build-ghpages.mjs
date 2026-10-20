@@ -13,6 +13,7 @@ import { writeFile } from 'node:fs/promises';
 // （npm start，PORT 默认 3000）生成同一份快照：模板与静态资源同源，
 // 渲染结果与线上一致（已比对过 articles / guestbook 条数相同）。
 const BASE = process.env.GHPAGES_BASE || 'https://gods-country.countryofgod.workers.dev';
+const TARGET = process.env.GHPAGES_TARGET || BASE;
 
 async function mustGet(path) {
   const res = await fetch(BASE + path);
@@ -44,15 +45,15 @@ html = html
 
 // 5) 留言图片、/random、文章页、每日单独页都是 Worker 的路由，静态页上没有，指回 Worker
 html = html
-  .replace(/(src|href)="\/api\//g, `$1="${BASE}/api/`)
-  .replace(/href="\/random"/g, `href="${BASE}/random"`)
-  .replace(/href="\/p\//g, `href="${BASE}/p/`)
-  .replace(/href="\/d\//g, `href="${BASE}/d/`);
+  .replace(/(src|href)="\/api\//g, `$1="${TARGET}/api/`)
+  .replace(/href="\/random"/g, `href="${TARGET}/random"`)
+  .replace(/href="\/p\//g, `href="${TARGET}/p/`)
+  .replace(/href="\/d\//g, `href="${TARGET}/d/`);
 
 // 6) 静态页没有后端：告诉 site.js 把留言接口指回 Worker（跨域 + 带凭据，见 worker/src/index.js 的 CORS 段）
 html = html.replace(
   '<script src="/public/js/site.js"></script>',
-  `<script>window.__API_BASE__='${BASE}';window.__DAILY_BASE__='/public/daily/';</script>\n  <script src="/public/js/site.js"></script>`
+  `<script>window.__API_BASE__='${TARGET}';window.__DAILY_BASE__='/public/daily/';</script>\n  <script src="/public/js/site.js"></script>`
 );
 
 await writeFile(new URL('../index.html', import.meta.url), html, 'utf8');

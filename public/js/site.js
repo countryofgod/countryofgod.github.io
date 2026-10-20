@@ -748,6 +748,34 @@ if (sideNav) {
   syncSideNav();
 }
 
+// 華彩段左侧反色条：元素放在页脚里，但视觉上从 #museum 顶部贯穿到文档底部。
+// 用真实坐标计算，留言数量、图片加载和响应式换行改变页面高度时仍然贴齐两端。
+const cadenzaRail = document.querySelector('.cadenza-rail');
+const cadenzaSection = document.getElementById('museum');
+if (cadenzaRail && cadenzaSection) {
+  let railTick = false;
+  const syncCadenzaRail = () => {
+    railTick = false;
+    const offsetParent = cadenzaRail.offsetParent;
+    if (!offsetParent) return;
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const museumTop = cadenzaSection.getBoundingClientRect().top + scrollTop;
+    const parentTop = offsetParent.getBoundingClientRect().top + scrollTop;
+    const documentHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+    cadenzaRail.style.top = museumTop - parentTop + 'px';
+    cadenzaRail.style.height = Math.max(0, documentHeight - museumTop) + 'px';
+  };
+  const queueCadenzaRail = () => {
+    if (railTick) return;
+    railTick = true;
+    window.requestAnimationFrame(syncCadenzaRail);
+  };
+  window.addEventListener('load', queueCadenzaRail);
+  window.addEventListener('resize', queueCadenzaRail);
+  if ('ResizeObserver' in window) new ResizeObserver(queueCadenzaRail).observe(document.body);
+  syncCadenzaRail();
+}
+
 // 跟随鼠标的反色圆：移动只改 transform，避免逐帧触发布局；
 // 只在首屏（首页那张画）与页脚出现，其余内容区不打扰阅读；鼠标离开窗口也隐去
 const cursorInvert = document.querySelector('.cursor-invert');
@@ -755,7 +783,7 @@ const INVERT_SHOW = '.hero, .footer';
 // 只把留言板的表单与留言墙排除在外：输入框要看清、要光标，让一个硕大的反色圆
 // 在光标旁把白底黑字反复翻转，是干扰而不是效果。底部的照片流则保留反色圆——
 // 在那块区域让光标变成反色圆、反相底色，刚好贴合"照片从黑里流出来"的感觉
-const INVERT_MUTE = '.guest-form, .guest-wall';
+const INVERT_MUTE = '.guest-form, .guest-wall, .cadenza-rail';
 // 触屏设备没有鼠标可跟：手指点一下会合成一次 mousemove，若照旧监听，
 // 反色圆会突然出现在手指位置，并且因为再也收不到"离开"事件而一直挂在屏幕上。
 // 所以整套跟随逻辑只在"能悬停且指针精确"的设备上注册（CSS 里 .cursor-invert
@@ -775,22 +803,6 @@ if (HOVER_CAPABLE) {
   document.addEventListener('mouseleave', () => {
     cursorInvert.classList.remove('on');
     document.body.classList.remove('cursor-hidden');
-  });
-}
-
-// 页脚「关于」：点一下展开社交标识，再点一下收起。
-// 收起就是删掉 .expanded，走的是同一条 max-height 过渡，所以"关掉"天然带 0.6s 动效。
-// 留言板已改为常驻展开（入口标签一并撤掉），不再与「关于」互斥，也就没有第二块要管
-const footerAbout = document.querySelector('.footer-about');
-
-if (footerAbout) {
-  footerAbout.addEventListener('click', (e) => {
-    // 入口行也包在这一块里，点「投稿」链接要放行给它自己。
-    // .footer-social-item：社交链接在展开区里面，点击会冒泡上来被当成"再点一次关于"而收起面板——
-    // 链接必须放行，否则点完图标面板就自己关了
-    if (e.target.closest && (e.target.closest('.footer-submit') ||
-        e.target.closest('.footer-social-item'))) return;
-    footerAbout.classList.toggle('expanded');
   });
 }
 

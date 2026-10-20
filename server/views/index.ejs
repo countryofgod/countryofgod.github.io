@@ -263,7 +263,7 @@ const museumItems = [
         <div class="footer-guestbook-body">
           <!-- 「留言」二字换成 coda.jpeg：图本身就是这段的标题，居中落在页脚中轴上。
                width/height 写的是显示尺寸，先把比例占好，图到位时不跳 -->
-          <img class="footer-guestbook-label" src="/img/coda.jpeg" alt="coda" width="260" height="37" loading="lazy" decoding="async">
+          <img class="footer-guestbook-label" src="/img/coda-bw.png" alt="coda" width="260" height="37" loading="lazy" decoding="async">
 
           <div class="footer-guestbook-inner">
             <form class="guest-form">
@@ -307,23 +307,21 @@ const museumItems = [
         </div>
       </div>
 
-      <div class="footer-about">
-        <div class="footer-links">
-          <p class="footer-about-label" style="letter-spacing: 0px;"><span class="jitter-char" style="margin-right: 0.5px;">关</span><span class="jitter-char" style="margin-right: 0.5px;">于</span> <span class="footer-about-arrow" aria-hidden="true">→</span></p>
+      <div class="footer-links">
+        <a href="mailto:<%= submitMail %>" class="footer-submit" id="submit">
+          <span class="jitter-char">投</span><span class="jitter-char">稿</span> <span class="footer-submit-arrow">→</span>
+        </a>
+      </div>
 
-          <a href="mailto:<%= submitMail %>" class="footer-submit" id="submit">
-            <span class="jitter-char">投</span><span class="jitter-char">稿</span> <span class="footer-submit-arrow">→</span>
-          </a>
-        </div>
-
-        <div class="footer-about-body">
-          <!-- 「关于」展开区：4 枚社交标识，横排一行。href 先统一留 "#"，等给真实地址再逐条替换。
+      <div class="footer-bottom">
+          <!-- 4 枚社交标识固定在页脚左下角，横排一行。href 先统一留 "#"，等给真实地址再逐条替换。
                每枚图标是 Simple Icons 的官方品牌字形（单条 path、实心，24×24 viewBox），
                颜色由 .footer-social-item 的 color 经 fill: currentColor 统一控制。
                平台名不画在画面上，改由 <a> 的 aria-label 承担读屏名称。
                SVG 上的 aria-hidden="true" 有两个作用：①图标本身不进读屏树（名称已由 aria-label 给出）；
                ②页脚那段"逐字抖动"脚本遇到带 aria-hidden 的元素就不再往下拆——
                否则它会把 SVG 内部的 <path>/<circle> 逐个包进 <span>，图标会直接散掉 -->
+        <div class="cadenza-rail" aria-label="社交链接" tabindex="0">
           <ul class="footer-social">
             <li>
               <a class="footer-social-item" href="#" target="_blank" rel="noopener" aria-label="QQ">
@@ -347,15 +345,14 @@ const museumItems = [
             </li>
           </ul>
         </div>
-      </div>
-
-      <div class="footer-bottom">
-        <span class="footer-name" style="letter-spacing: 0px;"><span class="jitter-char" style="margin-right: 0.5px;">E</span><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">n</span><span class="jitter-char" style="margin-right: 0.5px;">m</span><span class="jitter-char" style="margin-right: 0.5px;">a</span><span class="jitter-char" style="margin-right: 0.5px;">l</span> <span class="footer-name-ist"><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">s</span><span class="jitter-char" style="margin-right: 0.5px;">t</span></span> <span class="jitter-char" style="margin-right: 0.5px;">k</span><span class="jitter-char" style="margin-right: 0.5px;">e</span><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">n</span><span class="jitter-char" style="margin-right: 0.5px;">m</span><span class="jitter-char" style="margin-right: 0.5px;">a</span><span class="jitter-char" style="margin-right: 0.5px;">l</span><span class="jitter-char" style="margin-right: 0.5px;">.</span></span>
+        <div class="footer-signature">
+          <span class="footer-name" style="letter-spacing: 0px;"><span class="jitter-char" style="margin-right: 0.5px;">E</span><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">n</span><span class="jitter-char" style="margin-right: 0.5px;">m</span><span class="jitter-char" style="margin-right: 0.5px;">a</span><span class="jitter-char" style="margin-right: 0.5px;">l</span> <span class="footer-name-ist"><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">s</span><span class="jitter-char" style="margin-right: 0.5px;">t</span></span> <span class="jitter-char" style="margin-right: 0.5px;">k</span><span class="jitter-char" style="margin-right: 0.5px;">e</span><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">n</span><span class="jitter-char" style="margin-right: 0.5px;">m</span><span class="jitter-char" style="margin-right: 0.5px;">a</span><span class="jitter-char" style="margin-right: 0.5px;">l</span><span class="jitter-char" style="margin-right: 0.5px;">.</span></span>
         <!-- 版权行由文字换成反色图片（见 site.css 的 .footer-bottom-img）。
              原字面「© 2026 · 上帝之国」退到 alt：读屏、SEO、归档都还拿得到这句话，
              但页面上不再有可拆字的文本节点。class 里保留 footer-credit，
              是为了与 CSS / JS 里那份抖动选择器清单继续对齐（图片无字，自然不抖）。 -->
-        <img class="footer-credit footer-bottom-img" src="/img/bottom-inv.webp" alt="© 2026 上帝之国">
+          <img class="footer-credit footer-bottom-img" src="/img/bottom-inv.webp" alt="© 2026 上帝之国">
+        </div>
       </div>
     </div>
   </footer>

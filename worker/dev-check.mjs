@@ -133,8 +133,7 @@ function diffTokens(a, b) {
 const devSetCookie = homeRes.headers.get('set-cookie') || '';
 check('首页给新设备登记身份', devSetCookie.startsWith('gc_dev='), devSetCookie.split(';')[0].slice(0, 24));
 const devCookie = devSetCookie.split(';')[0];
-// 页脚布局：留言板常驻展开、折叠入口连标签带箭头一起撤掉，
-// 「关于 / 投稿」那一排紧跟其后、落在刊名的上一行
+// 页脚布局：留言板常驻展开；投稿居中；左侧反色条承载四枚社交图标。
 const footerHtml = homeHtml.slice(homeHtml.indexOf('<footer'));
 check(
   '留言板常驻展开、「留言」居中保留、折叠入口已撤',
@@ -144,9 +143,12 @@ check(
     footerHtml.indexOf('footer-guestbook') < footerHtml.indexOf('footer-links')
 );
 check(
-  '「关于 / 投稿」居中同一行、排在刊名之上一行',
-  footerHtml.indexOf('footer-about-label') < footerHtml.indexOf('footer-submit') &&
-    footerHtml.indexOf('footer-links') < footerHtml.indexOf('footer-bottom')
+  '投稿居中，華彩段反色条贯穿到底并承载四枚图标',
+  !footerHtml.includes('footer-about-label') &&
+    footerHtml.indexOf('footer-submit') < footerHtml.indexOf('footer-bottom') &&
+    footerHtml.includes('cadenza-rail') &&
+    !footerHtml.includes('footer-social-handle') &&
+    (footerHtml.match(/class="footer-social-item"/g) || []).length === 4
 );
 
 const mine0 = await (await call('/api/guestbook/mine', { headers: { Cookie: devCookie } })).json();
