@@ -8,7 +8,8 @@ const input = document.querySelector('.echo-input');
 const textarea = document.querySelector('.echo-textarea');
 const submitBtn = document.querySelector('.echo-submit');
 
-const articleId = section && Number(section.dataset.article);
+const articleId = section && (/^[1-9]\d*$/.test(section.dataset.article)
+  ? Number(section.dataset.article) : section.dataset.article);
 // 草稿槽位：回声按文章分开存，不同文章各自留着半截话
 const slot = `echo:${articleId}`;
 
@@ -67,10 +68,10 @@ function lockToMine(item) {
   btn.addEventListener('click', async () => {
     if (!confirm('撤回这条回声？撤完可以重留。')) return;
     try {
-      await json(`/api/echoes/${item.id}`, { method: 'DELETE' });
+      await json(`/api/echoes/${item.id}?article=${encodeURIComponent(articleId)}`, { method: 'DELETE' });
       mine.remove();
       if (form) form.hidden = false;
-      if (list && !list.querySelector('.echo-item')) {
+      if (typeof articleId === 'number' && list && !list.querySelector('.echo-item')) {
         const li = document.createElement('li');
         li.className = 'echo-empty';
         li.textContent = '还没有回声';
@@ -84,9 +85,10 @@ function lockToMine(item) {
   mine.appendChild(btn);
 }
 
+let echoClaimReady = Promise.resolve();
 if (section && form) {
   // 表单默认就是展开的；只有"这篇我已经留过"才收起来
-  json(`/api/echoes/mine?article=${articleId}`)
+  echoClaimReady = json(`/api/echoes/mine?article=${encodeURIComponent(articleId)}`)
     .then((data) => {
       if (data.echo) lockToMine(data.echo);
     })
@@ -143,7 +145,8 @@ if (form && textarea) {
 
   fetch(`/api/drafts?slot=${encodeURIComponent(slot)}`)
     .then((r) => (r.ok ? r.json() : null))
-    .then((data) => {
+    .then(async (data) => {
+      await echoClaimReady;
       const d = data && data.draft;
       if (!d) return;
       // 已经留过回声就不再回填，免得看着像"没发出去"
@@ -152,4 +155,43 @@ if (form && textarea) {
       if (input && !input.value && d.name) input.value = d.name;
     })
     .catch(() => {});
+}
+
+/* ---------------- 此刻还有一个人在读这篇 ---------------- */
+// 阅读页每 30 秒打一次心跳（/api/presence），90 秒内的心跳算"此刻"。
+// 服务端只答有/没有；这里也只显示有/没有——不报人数，不做任何说明。
+const presenceLine = section && document.createElement('p');
+if (presenceLine) {
+  presenceLine.className = 'reading-with';
+  presenceLine.textContent = '此刻还有一个人在读这篇';
+  presenceLine.setAttribute('aria-live', 'polite');
+  document.body.appendChild(presenceLine);
+}
+
+if (section && articleId) {
+  let shown = false;
+  const beat = async () => {
+    try {
+      const res = await fetch('/api/presence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ articleId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      const next = !!(res.ok && data.another);
+      if (next !== shown) {
+        shown = next;
+        presenceLine.className = next ? 'reading-with is-on' : 'reading-with';
+      }
+    } catch {
+      /* 拿不到就当没人，不打扰 */
+    }
+  };
+  beat();
+  setInterval(() => {
+    if (!document.hidden) beat();
+  }, 30000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) beat();
+  });
 }

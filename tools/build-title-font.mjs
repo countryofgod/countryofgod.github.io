@@ -38,7 +38,7 @@ if (!existsSync(TTF)) fail(`找不到源字体 ${TTF}`);
    两者合起来就是 README 里那个 60 字的静态字集。改了首页静态标题要重跑采集，
    采集脚本的产物写回 charset-rendered.json，本脚本再跑一次即可。 */
 const PUNCT_DIGITS = '0123456789©·×÷—‘’”…↓①②、。《》「」【】（）：；';
-const base = new Set(PUNCT_DIGITS);
+const base = new Set(PUNCT_DIGITS + '藝術會');
 if (existsSync(RENDERED)) {
   try {
     const rendered = JSON.parse(readFileSync(RENDERED, 'utf8'));
@@ -110,7 +110,7 @@ console.log(`纳入的每日文件 ${picked.length} 个${picked.length ? '：' +
 if (oldCharset) console.log(`（旧字集 ${[...oldCharset].length} 字 → 新字集 ${chars.length} 字）`);
 
 /* ---------- 4. 重新子集 ---------- */
-const py = process.platform === 'win32' ? 'python' : 'python3';
+const py = process.platform === 'win32' ? 'py' : 'python3';
 try {
   execFileSync(py, [
     '-m', 'fontTools.subset', TTF,
@@ -142,3 +142,25 @@ print('OK' if not missing else 'MISSING ' + ''.join(missing))
 
 const kb = Math.round(statSync(OUT).size / 1024);
 console.log(`已生成 ${OUT.replace(root + '\\', '')}（${kb} KB），字集缺字 0`);
+
+execFileSync(py, ['-c', `
+from fontTools import subset
+from fontTools.ttLib import TTFont
+from pathlib import Path
+root = Path(r"${root}")
+served = root / 'public/fonts/AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2.woff2'
+existing = TTFont(served)
+unicodes = set(existing.getBestCmap())
+existing.close()
+unicodes.update(ord(char) for char in (root / 'tools/charset-title.txt').read_text(encoding='utf-8'))
+options = subset.Options()
+options.flavor = 'woff2'
+font = subset.load_font(str(root / 'AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2.ttf'), options)
+subsetter = subset.Subsetter(options=options)
+subsetter.populate(unicodes=unicodes)
+subsetter.subset(font)
+assert unicodes.issubset(font.getBestCmap()), 'Missing served glyphs'
+subset.save_font(font, str(served), options)
+subset.save_font(font, str(root / 'AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2.woff2'), options)
+print('Served font updated without removing existing glyphs')
+`], { cwd: root, stdio: 'inherit' });

@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+APP_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+JAVA_EXE=java
+if [ -n "${JAVA_HOME:-}" ]; then
+    JAVA_EXE="$JAVA_HOME/bin/java"
+fi
+exec "$JAVA_EXE" -classpath "$APP_DIR/gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"

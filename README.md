@@ -13,7 +13,7 @@
 
 ## 快速开始（本机）
 
-Android 安装包与构建说明见 [android/README.md](android/README.md)。安卓端直接呈现原网页，不增减站点交互元素。
+Android 安装包与构建说明见 [android/README.md](android/README.md)。安卓端使用原生控件重新编排六个分区，沿用网站视觉与功能，不加载网页界面。
 
 ```bash
 npm install
@@ -100,6 +100,7 @@ index.legacy.html       重构前的单文件页，留作回滚参照
 | GET | `/api/echoes/mine?article=:id` | 这篇我留过吗 |
 | POST | `/api/echoes` | `{articleId, name?, body}`；一篇一次，重复返回 409 |
 | DELETE | `/api/echoes/:id` | 本人撤回；管理员撤任意一条 |
+| POST | `/api/presence` | `{articleId}`；回 `{another}`——此刻是否有另一位读者（只答有/没有，不报人数） |
 | GET/PUT/DELETE | `/api/drafts?slot=` | 写到一半的草稿，随设备 |
 | GET | `/api/guestbook/:id/image` | 图片流；无图 404；带一年强缓存 |
 | DELETE | `/api/guestbook/:id` | 管理员删任意一条；本人只能撤回自己那条（否则 403） |
@@ -355,7 +356,10 @@ daily/pub/manifest.json      # 清单，由 tools/sync-daily.mjs 自动生成
 - **发布**：写好 txt 后 `npm run daily`（或 `npm run predeploy`）。它跑的
   `tools/sync-daily.mjs` 会重排清单、并按日期把 `daily/pub/` 复制进 `public/daily/pub/`。
   卡片由前端按清单取文件渲染，按日期接在《创刊号》后面，自动进左侧目录抽屉与「下一篇」循环。
-- **删稿**＝删掉那个 txt 再跑一次同步：清单里没有的文件不会被渲染，卡片自动消失。
+- 投稿也会按日期自动收录到再现部，阅读页地址为 `/d/<YYYY-MM-DD>/pub`；标题、署名与正文从同一份原稿读取，摘要不混入正文。
+- 《愿望过于强烈》的全文保存在 `daily/pub/2026_10_15.txt`，用户提供的原图保存在 `content-sources/shilei-wish.jpg`。恢复时沿用本节示例中的文件日期；原图未标注发布日期。
+- `tools/pub-content-lock.json` 保存全文与原图的 SHA-256 校验值。同步和发布前检查原件，部署自检还会检查部署副本和清单；文件丢失、截断或清单漏稿时会中止。发布脚本会先生成投稿清单，再提交每日内容。
+- 明确修改或撤下受保护稿件时，需同步更新保护清单；修改正文须先核对原图。全文、原图、投稿清单与保护清单应一起纳入版本控制。
 - 三处部署读到的是同一份文件、同一个路径 `/daily/pub/…`：
   GitHub Pages 直接读仓库根（这份是入库的），Node 版有 `/daily` 映射，Workers 版由同步脚本复制进 `public/`。
 - 与 `/admin` 的「文章」面板是两回事：那套（`articles` 表）还在，目前只有《创刊号》在里面；
@@ -372,6 +376,11 @@ daily/pub/manifest.json      # 清单，由 tools/sync-daily.mjs 自动生成
 
 要读它，只能等**随机**翻到。这是刻意的：过刊不摆在架子外面。
 
+唯一的例外是雨：读者所在地正在下雨时，沉了的文章可以直接打开，页面上没有任何提示——
+渲染与半年内的可读视图完全一样。定位取平台侧城市级坐标（Workers 用 `request.cf`；
+Node 版由反向代理注入 `x-geo-latitude` / `x-geo-longitude` 头，没有就当下雨不存在），
+天气查 Open-Meteo（免密钥），按坐标缓存 10 分钟，查询失败一律关门。实现见 `server/rain.js`。
+
 ### 随便一篇 `/random` —— 唯一的发现入口
 
 服务端随机取一篇，**不分时间**，任何一年的都可能被翻出来。
@@ -384,6 +393,8 @@ daily/pub/manifest.json      # 清单，由 tools/sync-daily.mjs 自动生成
 ### 回声 —— 一台设备对一篇只留一次
 
 回声是**对某一篇**说的；页脚的「留言」是**对整本刊物**说的。两件事分开。
+
+文章、诗歌、音乐的独立页面均提供回声。数据库文章使用数字 `articleId`，每日内容使用 `daily:YYYY-MM-DD:article|poem|music`，同日不同分类各自独立。每日回声存入 `daily_echoes`，已有文章回声保留在 `echoes`；撤回每日回声时携带 `?article=<内容键>`。草稿也按内容键隔离。
 
 - 一台设备对一篇文章只能留一条，重复提交返回 `409`，先撤回才能重留
 - 按时间正序，**不显示条数、不按热度排序、不能回复盖楼**

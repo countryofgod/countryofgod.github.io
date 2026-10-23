@@ -118,6 +118,25 @@ CREATE TABLE IF NOT EXISTS drafts (
   updated_at  TEXT NOT NULL,
   PRIMARY KEY (device_id, slot)
 );
+
+CREATE TABLE IF NOT EXISTS daily_echoes (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  content_key TEXT NOT NULL,
+  device_id   TEXT NOT NULL,
+  name        TEXT,
+  body        TEXT NOT NULL,
+  created_at  TEXT NOT NULL,
+  UNIQUE (content_key, device_id)
+);
+
+-- 此刻在读：一台设备对一篇只有一行心跳，见 queries.js 的 touchPresence
+CREATE TABLE IF NOT EXISTS presence (
+  device_id  TEXT NOT NULL,
+  article_id TEXT NOT NULL,
+  seen_at    TEXT NOT NULL,
+  PRIMARY KEY (device_id, article_id)
+);
+CREATE INDEX IF NOT EXISTS idx_presence_article ON presence (article_id, seen_at);
 `);
 
 // 「本日 Daily」：表里还一条都没有时种一条今天的占位——只有标题与分类，正文留空，

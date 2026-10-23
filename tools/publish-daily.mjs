@@ -21,11 +21,15 @@ import { execFileSync, execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { checkPubContent } from './check-pub.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2);
 const dryRun = argv.includes('--dry-run');
 const noDeploy = argv.includes('--no-deploy');
+
+checkPubContent();
+if (!dryRun) execFileSync(process.execPath, [join(root, 'tools', 'sync-daily.mjs')], { stdio: 'inherit' });
 
 const log = (s = '') => console.log(s);
 const fail = (s) => {
@@ -44,7 +48,7 @@ const todayName = `${today.getFullYear()}_${today.getMonth() + 1}_${today.getDat
 log(`今天 ${today.getFullYear()}.${today.getMonth() + 1}.${today.getDate()}（今天的文件名写作 ${todayName}.txt）`);
 
 /* ---------- 1. 看 daily/ 下有什么改动 ---------- */
-const statusRaw = gitOut('status', '--porcelain', '--', 'daily');
+const statusRaw = gitOut('status', '--porcelain', '--untracked-files=all', '--', 'daily');
 if (!statusRaw.trim()) {
   log('daily/ 下没有改动——先写好 daily/article、daily/poem 或 daily/music 里的 txt，再跑本命令');
   process.exit(0);

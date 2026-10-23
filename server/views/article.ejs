@@ -5,29 +5,31 @@
   <title><%= article.title %> · 上帝之国</title>
   <meta name="description" content="<%= article.excerpt %>">
   <!-- 先挂主站样式：配色变量与字体族沿用同一套，文章页不另起视觉语言 -->
-  <link rel="stylesheet" href="/css/site.css">
-  <link rel="stylesheet" href="/css/article.css">
+  <link rel="stylesheet" href="/css/site.css?v=20261023-mobile">
+  <link rel="stylesheet" href="/css/article.css?v=20261022-all-echoes">
 </head>
 <body class="page-article">
 <% const arch = new Date(article.publishedAt + 'T00:00:00Z'); arch.setUTCMonth(arch.getUTCMonth() + 6); %>
 
   <main class="sheet">
     <p class="sheet-top">
-      <a class="sheet-home" href="/">上帝之国</a>
+      <a class="sheet-home" href="/#archive">上帝之国 · 再现部</a>
       <a class="sheet-random" href="/random">next →</a>
     </p>
 
-    <h1 class="sheet-title"><%= article.title %></h1>
-    <p class="sheet-author">— <%= article.author %></p>
-    <p class="sheet-meta"><%= article.meta %></p>
+    <header class="sheet-heading">
+      <p class="sheet-kicker">过刊 / ARTICLE</p>
+      <h1 class="sheet-title"><%= article.title %></h1>
+      <p class="sheet-author"><%= article.author %></p>
+      <p class="sheet-meta"><%= article.meta %></p>
+    </header>
 
 <% if (readable) { %>
-    <div class="sheet-body"><%- article.content %></div>
+    <div class="sheet-body is-prose"><%- article.content %></div>
 <% } else { %>
     <p class="sheet-excerpt"><%= article.excerpt %></p>
     <div class="sheet-archived">
       <p class="sheet-archived-line">这篇已于 <%= arch.toISOString().slice(0, 7).replace('-', '.') %> 沉入档案馆。</p>
-      <p class="sheet-archived-note">过刊不摆在架子外面。想读它，只能等随机翻到。</p>
       <a class="sheet-archived-btn" href="/random">next</a>
     </div>
 <% } %>
@@ -53,5 +55,5 @@
     </section>
   </main>
 
-  <script src="/js/article.js"></script>
+  <script src="/js/article.js?v=20261022-all-echoes"></script>
 </body></html>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12 系统闪屏的图标层：刊标画在画布正中，尺寸只占 108dp 视口的约三分之二。
+     系统对闪屏图标会套圆形/圆角遮罩，刊标又是四角顶边的线稿，
+     缩到安全区之内，遮罩切到的就只剩透明像素 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:width="68dp"
+        android:height="71dp"
+        android:gravity="center">
+        <bitmap
+            android:gravity="fill"
+            android:src="@drawable/site_logo" />
+    </item>
+</layer-list>

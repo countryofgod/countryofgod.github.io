@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>留住第一滴泪 — 上帝之国</title>
+  <meta name="description" content="留住第一滴泪。上帝之国（Einmal ist keinmal）企划主视觉海报初稿。">
+  <style>
+    @font-face {
+      font-family: "KeBenSong";
+      src: url("public/fonts/AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Heldane";
+      src: url("public/fonts/HeldaneText/HeldaneTextRegular.otf") format("opentype");
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Heldane";
+      src: url("public/fonts/HeldaneText/HeldaneTextRegularItalic.otf") format("opentype");
+      font-style: italic;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "LoveLetter";
+      src: url("public/fonts/love-letter-tw/Lovelt__.woff2") format("woff2");
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Founders";
+      src: url("public/fonts/FoundersGrotesk/FoundersGrotesk-Regular.otf") format("opentype");
+      font-display: swap;
+    }
+
+    :root {
+      --paper: #fff;
+      --ink: #11110f;
+      --red: #b8202a;
+      --muted: #6b6861;
+      --line: rgba(17, 17, 15, .28);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { background: #fff; }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      color: var(--ink);
+      background: #fff;
+      font-family: Heldane, Georgia, serif;
+    }
+
+    .stage {
+      display: grid;
+      place-items: center;
+      min-height: 100svh;
+      padding: 4vw;
+    }
+
+    .poster {
+      position: relative;
+      width: min(88vw, 680px);
+      aspect-ratio: 2 / 3;
+      overflow: hidden;
+      isolation: isolate;
+      background: var(--paper);
+      box-shadow: 0 2.5rem 5rem rgba(0, 0, 0, .16);
+    }
+
+    .poster::before {
+      position: absolute;
+      z-index: 8;
+      inset: 0;
+      pointer-events: none;
+      content: "";
+      opacity: 0;
+    }
+
+    .poster::after {
+      position: absolute;
+      z-index: 7;
+      inset: 2.2% 2.5%;
+      pointer-events: none;
+      content: "";
+      border: 1px solid rgba(17, 17, 15, .68);
+    }
+
+    .edge-label {
+      position: absolute;
+      z-index: 5;
+      top: 4.3%;
+      right: 3.8%;
+      color: var(--muted);
+      font-family: Founders, Arial, sans-serif;
+      font-size: clamp(7px, 1.2vw, 11px);
+      letter-spacing: .18em;
+      line-height: 1;
+      writing-mode: vertical-rl;
+      text-transform: uppercase;
+    }
+
+    .topline {
+      position: absolute;
+      z-index: 5;
+      top: 5.4%;
+      left: 7.4%;
+      color: var(--muted);
+      font-family: Founders, Arial, sans-serif;
+      font-size: clamp(7px, 1.22vw, 12px);
+      letter-spacing: .2em;
+      text-transform: uppercase;
+    }
+
+    .topline span { color: var(--red); }
+
+    .hero-photo {
+      position: absolute;
+      z-index: 0;
+      top: 0;
+      right: 0;
+      width: 100%;
+      height: 35%;
+      opacity: .24;
+      filter: grayscale(1) contrast(1.2);
+      mix-blend-mode: multiply;
+      object-fit: cover;
+      object-position: 57% 50%;
+      mask-image: linear-gradient(to bottom, #000 0%, rgba(0,0,0,.85) 55%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0,0,0,.85) 55%, transparent 100%);
+    }
+
+    .title-block {
+      position: absolute;
+      z-index: 3;
+      top: 12.4%;
+      left: 7.1%;
+      width: 86%;
+    }
+
+    .title-block h1 {
+      max-width: 82%;
+      margin: 0;
+      font-family: KeBenSong, "Songti SC", serif;
+      font-size: clamp(3.8rem, 11.3vw, 7.4rem);
+      font-weight: 400;
+      letter-spacing: -.075em;
+      line-height: .93;
+    }
+
+    .title-block h1 .title-line {
+      display: block;
+      padding-left: 19%;
+    }
+
+    .tear-mark {
+      position: relative;
+      z-index: 0;
+      display: inline-block;
+      isolation: isolate;
+      color: var(--red);
+      font-style: normal;
+    }
+
+    .tear-mark::before {
+      position: absolute;
+      z-index: -1;
+      top: 50%;
+      left: 53%;
+      width: 1.05em;
+      height: 1.05em;
+      content: "";
+      background: rgba(255, 255, 255, .01);
+      border-radius: 50%;
+      backdrop-filter: invert(1);
+      -webkit-backdrop-filter: invert(1);
+      transform: translate(-50%, -50%);
+    }
+
+    .german-title {
+      margin: 7.2% 0 0 1%;
+      font-family: LoveLetter, Heldane, Georgia, serif;
+      font-size: clamp(1.7rem, 4.6vw, 3rem);
+      font-style: normal;
+      letter-spacing: -.045em;
+      line-height: 1;
+    }
+
+    .german-title span {
+      display: block;
+    }
+
+    .german-title .ist {
+      display: inline-block;
+      padding: .02em .08em .07em;
+      color: var(--red);
+      background: var(--ink);
+    }
+
+    .symbol-wrap {
+      position: absolute;
+      z-index: 2;
+      top: 31%;
+      left: 11%;
+      width: 77%;
+      height: 42%;
+      transform: rotate(-4deg);
+    }
+
+    .symbol {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      mix-blend-mode: multiply;
+      filter: contrast(1.12);
+    }
+
+    .symbol-caption {
+      position: absolute;
+      right: 1%;
+      bottom: 0;
+      color: var(--muted);
+      font-family: Founders, Arial, sans-serif;
+      font-size: clamp(7px, 1.15vw, 10px);
+      letter-spacing: .16em;
+      writing-mode: vertical-rl;
+      text-transform: uppercase;
+    }
+
+    .manifesto {
+      position: absolute;
+      z-index: 4;
+      top: 66.8%;
+      left: 7.4%;
+      width: 84%;
+      padding-top: 5.5%;
+      border-top: 1px solid var(--ink);
+    }
+
+    .manifesto-kicker {
+      margin: 0 0 5% 0;
+      color: var(--red);
+      font-family: Founders, Arial, sans-serif;
+      font-size: clamp(8px, 1.45vw, 12px);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .manifesto h2 {
+      max-width: 100%;
+      margin: 0;
+      font-family: KeBenSong, "Songti SC", serif;
+      font-size: clamp(1.75rem, 5.5vw, 3.55rem);
+      font-weight: 400;
+      letter-spacing: -.06em;
+      line-height: 1.15;
+    }
+
+    .manifesto h2 span { color: var(--red); }
+
+    .footer-copy {
+      position: absolute;
+      z-index: 5;
+      right: 7.4%;
+      bottom: 5.7%;
+      left: 7.4%;
+      display: flex;
+      align-items: end;
+      justify-content: flex-start;
+      gap: 1rem;
+      padding-top: 3.6%;
+      border-top: 1px solid var(--line);
+      font-family: Founders, Arial, sans-serif;
+      font-size: clamp(7px, 1.25vw, 11px);
+      letter-spacing: .08em;
+      line-height: 1.35;
+      text-transform: uppercase;
+    }
+
+    .footer-copy p { margin: 0; }
+
+    @media (max-width: 520px) {
+      .stage { padding: 2vw; }
+      .poster { width: 96vw; }
+      .manifesto { top: 68%; }
+    }
+
+    @media print {
+      @page { size: 1200mm 1800mm; margin: 0; }
+      html, body { background: #fff; }
+      .stage { display: block; padding: 0; }
+      .poster { width: 1200mm; height: 1800mm; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <article class="poster" aria-label="留住第一滴泪：上帝之国企划海报">
+      <img class="hero-photo" src="public/img/795.webp" alt="">
+
+      <p class="topline"><span>2026</span></p>
+      <header class="title-block">
+        <h1>留住<br><span class="title-line">第一滴<em class="tear-mark">泪</em></span></h1>
+        <p class="german-title"><span>Einmal</span><span><b class="ist">ist</b> keinmal.</span></p>
+      </header>
+
+      <figure class="symbol-wrap">
+        <img class="symbol" src="public/img/logo.png" alt="一只长着眼睛、手和叶子的手绘生物">
+      </figure>
+
+    </article>
+  </main>
+</body>
+</html>

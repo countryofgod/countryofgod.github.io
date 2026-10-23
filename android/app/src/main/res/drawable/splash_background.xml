@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 页面底色里的刊标：白底 + 居中刊标，兼作 Activity 启动窗口背景与 WebView 加载期底图。
+     刊标四角都顶到画布边，所以画布留白要比图形本身宽出一圈 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@android:color/white" />
+    <item
+        android:width="150dp"
+        android:height="157dp"
+        android:gravity="center">
+        <bitmap
+            android:gravity="fill"
+            android:src="@drawable/site_logo" />
+    </item>
+</layer-list>

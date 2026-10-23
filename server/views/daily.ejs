@@ -5,13 +5,13 @@
   <title>每日 · 上帝之国</title>
   <meta name="description" content="上帝之国 · 每日一文一诗一曲">
   <!-- 先挂主站样式：配色变量与字体族沿用同一套，不另起视觉语言 -->
-  <link rel="stylesheet" href="/css/site.css">
-  <link rel="stylesheet" href="/css/article.css">
+  <link rel="stylesheet" href="/css/site.css?v=20261023-mobile">
+  <link rel="stylesheet" href="/css/article.css?v=20261022-all-echoes">
 </head>
 <body class="page-daily">
   <main class="sheet sheet-daily" id="daily-page">
     <p class="sheet-top">
-      <a class="sheet-home" href="/">上帝之国</a>
+      <a class="sheet-home" href="/#archive">上帝之国 · 再现部</a>
       <a class="sheet-random" href="/random">next →</a>
     </p>
 
@@ -20,7 +20,25 @@
     <div class="daily-page-body">
       <p class="daily-page-loading">读取中…</p>
     </div>
+    <section class="echo" data-article="<%= articleId %>">
+      <h2 class="echo-title">回声</h2>
+      <ul class="echo-list">
+<% echoes.forEach((echo) => { %>
+        <li class="echo-item" data-id="<%= echo.id %>">
+          <p class="echo-head"><span class="echo-name"><%= echo.name %></span><span class="echo-date"><%= echo.date %></span></p>
+          <p class="echo-body"><%= echo.body %></p>
+        </li>
+<% }); %>
+      </ul>
+      <form class="echo-form">
+        <input class="echo-input" type="text" aria-label="名字" maxlength="24" autocomplete="off">
+        <textarea class="echo-textarea" aria-label="回声" maxlength="500"></textarea>
+        <button class="echo-submit" type="submit">留下回声</button>
+        <p class="echo-hint" hidden></p>
+      </form>
+    </section>
   </main>
 
-  <script src="/js/site.js"></script>
+  <script src="/js/site.js?v=20261022-art"></script>
+  <script src="/js/article.js?v=20261022-all-echoes"></script>
 </body></html>

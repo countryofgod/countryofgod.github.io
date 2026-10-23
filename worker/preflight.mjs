@@ -14,6 +14,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildTemplates } from './build-templates.mjs';
+import { checkPubContent } from '../tools/check-pub.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -26,6 +27,13 @@ const bad = (msg, how) => {
 };
 // 提醒不算失败：生产口令在 Cloudflare 的 secret 里，本机本来就查不到
 const warn = (msg) => console.log('warn  ' + msg);
+
+try {
+  const count = checkPubContent({ checkSynced: true });
+  ok(`投稿原稿、原图与部署副本校验通过（${count} 个保护文件）`);
+} catch (error) {
+  bad(`投稿完整性检查失败：${error.message}`, '恢复原稿与原图后运行 npm run predeploy');
+}
 
 /* 1. 模板是否过期 */
 const htmlPath = join(root, 'worker', 'src', 'html.js');
@@ -65,7 +73,7 @@ const cssText = existsSync(join(root, 'public', 'css', 'site.css'))
   : '';
 for (const m of cssText.matchAll(/url\('(\/(?:img|fonts)\/[^']+)'\)/g)) referenced.add(m[1]);
 
-const missing = [...referenced].filter((p) => !existsSync(join(root, 'public', p.replace(/^\//, ''))));
+const missing = [...referenced].filter((p) => !existsSync(join(root, 'public', p.split(/[?#]/)[0].replace(/^\//, ''))));
 if (missing.length) bad(`模板/CSS 引用的 ${missing.length} 个资源不存在：${missing.join(', ')}`);
 else ok(`${referenced.size} 个被引用的静态资源都在`);
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN"><head>
+<html lang="zh-CN" class="has-pager"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Einmal ist keinmal — 上帝之国</title>
@@ -16,7 +16,7 @@
 
 @font-face {
   font-family: 'KeBenSong';
-  src: url('/public/fonts/AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2.woff2') format('woff2');
+  src: url('/public/fonts/AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2.woff2?v=20261022-art') format('woff2');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -180,6 +180,9 @@
      2026-10-09：由 800px 放宽到 960px——用户要求"页面显示部分宽一点"；
      要再调宽窄只改这一个数字 */
   --page-w: 960px;
+  --cadenza-rail-width: 56px;
+  --cadenza-handle-width: 32px;
+  --cadenza-handle-color: var(--white);
   /* 首屏"一屏高"所依据的视口高度。
      桌面端浏览器没有可伸缩工具栏，svh / lvh / dvh 与 vh 完全相等，
      所以默认值写 100vh——与改动前逐字等同，桌面端的计算结果一字节都不会变。
@@ -475,8 +478,9 @@ body {
    所以不需要再补 transform: rotate()。链接是锚点，html 已 scroll-behavior: smooth，
    点一下就平滑滚到对应区块。高亮逻辑在 site.js */
 .side-nav {
+  --nav-label-color: var(--white);
   position: fixed;
-  right: 24px;
+  left: 24px;
   bottom: 24px;
   z-index: 50;
 }
@@ -485,16 +489,12 @@ body {
   margin: 0;
   padding: 0;
   display: flex;
-  /* 竖排上下文里主轴是「自上而下」、交叉轴才是横向，所以排成一行 5 列要写 column：
-     写 row 的话五个词会沿主轴堆成一列。
-     这里用 column 而不是 column-reverse：vertical-rl + column 恰好等于
-     「原来那根竖列表整体顺时针转 90°」——daily 落在最右、end 在最左，
-     反着转回去就是原来的列表 */
-  flex-direction: column;
+  flex-direction: column-reverse;
   gap: 14px;
   writing-mode: vertical-rl;
 }
 .side-nav-item {
+  position: relative;
   display: block;
   /* 与 iPod 屏内那排滚动菜单（.daily-tag）同款字体：Podium Sans → Adobe Caslon Pro →
      近似衬线兜底。两款都是商用字体，没放授权 woff2 时浏览器会回退到 Caslon/Georgia 一系，
@@ -515,9 +515,51 @@ body {
 .side-nav-item.is-active {
   color: var(--white);
 }
+.side-nav-item.is-active::before {
+  content: '>';
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  writing-mode: horizontal-tb;
+  line-height: 1;
+  transform: translateX(-50%) rotate(90deg);
+  pointer-events: none;
+}
 .side-nav-item[href="#daily"].is-active,
-.side-nav-item[href="#latest"].is-active {
+.side-nav-item[href="#latest"].is-active,
+.side-nav-item[href="#top"].is-active {
   color: var(--black);
+}
+
+.side-nav-item[data-label]::after {
+  content: attr(data-label);
+  position: absolute;
+  bottom: calc(100% + 28px);
+  left: 50%;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: normal;
+  line-height: 1.5;
+  letter-spacing: 2px;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  white-space: nowrap;
+  color: var(--nav-label-color);
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: opacity 160ms ease;
+  pointer-events: none;
+}
+
+.side-nav-item:hover::after,
+.side-nav-item:focus-visible::after {
+  opacity: 1;
+}
+
+.side-nav:has([href="#top"].is-active),
+.side-nav:has([href="#daily"].is-active),
+.side-nav:has([href="#latest"].is-active) {
+  --nav-label-color: var(--black);
 }
 
 /* 窄屏：正文会顶到右边，导航与内容重叠——收起。判定线 1120px 取在
@@ -525,6 +567,9 @@ body {
 @media (max-width: 1120px) {
   .side-nav {
     display: none;
+  }
+  body.has-pager .side-nav {
+    display: block;
   }
 }
 
@@ -1510,7 +1555,7 @@ body {
   top: 0; /* 目录从文章框顶边开始向下排（.article-list 的 padding box 顶边） */
   left: 0;
   width: 188px;
-  transform: translate(-100%, 0) translateX(-50px);
+  transform: translate(-100%, 0) translateX(-68px);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -1519,7 +1564,7 @@ body {
 .pub-toc:hover .pub-toc-panel,
 .pub-toc.is-open .pub-toc-panel {
   top: 0;
-  transform: translate(-100%, 0) translateX(-26px);
+  transform: translate(-100%, 0) translateX(-44px);
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -1782,6 +1827,62 @@ body {
 }
 
 /* 展开后回到白底，保证长文可读 */
+.pub-progress {
+  position: absolute;
+  right: 30px;
+  top: 50%;
+  width: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  transform: translateY(-50%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.35s ease, visibility 0s linear 0.35s;
+}
+.pub-progress.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.35s ease, visibility 0s;
+}
+.pub-progress-bar {
+  display: block;
+  flex: 0 0 3px;
+  box-sizing: border-box;
+  width: var(--pub-progress-width, 8px);
+  height: 3px;
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: #b8b8b8;
+  transition: width 0.35s cubic-bezier(0.22, 0.61, 0.36, 1), background-color 0.24s ease,
+              border-color 0.24s ease;
+}
+.pub-progress-bar.is-current {
+  background: #000;
+}
+.pub-progress:not(.is-expanded) .pub-progress-bar {
+  width: 3px;
+  background: transparent;
+  border-color: #b8b8b8;
+}
+.pub-progress:not(.is-expanded) .pub-progress-bar.is-current {
+  background: #000;
+  border-color: #000;
+}
+.pub-toc:hover .pub-progress-bar,
+.pub-toc.is-open .pub-progress-bar {
+  width: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pub-progress,
+  .pub-progress.is-visible,
+  .pub-progress-bar {
+    transition: none;
+  }
+}
+
 .article-item.expanded {
   border-color: var(--black);
 }
@@ -2093,6 +2194,24 @@ body {
   transition: max-height 0.6s ease;
 }
 
+.archive-items[data-animated],
+.archive-group.open .archive-items[data-animated] {
+  display: grid;
+  grid-template-rows: 0fr;
+  max-height: none;
+  transition: grid-template-rows 360ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.archive-group.open .archive-items[data-animated] {
+  grid-template-rows: 1fr;
+}
+
+.archive-items-inner,
+.month-posts-panel-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
 /* 面板直接显示图片原色——不再挂常显反色层。
    这样它与"悬停后还原成原色"的年份行连成同一块原色表面（原先连的是反色） */
 .archive-months {
@@ -2184,6 +2303,22 @@ body {
   opacity: 1;
   padding: 22px 32px;
   border-width: 1px;
+}
+
+.month-posts-panel[data-paged] {
+  display: grid;
+  grid-template-rows: 0fr;
+  max-height: none;
+  padding: 0;
+  transition: grid-template-rows 320ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 200ms ease;
+}
+
+.month-posts-panel[data-paged].open {
+  grid-template-rows: 1fr;
+}
+
+.month-posts-panel-content {
+  padding: 22px 32px;
 }
 
 .month-post {
@@ -2286,11 +2421,20 @@ body {
    时长与 JS 的 PAGE_FADE_MS（250ms）对齐；淡出期间禁掉指针事件，
    免得点到"马上就要被换掉"的那一行 */
 .month-posts-page {
-  transition: opacity 0.25s ease;
+  transition: opacity 140ms ease;
 }
 .month-posts-page.is-fading {
   opacity: 0;
   pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .archive-items[data-animated],
+  .archive-group.open .archive-items[data-animated],
+  .month-posts-panel[data-paged],
+  .month-posts-page {
+    transition: none;
+  }
 }
 
 /* ---------- Footer ---------- */
@@ -2325,28 +2469,27 @@ body {
    #museum 与页面底部的实际坐标写入 top / height，因此留言数量变化后也能贴合。 */
 .cadenza-rail {
   position: absolute;
-  left: calc(50% - 50vw);
+  right: calc(50% - 50vw);
   top: 0;
   z-index: 12;
-  width: 56px;
+  width: var(--cadenza-rail-width);
   display: flex;
   align-items: flex-end;
   justify-content: center;
   padding-bottom: 24px;
   backdrop-filter: invert(1);
   -webkit-backdrop-filter: invert(1);
-  transform: translateX(-100%);
+  transform: translateX(100%);
   transition: transform 0.4s ease;
   will-change: transform;
   outline: none;
 }
 
-/* 默认完全藏在页面外；右侧伸出一条不可见感应区，让鼠标贴到页面最左边时能拉出抽屉。 */
 .cadenza-rail::after {
   content: '';
   position: absolute;
   top: 0;
-  left: 100%;
+  right: 100%;
   width: 8px;
   height: 100%;
 }
@@ -2354,6 +2497,34 @@ body {
 .cadenza-rail:hover,
 .cadenza-rail:focus-within {
   transform: translateX(0);
+}
+
+.cadenza-rail-social {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.cadenza-rail-handle {
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: var(--cadenza-handle-width);
+  height: 44px;
+  font-family: var(--font-nav);
+  font-size: 22px;
+  line-height: 1;
+  color: var(--cadenza-handle-color);
+  transform: translateY(-50%);
+}
+
+body.has-pager:has(.side-nav [href="#top"].is-active),
+body.has-pager:has(.side-nav [href="#daily"].is-active),
+body.has-pager:has(.side-nav [href="#latest"].is-active) {
+  --cadenza-handle-color: var(--black);
 }
 
 .footer-social {
@@ -2404,25 +2575,34 @@ body {
 
 /* 页脚入口「投稿」的样式与手势。flex: none 让它不参与挤压，免得文字被折成两行 */
 .footer-submit {
-  display: inline-flex;
-  align-items: center;
+  position: relative;
+  display: inline-block;
   flex: none;
-  gap: 12px;
-  font-family: var(--font-title);
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font-family: serif;
   font-size: 22px;
   color: var(--white);
   text-decoration: none;
   padding: 20px 0;
 }
 
-/* 悬停同样只挪箭头，文字固定 */
-.footer-submit-arrow {
-  font-size: 18px;
-  transition: translate 0.3s ease;
+.footer-submit::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  bottom: 20px;
+  left: -4px;
+  width: 1px;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
 }
 
-.footer-submit:hover .footer-submit-arrow {
-  translate: 12px 0;
+.footer-submit:hover::after,
+.footer-submit:focus-visible::after {
+  opacity: 1;
 }
 
 /* ---------- Footer / 留言板 ---------- */
@@ -2671,26 +2851,27 @@ body {
   .guest-film-track { animation: none; }
 }
 
-/* 刊名与版权行由原来的左右分居改为纵向居中叠放：刊名在上、版权行在下。
-   两者都居中，所以去掉 space-between，改 column + align-items: center */
 .footer-bottom {
   position: relative;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
+  align-items: flex-end;
+  justify-content: flex-end;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  padding-left: 24px;
+  padding-right: calc(var(--cadenza-rail-width) + var(--cadenza-handle-width) + 24px + env(safe-area-inset-right, 0px));
   font-family: var(--font-body);
   font-size: 11px;
   letter-spacing: 1px;
   color: var(--gray-4);
-  text-align: center;
+  text-align: right;
   text-transform: uppercase;
 }
 
 .footer-signature {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-direction: column-reverse;
+  align-items: flex-end;
   gap: 10px;
 }
 
@@ -3014,26 +3195,551 @@ body.cursor-hidden * {
   }
 }
 
+/* ============================================================
+   翻页模式（Pager）
+   整站从「一根长页竖着滚」改为「一屏一页横着翻」：六个既有版块
+   （首屏 / daily / latest / archive / museum / footer）原样不动，
+   各自被包进一张 .pager-page、横向排开、逐页平移。
+   版块内部的排版、配色、字号全部沿用上面的既有规则；
+   这里只写「把长页装进一屏」所必需的少量适配，每条写明缘由。
+   行为（滚轮 / 键盘 / 触摸左右滑动 / 右下角 nav 跳页）见 /js/pager.js
+   ============================================================ */
+
+/* 文档本身不再滚动：滚动都发生在各页内部（.pager-page 纵向），
+   文档级滚动条留着只会在页边挂一条空条 */
+html.has-pager,
+body.has-pager {
+  overflow: hidden;
+}
+
+.pager {
+  position: relative;
+  /* 与首屏同一套「一屏高」口径（移动端 --vp-h 自动换成 100svh） */
+  height: var(--vp-h);
+  overflow: hidden;
+}
+
+.pager-track {
+  position: relative;
+  display: flex;
+  height: 100%;
+  transition: transform 0.8s cubic-bezier(0.77, 0, 0.175, 1);
+  will-change: transform;
+}
+
+/* 拖拽跟手阶段由 pager.js 关掉过渡（加 is-dragging），松手后交还这里做缓动 */
+.pager-track.is-dragging {
+  transition: none;
+}
+
+.pager-page {
+  /* 一页一屏宽。用百分比而不是 vw：经典滚动条在时不缩的 vw 会差出
+     一条滚动条的宽度，百分比始终等于 .pager 的实际宽，逐页对得齐 */
+  flex: 0 0 100%;
+  height: 100%;
+  /* 页比屏长时（留言墙、展开的年月、展开的文章）在页内竖着滚；
+     横向永远裁死。滚动条藏掉——设计里没有它，藏掉也顺带避免
+     cadenza-rail 的 50vw 算法被经典滚动条挤歪 */
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* 纵向滚动还给浏览器（触屏上页内照常上下刷），
+     横向手势交给 pager.js 做翻页 */
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.pager-page::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------- 逐版块适配：只动「页与页的接缝」，版块内部一字不动 ---------- */
+
+/* 首屏：取景必须与改版前逐像素一致——首图元素保留原有的 aspect-ratio
+   （元素长过一屏、图 cover 靠底对齐），页面只裁出首屏那一段，
+   所以这里【不改】.hero 的任何几何值；之前把 .hero 压成一屏高的做法
+   会让 cover 重裁画面（位置缩放都变），已废弃。
+   首页这一页锁死不滚（overflow-y: hidden）：滚轮直接翻页，
+   不出现"首图滚一半"的中间态。淡出改锚在首屏线以内——页的下缘
+   就是图片淡没的那条线，翻页边缘不出现生硬切线
+   （移动端本就锚在图的下沿，那里元素高恰好等于 --vp-h，两条算式等值） */
+.pager-page[data-pager-page="top"] {
+  overflow-y: hidden;
+}
+.pager .hero-image {
+  -webkit-mask-image: linear-gradient(to bottom,
+      #000 0,
+      #000 calc(var(--vp-h) - var(--hero-fade-len)),
+      rgba(0, 0, 0, 0) var(--vp-h));
+  mask-image: linear-gradient(to bottom,
+      #000 0,
+      #000 calc(var(--vp-h) - var(--hero-fade-len)),
+      rgba(0, 0, 0, 0) var(--vp-h));
+}
+
+/* daily / latest 的负外边距是「拉上去叠在首图淡出区上」用的——
+   翻页后两块各占一页、中间没有首图可叠，负值只会把内容顶出页顶被裁掉，归零 */
+.pager #daily,
+.pager #latest {
+  margin-top: 0;
+}
+
+.pager .archive.has-aligned-background::before,
+.pager .archive.has-aligned-background .archive-year,
+.pager .archive.has-aligned-background .archive-months {
+  background-attachment: scroll;
+  background-origin: border-box;
+  background-size: var(--archive-bg-size);
+  background-position: var(--archive-bg-position);
+}
+
+/* 反色条原本「从 museum 顶贯穿到文档底」；翻页后它已挪出页脚、挂在 body 下，
+   改成 position:fixed、整视口高的左缘抽屉——六个页面共享同一条，
+   任何一页都能悬停/聚焦拉出社交链接（site.js 同步跳过文档坐标计算）。
+   不能留在 .pager 里：翻页轨道带 transform，fixed 会被它劫持成相对轨道定位 */
+body.has-pager .cadenza-rail {
+  position: fixed;
+  right: 0;
+  top: 0;
+  height: 100%;
+}
+
+body.has-pager:not([data-pager-active="about"]) .cadenza-rail {
+  display: none;
+}
+
+.pager-pub-controls {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+body.has-pager .pub-toc {
+  position: absolute;
+  top: var(--pub-toc-top);
+  bottom: auto;
+  left: calc((100% - var(--page-w)) / 2);
+  width: 0;
+  height: var(--pub-toc-height);
+  --font-body: serif;
+  --font-title: 'KeBenSong', serif;
+}
+
+body.has-pager .pub-next {
+  position: absolute;
+  top: calc(var(--pub-toc-top) + var(--pub-toc-height) / 2);
+  right: calc((100% - var(--page-w)) / 2);
+  width: 26px;
+}
+
+body.has-pager .pub-toc:not(.is-positioned),
+body.has-pager .pub-next:not(.is-positioned) {
+  visibility: hidden;
+}
+
+@media (max-width: 1400px) {
+  .pager-pub-controls {
+    display: none;
+  }
+}
+
+body.has-pager .pub-toc::before {
+  left: 0;
+}
+
+body.has-pager .pub-toc-panel {
+  top: 0;
+  max-height: calc(100dvh - var(--pub-toc-top) - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform: translate(-100%, 0) translateX(-68px);
+}
+
+body.has-pager .pub-toc:hover .pub-toc-panel,
+body.has-pager .pub-toc.is-open .pub-toc-panel {
+  transform: translate(-100%, 0) translateX(-44px);
+}
+
+
+.guest-drawer {
+  position: fixed;
+  left: var(--guest-drawer-left);
+  top: var(--guest-drawer-top);
+  width: var(--guest-drawer-width);
+  height: var(--guest-drawer-height);
+  z-index: 13;
+  pointer-events: none;
+  --font-body: serif;
+  --font-title: 'KeBenSong', serif;
+}
+
+.guest-drawer:not(.is-positioned),
+body.has-pager:not([data-pager-active="about"]) > .guest-drawer {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+body.has-pager:not([data-pager-active="about"]) > .guest-drawer {
+  display: none;
+}
+
+.guest-drawer::before {
+  content: '';
+  position: absolute;
+  left: min(0px, var(--guest-drawer-trigger, -44px));
+  right: 100%;
+  top: 0;
+  bottom: 0;
+  pointer-events: auto;
+}
+
+.guest-drawer::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  width: max(0px, calc(var(--guest-drawer-trigger, -44px) + 36px - 100%));
+  top: 0;
+  bottom: 0;
+  pointer-events: auto;
+}
+
+.guest-drawer-handle {
+  position: absolute;
+  left: var(--guest-drawer-trigger, -44px);
+  top: 50%;
+  width: 36px;
+  height: 36px;
+  transform: translateY(-50%);
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--gray-4);
+  font-family: var(--font-nav);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: color 360ms ease;
+}
+
+.guest-drawer.is-open .guest-drawer-handle {
+  color: var(--black);
+}
+
+.guest-drawer-handle svg {
+  display: block;
+}
+
+body.has-pager:not([data-pager-active="about"]) .guest-drawer-handle {
+  pointer-events: none;
+}
+
+.guest-drawer-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 36px;
+  width: 100%;
+  height: 100%;
+  background: var(--black);
+  color: var(--white);
+  overflow: hidden;
+  clip-path: inset(0 100% 0 0);
+  transform: translateX(-8px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: clip-path 360ms cubic-bezier(.22, .61, .36, 1), transform 360ms ease, opacity 180ms ease, visibility 0s 360ms;
+}
+
+.guest-drawer.is-open .guest-drawer-panel {
+  clip-path: inset(0);
+  transform: translateX(0);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+
+.guest-drawer .guest-wall {
+  min-height: 0;
+  max-height: none;
+  margin: 0;
+  padding: 20px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-3) transparent;
+}
+
+.guest-drawer .guest-note {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 16px;
+  margin: 0 0 12px;
+}
+
+.guest-drawer .guest-note:last-child {
+  margin-bottom: 0;
+}
+
+.guest-drawer .guest-note-head {
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  overflow-wrap: anywhere;
+  color: var(--gray-4);
+}
+
+.guest-drawer .guest-note-name,
+.guest-drawer .guest-note-mine:hover {
+  color: var(--white);
+}
+
+.guest-drawer .guest-note-text {
+  color: var(--gray-2);
+  white-space: pre-line;
+}
+
+.guest-drawer-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  min-height: 0;
+  padding: 20px 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.25);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.guest-drawer-page {
+  flex: none;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--gray-4);
+  font-family: var(--font-nav);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.guest-drawer-page[aria-current="page"],
+.guest-drawer-page:hover {
+  color: var(--white);
+}
+
+.guest-drawer-handle:focus-visible,
+.guest-drawer-page:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: -2px;
+}
+
+@media (min-width: 701px) and (max-width: 1200px) {
+  .pager #about .footer-guestbook-inner {
+    width: min(518px, calc(100% - 316px));
+    margin-left: 0;
+    margin-right: auto;
+  }
+}
+
+@media (max-width: 700px) {
+  .pager #about .footer-guestbook-inner {
+    width: calc(100% - 60px);
+    margin-left: 0;
+    margin-right: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guest-drawer-panel,
+  .guest-drawer-handle {
+    transition: none;
+  }
+}
+
+.pager-page[data-pager-page="about"] {
+  position: relative;
+  overflow: clip;
+  background: var(--black);
+}
+
+.pager #about {
+  height: 100%;
+  padding: clamp(24px, 6vh, 64px) clamp(24px, 4vw, 48px) 144px;
+}
+
+.pager #about .footer-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.pager #about .footer-guestbook {
+  flex: 1;
+  min-height: 0;
+  overflow: clip;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.pager #about .footer-guestbook::-webkit-scrollbar {
+  display: none;
+}
+
+.pager #about .footer-links {
+  flex: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+body.has-pager .pager-page[data-pager-page="about"] > .footer-bottom {
+  position: absolute;
+  right: calc(var(--cadenza-rail-width) + var(--cadenza-handle-width) + 24px + env(safe-area-inset-right, 0px));
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  z-index: 11;
+  width: auto;
+  max-width: calc(100% - 180px);
+  margin: 0;
+  padding: 0;
+}
+
+/* 華彩段：页高锁成一屏。原 46vh 卡片 + 标题/箭头/留白这些固定件，
+   在矮窗口（高分屏缩放后有效高度常不足 720px）下会顶破一屏，
+   署名与手形光标被挤出折叠线——卡片收成「min(46vh, 一屏 − 其余固定件)」，
+   正常窗口下 min 取 46vh、与原来逐像素一致，矮窗口才收缩。
+   短卡维持与长卡 -8vh 的既有落差。≤768px 维持原响应式行为不变 */
+.pager .museum {
+  min-height: 0;
+  height: var(--vp-h);
+  --museum-card-h: min(46vh, calc(var(--vp-h) - 420px));
+}
+.pager .museum-card {
+  height: var(--museum-card-h);
+}
+.pager .museum-card--short {
+  height: calc(var(--museum-card-h) - 8vh);
+}
+/* 署名块 bottom: 28px 是按"下面还有页脚接住"算的：手形光标
+   （top:100% + 64px 高，margin-top:-16px）会垂到署名行下沿以下约 48px，
+   长页里它落在页脚黑底上，翻页后页底就是页缘——抬到 48px 才完整收进页内 */
+.pager .museum-credit {
+  bottom: 48px;
+}
+@media (max-width: 768px) {
+  .pager .museum {
+    min-height: auto;
+    height: auto;
+  }
+  .pager .museum-card {
+    height: 38vh;
+  }
+  .pager .museum-card--short {
+    height: 32vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pager-track {
+    transition: none;
+  }
+}
+
+@media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+  .hero {
+    width: 100%;
+  }
+
+  .hero-text {
+    min-width: 0;
+  }
+
+  .hero-title {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .side-nav {
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    right: 12px;
+    bottom: auto;
+    left: 50%;
+    width: min(calc(100vw - 32px), 560px);
+    transform: translateX(-50%);
+  }
+
+  .side-nav-list {
+    flex-direction: row;
+    gap: clamp(12px, 4vw, 16px);
+    width: 100%;
+    max-width: 100%;
+    padding: 4px 10px 8px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-padding-inline: 10px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    writing-mode: horizontal-tb;
+  }
+
+  .side-nav-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .side-nav-list li {
+    flex: none;
+  }
+
+  .side-nav .side-nav-item,
+  .side-nav .side-nav-item.is-active {
+    font-size: clamp(10px, 3vw, 13px);
+    letter-spacing: 0;
+    text-orientation: mixed;
+    white-space: nowrap;
+    writing-mode: horizontal-tb;
+  }
+
+  .side-nav .side-nav-item.is-active::before,
+  .side-nav .side-nav-item[data-label]::after {
+    display: none;
+  }
+}
+
 </style>
 </head>
-<body>
+<body class="has-pager">
 
-  <!-- 右侧章节导航：exposition / développement / récapitulation / cadenza / coda。
-       随滚动高亮当前所在区块（对应项变黑，见 site.js），点任意一项平滑跳到该区块。
-       映射：exposition→#daily（呈示部），développement→#latest（展開部），
+  <!-- 右侧章节导航：Introduction / exposition / développement / récapitulation / cadenza / coda。
+       翻页模式下点任意一项由 pager.js 平移到对应一页（高亮也由当前页驱动，见 site.js）。
+       映射：Introduction→#top（首屏），exposition→#daily（呈示部），développement→#latest（展開部），
             récapitulation→#archive（再現部），cadenza→#museum（華彩段），coda→#about（页脚）。
-       文案改法文后高亮逻辑不受影响：它按 href→区块 id 匹配（见 site.js），不比对文字。
-       固定在视口右侧、垂直居中；窄屏（≤1120px）正文会顶到边，导航收起 -->
+       文案改法文后高亮逻辑不受影响：它按 href→页 id 匹配，不比对文字。
+       固定在视口右下角；窄屏（≤1120px）正文会顶到边，导航收起 -->
   <nav class="side-nav" aria-label="章节导航">
     <ul class="side-nav-list">
-      <li><a class="side-nav-item" href="#daily">exposition</a></li>
-      <li><a class="side-nav-item" href="#latest">développement</a></li>
-      <li><a class="side-nav-item" href="#archive">récapitulation</a></li>
-      <li><a class="side-nav-item" href="#museum">cadenza</a></li>
-      <li><a class="side-nav-item" href="#about">coda</a></li>
+      <li><a class="side-nav-item" href="#top" data-label="引子">Introduction</a></li>
+      <li><a class="side-nav-item" href="#daily" data-label="呈示部">exposition</a></li>
+      <li><a class="side-nav-item" href="#latest" data-label="展開部">développement</a></li>
+      <li><a class="side-nav-item" href="#archive" data-label="再現部">récapitulation</a></li>
+      <li><a class="side-nav-item" href="#museum" data-label="華彩段">cadenza</a></li>
+      <li><a class="side-nav-item" href="#about" data-label="尾聲">coda</a></li>
     </ul>
   </nav>
 
+  <!-- 翻页模式（Pager）：整站改为「一屏一页横着翻」。
+       下面六个既有版块（首屏 / daily / latest / archive / museum / footer）
+       原样包进 .pager-page、横向排开；平移、滚轮 / 键盘 / 触摸左右滑动、
+       与右下角 nav 的跳页联动都由 /js/pager.js 负责。
+       版块内部排版不动；所需的少量接缝适配集中在 site.css 末尾的 Pager 段 -->
+  <div class="pager" data-pager aria-live="off">
+    <div class="pager-track" data-pager-track>
+
+  <!-- 第一页：首屏 -->
+  <div class="pager-page" data-pager-page="top">
   <!-- Hero -->
   <section class="hero">
     <div class="hero-crop">
@@ -3054,6 +3760,10 @@ body.cursor-hidden * {
       <p class="hero-cn">上帝<a class="hero-cn-hl" href="/admin" aria-label="进入管理台">之</a>國</p>
     </div>
   </section>
+  </div><!-- /第一页：首屏 -->
+
+  <!-- 第二页：每日推荐（呈示部） -->
+  <div class="pager-page" data-pager-page="daily">
 
   <!-- Daily：每日推荐。夹在「首屏」与「文章」之间——首屏之后的第一块内容。
        左侧是一台 iPod nano 4th gen，屏幕改成白底框 + 三栏标签；
@@ -3145,6 +3855,10 @@ body.cursor-hidden * {
       <button class="daily-toggle" type="button" data-daily-toggle aria-expanded="false" hidden>↓</button>
     </div>
   </section>
+  </div><!-- /第二页：每日推荐 -->
+
+  <!-- 第三页：本期文章（展開部） -->
+  <div class="pager-page" data-pager-page="latest">
 
   <!-- Développement（展開部）：这一栏原先没有标题，现在与其它版块一样补上小标与大标，
        结构对齐 daily 版块（label + title 直接放在 section 下） -->
@@ -3197,6 +3911,10 @@ body.cursor-hidden * {
       </article>
     </div>
   </section>
+  </div><!-- /第三页：本期文章 -->
+
+  <!-- 第四页：档案馆（再現部） -->
+  <div class="pager-page" data-pager-page="archive">
 
   <!-- Archive -->
   <section class="section archive" id="archive">
@@ -3205,7 +3923,7 @@ body.cursor-hidden * {
       <h2 class="section-title">再現部</h2>
       <!-- 唯一的发现入口：不看时间、不看热度，随机翻一篇。
            旧文过了半年就不再摆在架子外面，这里是能碰到它们的门 -->
-      <p class="archive-random"><a class="archive-random-link" href="https://gods-country.countryofgod.workers.dev/random">random →</a></p>
+      <p class="archive-random"><a class="archive-random-link" href="http://localhost:3000/random">random →</a></p>
     </div>
 
     <div class="archive-inner">
@@ -3222,15 +3940,19 @@ body.cursor-hidden * {
             <div class="archive-month"><span class="month-num">07</span><div class="month-posts"></div></div>
             <div class="archive-month"><span class="month-num">08</span><div class="month-posts"></div></div>
             <div class="archive-month"><span class="month-num">09</span><div class="month-posts"></div></div>
-            <div class="archive-month has-posts"><span class="month-num">10</span><div class="month-posts"><a href="https://gods-country.countryofgod.workers.dev/p/chuangkanhao" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-15/article" class="month-post"><span class="month-post-title">小径分叉的花园</span><span class="month-post-date">10.15</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-15/poem" class="month-post"><span class="month-post-title">礼物</span><span class="month-post-date">10.15</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-15/music" class="month-post"><span class="month-post-title">《悼念公主的帕凡舞曲》</span><span class="month-post-date">10.15</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-13/article" class="month-post"><span class="month-post-title">萨莉</span><span class="month-post-date">10.13</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-13/poem" class="month-post"><span class="month-post-title">波菲利娅的情人</span><span class="month-post-date">10.13</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-12/article" class="month-post"><span class="month-post-title">赛纳河畔的无名少女</span><span class="month-post-date">10.12</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-12/poem" class="month-post"><span class="month-post-title">园丁集·15</span><span class="month-post-date">10.12</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/article" class="month-post"><span class="month-post-title">三等候车室</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/poem" class="month-post"><span class="month-post-title">致云雀</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/music" class="month-post"><span class="month-post-title">李斯特《爱之梦》</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/article" class="month-post"><span class="month-post-title">河的第三条岸</span><span class="month-post-date">10.09</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/poem" class="month-post"><span class="month-post-title">失去的美酒</span><span class="month-post-date">10.09</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/music" class="month-post"><span class="month-post-title">萨蒂《烦恼》</span><span class="month-post-date">10.09</span></a></div></div>
+            <div class="archive-month has-posts"><span class="month-num">10</span><div class="month-posts"><a href="http://localhost:3000/p/chuangkanhao" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a><a href="http://localhost:3000/d/2026-10-15/article" class="month-post"><span class="month-post-title">小径分叉的花园</span><span class="month-post-date">10.15</span></a><a href="http://localhost:3000/d/2026-10-15/poem" class="month-post"><span class="month-post-title">礼物</span><span class="month-post-date">10.15</span></a><a href="http://localhost:3000/d/2026-10-15/music" class="month-post"><span class="month-post-title">《悼念公主的帕凡舞曲》</span><span class="month-post-date">10.15</span></a><a href="http://localhost:3000/d/2026-10-15/pub" class="month-post"><span class="month-post-title">愿望过于强烈</span><span class="month-post-date">10.15</span></a><a href="http://localhost:3000/d/2026-10-13/article" class="month-post"><span class="month-post-title">萨莉</span><span class="month-post-date">10.13</span></a><a href="http://localhost:3000/d/2026-10-13/poem" class="month-post"><span class="month-post-title">波菲利娅的情人</span><span class="month-post-date">10.13</span></a><a href="http://localhost:3000/d/2026-10-12/article" class="month-post"><span class="month-post-title">赛纳河畔的无名少女</span><span class="month-post-date">10.12</span></a><a href="http://localhost:3000/d/2026-10-12/poem" class="month-post"><span class="month-post-title">园丁集·15</span><span class="month-post-date">10.12</span></a><a href="http://localhost:3000/d/2026-10-10/article" class="month-post"><span class="month-post-title">三等候车室</span><span class="month-post-date">10.10</span></a><a href="http://localhost:3000/d/2026-10-10/poem" class="month-post"><span class="month-post-title">致云雀</span><span class="month-post-date">10.10</span></a><a href="http://localhost:3000/d/2026-10-10/music" class="month-post"><span class="month-post-title">李斯特《爱之梦》</span><span class="month-post-date">10.10</span></a><a href="http://localhost:3000/d/2026-10-09/article" class="month-post"><span class="month-post-title">河的第三条岸</span><span class="month-post-date">10.09</span></a><a href="http://localhost:3000/d/2026-10-09/poem" class="month-post"><span class="month-post-title">失去的美酒</span><span class="month-post-date">10.09</span></a><a href="http://localhost:3000/d/2026-10-09/music" class="month-post"><span class="month-post-title">萨蒂《烦恼》</span><span class="month-post-date">10.09</span></a></div></div>
             <div class="archive-month"><span class="month-num">11</span><div class="month-posts"></div></div>
             <div class="archive-month"><span class="month-num">12</span><div class="month-posts"></div></div>
           </div>
-          <div class="month-posts-panel" data-month=""><a href="https://gods-country.countryofgod.workers.dev/p/chuangkanhao" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-15/article" class="month-post"><span class="month-post-title">小径分叉的花园</span><span class="month-post-date">10.15</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-15/poem" class="month-post"><span class="month-post-title">礼物</span><span class="month-post-date">10.15</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-15/music" class="month-post"><span class="month-post-title">《悼念公主的帕凡舞曲》</span><span class="month-post-date">10.15</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-13/article" class="month-post"><span class="month-post-title">萨莉</span><span class="month-post-date">10.13</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-13/poem" class="month-post"><span class="month-post-title">波菲利娅的情人</span><span class="month-post-date">10.13</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-12/article" class="month-post"><span class="month-post-title">赛纳河畔的无名少女</span><span class="month-post-date">10.12</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-12/poem" class="month-post"><span class="month-post-title">园丁集·15</span><span class="month-post-date">10.12</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/article" class="month-post"><span class="month-post-title">三等候车室</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/poem" class="month-post"><span class="month-post-title">致云雀</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-10/music" class="month-post"><span class="month-post-title">李斯特《爱之梦》</span><span class="month-post-date">10.10</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/article" class="month-post"><span class="month-post-title">河的第三条岸</span><span class="month-post-date">10.09</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/poem" class="month-post"><span class="month-post-title">失去的美酒</span><span class="month-post-date">10.09</span></a><a href="https://gods-country.countryofgod.workers.dev/d/2026-10-09/music" class="month-post"><span class="month-post-title">萨蒂《烦恼》</span><span class="month-post-date">10.09</span></a></div>
+          <div class="month-posts-panel" data-month=""><a href="http://localhost:3000/p/chuangkanhao" class="month-post"><span class="month-post-title">创刊号</span><span class="month-post-date">10.05</span></a><a href="http://localhost:3000/d/2026-10-15/article" class="month-post"><span class="month-post-title">小径分叉的花园</span><span class="month-post-date">10.15</span></a><a href="http://localhost:3000/d/2026-10-15/poem" class="month-post"><span class="month-post-title">礼物</span><span class="month-post-date">10.15</span></a><a href="http://localhost:3000/d/2026-10-15/music" class="month-post"><span class="month-post-title">《悼念公主的帕凡舞曲》</span><span class="month-post-date">10.15</span></a><a href="http://localhost:3000/d/2026-10-15/pub" class="month-post"><span class="month-post-title">愿望过于强烈</span><span class="month-post-date">10.15</span></a><a href="http://localhost:3000/d/2026-10-13/article" class="month-post"><span class="month-post-title">萨莉</span><span class="month-post-date">10.13</span></a><a href="http://localhost:3000/d/2026-10-13/poem" class="month-post"><span class="month-post-title">波菲利娅的情人</span><span class="month-post-date">10.13</span></a><a href="http://localhost:3000/d/2026-10-12/article" class="month-post"><span class="month-post-title">赛纳河畔的无名少女</span><span class="month-post-date">10.12</span></a><a href="http://localhost:3000/d/2026-10-12/poem" class="month-post"><span class="month-post-title">园丁集·15</span><span class="month-post-date">10.12</span></a><a href="http://localhost:3000/d/2026-10-10/article" class="month-post"><span class="month-post-title">三等候车室</span><span class="month-post-date">10.10</span></a><a href="http://localhost:3000/d/2026-10-10/poem" class="month-post"><span class="month-post-title">致云雀</span><span class="month-post-date">10.10</span></a><a href="http://localhost:3000/d/2026-10-10/music" class="month-post"><span class="month-post-title">李斯特《爱之梦》</span><span class="month-post-date">10.10</span></a><a href="http://localhost:3000/d/2026-10-09/article" class="month-post"><span class="month-post-title">河的第三条岸</span><span class="month-post-date">10.09</span></a><a href="http://localhost:3000/d/2026-10-09/poem" class="month-post"><span class="month-post-title">失去的美酒</span><span class="month-post-date">10.09</span></a><a href="http://localhost:3000/d/2026-10-09/music" class="month-post"><span class="month-post-title">萨蒂《烦恼》</span><span class="month-post-date">10.09</span></a></div>
         </div>
       </div>
     </div>
   </section>
+  </div><!-- /第四页：档案馆 -->
+
+  <!-- 第五页：華彩段 -->
+  <div class="pager-page" data-pager-page="museum">
 
   <!-- Cadenza：華彩段——一屏高的横向胶片（视觉参考浦东美术馆官网：无衬线、极简）。
        图片取自仓库根的 museum/ 目录（已复制进 public/img/museum-N.jpg）；卡片暂不可点，只有横滑。
@@ -3313,6 +4035,10 @@ body.cursor-hidden * {
       <p class="museum-credit-line">Introductory Chapter of <a class="museum-credit-link" href="#">SylvApple<img class="museum-credit-cursor" src="/public/img/cursor-handpointing.svg" width="64" height="64" alt="" aria-hidden="true"></a>.</p>
     </div>
   </section>
+  </div><!-- /第五页：華彩段 -->
+
+  <!-- 第六页：页脚（coda） -->
+  <div class="pager-page" data-pager-page="about">
 
   <!-- Footer -->
   <footer class="footer" id="about">
@@ -3342,11 +4068,13 @@ body.cursor-hidden * {
               <button class="guest-submit" type="submit">Es mus sein!</button>
             </form>
 
-            <div class="guest-wall">
-
-              <p class="guest-wall-empty">还没有留言</p>
-
-            </div>
+            <aside class="guest-drawer" aria-label="留言">
+              <button class="guest-drawer-handle" type="button" aria-label="留言" aria-expanded="false" aria-controls="guest-drawer-panel"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5 3L11 8L5 13" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <div class="guest-drawer-panel" id="guest-drawer-panel" inert>
+                <div class="guest-wall"></div>
+                <nav class="guest-drawer-pages" aria-label="留言分页"></nav>
+              </div>
+            </aside>
 
             <!-- 照片流：向左缓慢滚动、悬停暂停、两端淡出到黑。
                  每帧的 --aspect 是这张照片的宽高比（宽÷高），用来分配帧宽：
@@ -3370,12 +4098,29 @@ body.cursor-hidden * {
       </div>
 
       <div class="footer-links">
-        <a href="mailto:afterrainnn@outlook.com" class="footer-submit" id="submit">
-          <span class="jitter-char">投</span><span class="jitter-char">稿</span> <span class="footer-submit-arrow">→</span>
-        </a>
+        <a href="mailto:afterrainnn@outlook.com" class="footer-submit" id="submit">投稿</a>
       </div>
 
-      <div class="footer-bottom">
+      <div class="footer-bottom">        <div class="footer-signature">
+          <span class="footer-name" style="letter-spacing: 0px;"><span class="jitter-char" style="margin-right: 0.5px;">E</span><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">n</span><span class="jitter-char" style="margin-right: 0.5px;">m</span><span class="jitter-char" style="margin-right: 0.5px;">a</span><span class="jitter-char" style="margin-right: 0.5px;">l</span> <span class="footer-name-ist"><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">s</span><span class="jitter-char" style="margin-right: 0.5px;">t</span></span> <span class="jitter-char" style="margin-right: 0.5px;">k</span><span class="jitter-char" style="margin-right: 0.5px;">e</span><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">n</span><span class="jitter-char" style="margin-right: 0.5px;">m</span><span class="jitter-char" style="margin-right: 0.5px;">a</span><span class="jitter-char" style="margin-right: 0.5px;">l</span><span class="jitter-char" style="margin-right: 0.5px;">.</span></span>
+        <!-- 版权行由文字换成反色图片（见 site.css 的 .footer-bottom-img）。
+             原字面「© 2026 · 上帝之国」退到 alt：读屏、SEO、归档都还拿得到这句话，
+             但页面上不再有可拆字的文本节点。class 里保留 footer-credit，
+             是为了与 CSS / JS 里那份抖动选择器清单继续对齐（图片无字，自然不抖）。 -->
+          <img class="footer-credit footer-bottom-img" src="/public/img/bottom-inv.webp" alt="© 2026 上帝之国">
+        </div>
+      </div>
+    </div>
+  </footer>
+  </div><!-- /第六页：页脚 -->
+
+    </div><!-- /.pager-track -->
+  </div><!-- /.pager：翻页容器到此收口 -->
+
+  <!-- 左缘社交抽屉：挪出页脚、挂在 body 下——长页模式里它仍是
+       绝对定位（site.js 按文档坐标从 museum 顶贯穿到文档底，几何不变）；
+       翻页模式里改成 position:fixed、整视口高，六个页面共享同一条抽屉。
+       不能留在 .pager 里：翻页轨道带 transform，fixed 会被它劫持成相对轨道定位 -->
           <!-- 4 枚社交标识固定在页脚左下角，横排一行。href 先统一留 "#"，等给真实地址再逐条替换。
                每枚图标是 Simple Icons 的官方品牌字形（单条 path、实心，24×24 viewBox），
                颜色由 .footer-social-item 的 color 经 fill: currentColor 统一控制。
@@ -3384,6 +4129,8 @@ body.cursor-hidden * {
                ②页脚那段"逐字抖动"脚本遇到带 aria-hidden 的元素就不再往下拆——
                否则它会把 SVG 内部的 <path>/<circle> 逐个包进 <span>，图标会直接散掉 -->
         <div class="cadenza-rail" aria-label="社交链接" tabindex="0">
+          <div class="cadenza-rail-social">
+            <span class="cadenza-rail-handle" aria-hidden="true">&lt;</span>
           <ul class="footer-social">
             <li>
               <a class="footer-social-item" href="#" target="_blank" rel="noopener" aria-label="QQ">
@@ -3406,22 +4153,18 @@ body.cursor-hidden * {
               </a>
             </li>
           </ul>
+          </div>
         </div>
-        <div class="footer-signature">
-          <span class="footer-name" style="letter-spacing: 0px;"><span class="jitter-char" style="margin-right: 0.5px;">E</span><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">n</span><span class="jitter-char" style="margin-right: 0.5px;">m</span><span class="jitter-char" style="margin-right: 0.5px;">a</span><span class="jitter-char" style="margin-right: 0.5px;">l</span> <span class="footer-name-ist"><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">s</span><span class="jitter-char" style="margin-right: 0.5px;">t</span></span> <span class="jitter-char" style="margin-right: 0.5px;">k</span><span class="jitter-char" style="margin-right: 0.5px;">e</span><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">n</span><span class="jitter-char" style="margin-right: 0.5px;">m</span><span class="jitter-char" style="margin-right: 0.5px;">a</span><span class="jitter-char" style="margin-right: 0.5px;">l</span><span class="jitter-char" style="margin-right: 0.5px;">.</span></span>
-        <!-- 版权行由文字换成反色图片（见 site.css 的 .footer-bottom-img）。
-             原字面「© 2026 · 上帝之国」退到 alt：读屏、SEO、归档都还拿得到这句话，
-             但页面上不再有可拆字的文本节点。class 里保留 footer-credit，
-             是为了与 CSS / JS 里那份抖动选择器清单继续对齐（图片无字，自然不抖）。 -->
-          <img class="footer-credit footer-bottom-img" src="/public/img/bottom-inv.webp" alt="© 2026 上帝之国">
-        </div>
-      </div>
-    </div>
-  </footer>
+
 
   <div class="cursor-invert" aria-hidden="true" style="transform: translate3d(792px, 1px, 0px) translate(-50%, -50%);"></div>
 
   <!-- 同步加载、不加 defer：拆字脚本必须在首屏绘制前跑完，否则字距会跳一次 -->
-  <script>window.__API_BASE__='https://gods-country.countryofgod.workers.dev';window.__DAILY_BASE__='/public/daily/';</script>
-  <script src="/public/js/site.js"></script>
+  <script>window.__API_BASE__='http://localhost:3000';window.__DAILY_BASE__='/public/daily/';</script>
+  <script src="/public/js/site.js?v=20261023-mobile"></script>
+  <!-- 翻页驱动（滚轮 / 键盘 / 触摸左右滑动 / nav 跳页）。必须排在 site.js 之后：
+       它要取 site.js 挂出来的 __sideNavSetActive 来点导航高亮 -->
+  <script src="/public/js/pager.js?v=20261023-mobile"></script>
+  <script src="/public/js/archive-background.js?v=20261022-archive-alignment"></script>
+  <script src="/public/js/guest-drawer.js?v=20261022-coda-circle"></script>
 </body></html>

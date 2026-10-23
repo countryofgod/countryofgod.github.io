@@ -15,10 +15,13 @@
 import { cpSync, existsSync, mkdirSync, rmSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { checkPubContent } from './check-pub.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const src = join(root, 'daily');
 const dest = join(root, 'public', 'daily');
+
+checkPubContent();
 
 if (!existsSync(src)) {
   console.log('daily/ 不存在，跳过同步');
@@ -78,7 +81,7 @@ const musicTitle = (text) => {
 };
 
 const manifest = [];
-for (const cat of ['article', 'poem', 'music']) {
+for (const cat of ['article', 'poem', 'music', 'pub']) {
   const dir = join(src, cat);
   if (!existsSync(dir)) continue;
   for (const name of readdirSync(dir)) {
@@ -88,7 +91,7 @@ for (const cat of ['article', 'poem', 'music']) {
     const [y, mo, d] = parts;
     const iso = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const text = readFileSync(join(dir, name), 'utf8');
-    const lines = text.split(/\r?\n/);
+    const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/);
     let i = 0;
     while (i < lines.length && !lines[i].trim()) i++;
     manifest.push({

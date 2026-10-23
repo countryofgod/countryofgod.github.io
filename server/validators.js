@@ -125,6 +125,17 @@ export function validateEcho(input) {
   return { body, name: optionalText(input.name, 'name', LIMITS.name) };
 }
 
+export function resolveEchoTarget(value) {
+  const key = String(value ?? '');
+  if (/^daily:\d{4}-\d{2}-\d{2}:(article|poem|music|pub)$/.test(key)) {
+    return { table: 'daily_echoes', column: 'content_key', value: key };
+  }
+  if (/^[1-9]\d*$/.test(key) && Number.isSafeInteger(Number(key))) {
+    return { table: 'echoes', column: 'article_id', value: Number(key) };
+  }
+  throw new Invalid('文章不存在', 'articleId');
+}
+
 /** 草稿：只允许一段正文 + 可选署名，长度同样封顶 */
 export function validateDraft(input) {
   return {

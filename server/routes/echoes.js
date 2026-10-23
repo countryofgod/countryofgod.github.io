@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { validateEcho, validateDraft, Conflict } from '../validators.js';
 import { isAdmin } from '../auth.js';
 import {
-  getArticleById,
+  hasEchoTarget,
   listEchoes,
   myEcho,
   createEcho,
@@ -20,7 +20,7 @@ const router = Router();
 router.get('/api/echoes', (req, res, next) => {
   try {
     res.set('Cache-Control', 'no-store');
-    res.json({ items: listEchoes(Number(req.query.article)) });
+    res.json({ items: listEchoes(req.query.article) });
   } catch (err) {
     next(err);
   }
@@ -30,7 +30,7 @@ router.get('/api/echoes', (req, res, next) => {
 router.get('/api/echoes/mine', (req, res, next) => {
   try {
     res.set('Cache-Control', 'no-store');
-    res.json({ echo: myEcho(Number(req.query.article), req.deviceId ?? null) });
+    res.json({ echo: myEcho(req.query.article, req.deviceId ?? null) });
   } catch (err) {
     next(err);
   }
@@ -39,8 +39,8 @@ router.get('/api/echoes/mine', (req, res, next) => {
 /** POST /api/echoes —— 一篇一次；留过了就 409，先撤回才能重留 */
 router.post('/api/echoes', (req, res, next) => {
   try {
-    const articleId = Number(req.body?.articleId);
-    if (!getArticleById(articleId)) return res.status(404).json({ error: '文章不存在' });
+    const articleId = req.body?.articleId;
+    if (!hasEchoTarget(articleId)) return res.status(404).json({ error: '文章不存在' });
     if (!req.deviceId) return res.status(403).json({ error: '这台设备还没有身份' });
     if (myEcho(articleId, req.deviceId)) {
       throw new Conflict('这篇你已经留过回声了，先撤回才能重留', 'body');
@@ -57,6 +57,7 @@ router.delete('/api/echoes/:id', (req, res, next) => {
     const result = deleteEchoAs(Number(req.params.id), {
       deviceId: req.deviceId ?? null,
       isAdmin: isAdmin(req),
+      articleId: req.query.article,
     });
     if (!result.ok) {
       if (result.reason === 'forbidden') return res.status(403).json({ error: '这条不是你留的' });

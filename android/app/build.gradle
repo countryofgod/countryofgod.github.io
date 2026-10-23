@@ -1,0 +1,97 @@
+plugins {
+    id 'com.android.application'
+}
+
+def siteUrl = providers.gradleProperty('siteUrl')
+    .getOrElse('https://gods-country.countryofgod.workers.dev/')
+def siteUri = new URI(siteUrl)
+if (!(siteUri.scheme in ['http', 'https']) || !siteUri.host || siteUri.userInfo ||
+        siteUri.query || siteUri.fragment) {
+    throw new GradleException('siteUrl 必须是无凭据、查询参数或片段的 HTTP(S) 站点地址')
+}
+
+android {
+    namespace 'dev.countryofgod.app'
+    compileSdk 35
+    buildToolsVersion '35.0.0'
+
+    defaultConfig {
+        applicationId 'dev.countryofgod.app'
+        minSdk 26
+        targetSdk 35
+        versionCode 3
+        versionName '2.0.0'
+        buildConfigField 'String', 'SITE_URL', '"' + siteUri.toASCIIString() + '"'
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    sourceSets.main.assets.srcDirs = [layout.buildDirectory.dir('generated/siteAssets')]
+    sourceSets.main.res.srcDirs += [layout.buildDirectory.dir('generated/siteResources')]
+
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+        }
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+def nativeAssets = tasks.register('nativeAssets', Sync) {
+    into layout.buildDirectory.dir('generated/siteAssets/site')
+    from('../../public/img') {
+        include '795.webp', 'archive.webp', 'museum.jpeg', 'museum_upper.png',
+                'museum-1.jpg', 'museum-2.jpg', 'museum-3.jpg', 'museum-4.jpg',
+                'ipod-clean.webp', 'ipod_background.webp', 'ipod_screen_frame.webp',
+                'coda-bw.png', 'logo.webp', 'bottom-inv.webp', 'lamp.webp',
+                'still-1.webp', 'still-2.webp'
+    }
+    from('../../public/fonts/HeldaneText/HeldaneTextRegular.otf') { rename { 'heldane.otf' } }
+    from('../../public/fonts/love-letter-tw/Lovelt__.ttf') { rename { 'loveletter.ttf' } }
+    from('../../public/fonts/AaGuDianKeBenSongYouMoBan/AaGuDianKeBenSongYouMoBan-2.ttf') { rename { 'kebensong.ttf' } }
+    from('../../public/fonts/FoundersGrotesk/FoundersGrotesk-Regular.otf') { rename { 'founders.otf' } }
+    from('../../public/fonts/ShorelinesScript/ShorelinesScript-Bold.otf') { rename { 'shorelines.otf' } }
+}
+
+tasks.named('preBuild').configure { dependsOn nativeAssets }
+
+def nativeIcons = tasks.register('nativeIcons') {
+    def template = file('../../server/views/index.ejs')
+    inputs.file template
+    def target = layout.buildDirectory.dir('generated/siteResources/drawable')
+    outputs.dir target
+    doLast {
+        def matches = template.getText('UTF-8') =~ /(?s)aria-label="(?:QQ|小红书|微信|GitHub)"[^>]*>\s*<svg[^>]*[^>]*><path d="([^"]+)"/
+        if (matches.size() != 4) throw new GradleException('原社交图标数量不匹配')
+        target.get().asFile.mkdirs()
+        matches.eachWithIndex { match, index ->
+            new File(target.get().asFile, "social_${index}.xml").setText(
+                '<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FFFFFF" android:pathData="' + match[1] + '"/></vector>', 'UTF-8')
+        }
+    }
+}
+
+tasks.named('preBuild').configure { dependsOn nativeIcons }
+
+tasks.configureEach { task ->
+    if (task.name == 'preReleaseBuild') {
+        task.doFirst {
+            if (siteUri.scheme != 'https') {
+                throw new GradleException('正式版只允许 HTTPS，HTTP 本地预览请构建 debug')
+            }
+        }
+    }
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+}

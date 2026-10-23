@@ -1,7 +1,7 @@
 import { SCHEMA } from './schema.js';
 import { dailyManifest } from './daily-manifest.js';
 import { seedArticle, seedArchive, seedDaily } from '../../server/seed-data.js';
-import { Unavailable } from '../../server/validators.js';
+import { Unavailable, resolveEchoTarget } from '../../server/validators.js';
 import { uploadToImgbb } from '../../server/imgbb.js';
 
 /* ---------------- 日期 ---------------- */
@@ -283,11 +283,12 @@ const shapeNote = (r) => ({
   createdAt: r.created_at,
 });
 
-export async function listGuestbook(env, { limit = 50, before = null } = {}) {
+export async function listGuestbook(env, { limit = 50, before = null, page = 1 } = {}) {
   const n = Math.min(Math.max(Number(limit) || 50, 1), 200);
+  const offset = (Math.max(1, Math.floor(Number(page) || 1)) - 1) * n;
   const stmt = before
     ? env.DB.prepare(`SELECT ${GUEST_COLS} FROM guestbook WHERE id < ? ORDER BY id DESC LIMIT ?`).bind(Number(before), n)
-    : env.DB.prepare(`SELECT ${GUEST_COLS} FROM guestbook ORDER BY id DESC LIMIT ?`).bind(n);
+    : env.DB.prepare(`SELECT ${GUEST_COLS} FROM guestbook ORDER BY id DESC LIMIT ? OFFSET ?`).bind(n, offset);
   const { results } = await stmt.all();
   return results.map(shapeNote);
 }
@@ -374,7 +375,13 @@ export async function touchDevice(env, id, nickname) {
 
 /* ---------------- 回声：一台设备对一篇只留一次 ---------------- */
 
-const ECHO_COLS = 'id, article_id, device_id, name, body, created_at';
+const echoColumns = (target) => `id, ${target.column} AS article_id, device_id, name, body, created_at`;
+
+export async function hasEchoTarget(env, articleId) {
+  const target = resolveEchoTarget(articleId);
+  if (typeof target.value === 'number') return !!(await getArticleById(env, target.value));
+  return dailyManifest.some((entry) => target.value === `daily:${entry.date}:${entry.category}`);
+}
 
 const shapeEcho = (r) => ({
   id: r.id,
@@ -386,38 +393,45 @@ const shapeEcho = (r) => ({
 });
 
 export async function listEchoes(env, articleId) {
-  const { results } = await env.DB.prepare(`SELECT ${ECHO_COLS} FROM echoes WHERE article_id = ? ORDER BY id ASC`)
-    .bind(articleId)
+  const target = resolveEchoTarget(articleId);
+  const { results } = await env.DB.prepare(`SELECT ${echoColumns(target)} FROM ${target.table} WHERE ${target.column} = ? ORDER BY id ASC`)
+    .bind(target.value)
     .all();
   return results.map(shapeEcho);
 }
 
 export async function myEcho(env, articleId, deviceId) {
   if (!deviceId) return null;
-  const row = await env.DB.prepare(`SELECT ${ECHO_COLS} FROM echoes WHERE article_id = ? AND device_id = ?`)
-    .bind(articleId, deviceId)
+  const target = resolveEchoTarget(articleId);
+  const row = await env.DB.prepare(`SELECT ${echoColumns(target)} FROM ${target.table} WHERE ${target.column} = ? AND device_id = ?`)
+    .bind(target.value, deviceId)
     .first();
   return row ? shapeEcho(row) : null;
 }
 
 export async function createEcho(env, articleId, deviceId, { name, body }) {
+  const target = resolveEchoTarget(articleId);
   const info = await env.DB.prepare(
-    'INSERT INTO echoes (article_id, device_id, name, body, created_at) VALUES (?, ?, ?, ?, ?)'
+    `INSERT INTO ${target.table} (${target.column}, device_id, name, body, created_at) VALUES (?, ?, ?, ?, ?)`
   )
-    .bind(articleId, deviceId, name, body, new Date().toISOString())
+    .bind(target.value, deviceId, name, body, new Date().toISOString())
     .run();
-  const row = await env.DB.prepare(`SELECT ${ECHO_COLS} FROM echoes WHERE id = ?`)
+  const row = await env.DB.prepare(`SELECT ${echoColumns(target)} FROM ${target.table} WHERE id = ?`)
     .bind(Number(info.meta.last_row_id))
     .first();
   return shapeEcho(row);
 }
 
 /** 本人撤回自己的那条；管理员撤任意一条 */
-export async function deleteEchoAs(env, id, { deviceId, isAdmin }) {
-  const row = await env.DB.prepare('SELECT device_id FROM echoes WHERE id = ?').bind(id).first();
+export async function deleteEchoAs(env, id, { deviceId, isAdmin, articleId }) {
+  const target = articleId == null ? null : resolveEchoTarget(articleId);
+  const table = target?.table || 'echoes';
+  const filter = target ? ` AND ${target.column} = ?` : '';
+  const bindings = target ? [id, target.value] : [id];
+  const row = await env.DB.prepare(`SELECT device_id FROM ${table} WHERE id = ?${filter}`).bind(...bindings).first();
   if (!row) return { ok: false, reason: 'not-found' };
   if (!isAdmin && (!deviceId || row.device_id !== deviceId)) return { ok: false, reason: 'forbidden' };
-  const info = await env.DB.prepare('DELETE FROM echoes WHERE id = ?').bind(id).run();
+  const info = await env.DB.prepare(`DELETE FROM ${table} WHERE id = ?${filter}`).bind(...bindings).run();
   return info.meta.changes > 0 ? { ok: true } : { ok: false, reason: 'not-found' };
 }
 
@@ -501,4 +515,35 @@ export async function upsertDaily(env, { date, category, title, body }) {
     .bind(date, category, title, body, now, now, category, title, body, now)
     .run();
   return getDailyByDate(env, date);
+}
+
+/* ---------------- 此刻在读 ---------------- */
+
+// 心跳窗口：90 秒内见过 = 还在这篇上；心跳 30 秒一次（前端 article.js）
+const PRESENCE_WINDOW_MS = 90_000;
+// 超过 15 分钟没心跳的行随手清掉，表里只留"正在读"的痕迹
+const PRESENCE_STALE_MS = 15 * 60_000;
+
+/**
+ * 记一次心跳，并回答：此刻有没有另一位读者在同一篇上。
+ * 只答有/没有，不报人数——人数是指标，这里不给指标。
+ */
+export async function touchPresence(env, articleId, deviceId) {
+  const now = new Date();
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO presence (device_id, article_id, seen_at) VALUES (?, ?, ?)
+       ON CONFLICT (device_id, article_id) DO UPDATE SET seen_at = excluded.seen_at`
+    ).bind(deviceId, articleId, now.toISOString()),
+    env.DB.prepare('DELETE FROM presence WHERE seen_at < ?').bind(
+      new Date(now - PRESENCE_STALE_MS).toISOString()
+    ),
+  ]);
+  const other = await env.DB.prepare(
+    `SELECT 1 FROM presence
+     WHERE article_id = ? AND device_id <> ? AND seen_at >= ? LIMIT 1`
+  )
+    .bind(articleId, deviceId, new Date(now - PRESENCE_WINDOW_MS).toISOString())
+    .first();
+  return { another: !!other };
 }

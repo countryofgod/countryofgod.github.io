@@ -119,7 +119,7 @@ function guestNote({ note }) {
   return out;
 }
 
-function renderDaily() {
+function renderDaily({ articleId, echoes }) {
   let out = '';
   out += `<!DOCTYPE html>
 <html lang="zh-CN"><head>
@@ -128,13 +128,13 @@ function renderDaily() {
   <title>每日 · 上帝之国</title>
   <meta name="description" content="上帝之国 · 每日一文一诗一曲">
   <!-- 先挂主站样式：配色变量与字体族沿用同一套，不另起视觉语言 -->
-  <link rel="stylesheet" href="/css/site.css">
-  <link rel="stylesheet" href="/css/article.css">
+  <link rel="stylesheet" href="/css/site.css?v=20261023-mobile">
+  <link rel="stylesheet" href="/css/article.css?v=20261022-all-echoes">
 </head>
 <body class="page-daily">
   <main class="sheet sheet-daily" id="daily-page">
     <p class="sheet-top">
-      <a class="sheet-home" href="/">上帝之国</a>
+      <a class="sheet-home" href="/#archive">上帝之国 · 再现部</a>
       <a class="sheet-random" href="/random">next →</a>
     </p>
 
@@ -143,9 +143,41 @@ function renderDaily() {
     <div class="daily-page-body">
       <p class="daily-page-loading">读取中…</p>
     </div>
+    <section class="echo" data-article="`;
+  out += esc(articleId);
+  out += `">
+      <h2 class="echo-title">回声</h2>
+      <ul class="echo-list">
+`;
+  echoes.forEach((echo) => {
+  out += `
+        <li class="echo-item" data-id="`;
+  out += esc(echo.id);
+  out += `">
+          <p class="echo-head"><span class="echo-name">`;
+  out += esc(echo.name);
+  out += `</span><span class="echo-date">`;
+  out += esc(echo.date);
+  out += `</span></p>
+          <p class="echo-body">`;
+  out += esc(echo.body);
+  out += `</p>
+        </li>
+`;
+  });
+  out += `
+      </ul>
+      <form class="echo-form">
+        <input class="echo-input" type="text" aria-label="名字" maxlength="24" autocomplete="off">
+        <textarea class="echo-textarea" aria-label="回声" maxlength="500"></textarea>
+        <button class="echo-submit" type="submit">留下回声</button>
+        <p class="echo-hint" hidden></p>
+      </form>
+    </section>
   </main>
 
-  <script src="/js/site.js"></script>
+  <script src="/js/site.js?v=20261022-art"></script>
+  <script src="/js/article.js?v=20261022-all-echoes"></script>
 </body></html>
 `;
   return out;
@@ -154,32 +186,43 @@ function renderDaily() {
 function renderHome({ articles, archive, notes, submitMail }) {
   let out = '';
   out += `<!DOCTYPE html>
-<html lang="zh-CN"><head>
+<html lang="zh-CN" class="has-pager"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Einmal ist keinmal — 上帝之国</title>
   <meta name="description" content="上帝之国（Einmal ist keinmal）——一个反抗媚俗的写作刊物。">
   <!-- 外置样式放在 head 里同步阻塞渲染，避免首屏先出无样式内容再跳一次 -->
-  <link rel="stylesheet" href="/css/site.css">
+  <link rel="stylesheet" href="/css/site.css?v=20261023-mobile">
 </head>
-<body>
+<body class="has-pager">
 
-  <!-- 右侧章节导航：exposition / développement / récapitulation / cadenza / coda。
-       随滚动高亮当前所在区块（对应项变黑，见 site.js），点任意一项平滑跳到该区块。
-       映射：exposition→#daily（呈示部），développement→#latest（展開部），
+  <!-- 右侧章节导航：Introduction / exposition / développement / récapitulation / cadenza / coda。
+       翻页模式下点任意一项由 pager.js 平移到对应一页（高亮也由当前页驱动，见 site.js）。
+       映射：Introduction→#top（首屏），exposition→#daily（呈示部），développement→#latest（展開部），
             récapitulation→#archive（再現部），cadenza→#museum（華彩段），coda→#about（页脚）。
-       文案改法文后高亮逻辑不受影响：它按 href→区块 id 匹配（见 site.js），不比对文字。
-       固定在视口右侧、垂直居中；窄屏（≤1120px）正文会顶到边，导航收起 -->
+       文案改法文后高亮逻辑不受影响：它按 href→页 id 匹配，不比对文字。
+       固定在视口右下角；窄屏（≤1120px）正文会顶到边，导航收起 -->
   <nav class="side-nav" aria-label="章节导航">
     <ul class="side-nav-list">
-      <li><a class="side-nav-item" href="#daily">exposition</a></li>
-      <li><a class="side-nav-item" href="#latest">développement</a></li>
-      <li><a class="side-nav-item" href="#archive">récapitulation</a></li>
-      <li><a class="side-nav-item" href="#museum">cadenza</a></li>
-      <li><a class="side-nav-item" href="#about">coda</a></li>
+      <li><a class="side-nav-item" href="#top" data-label="引子">Introduction</a></li>
+      <li><a class="side-nav-item" href="#daily" data-label="呈示部">exposition</a></li>
+      <li><a class="side-nav-item" href="#latest" data-label="展開部">développement</a></li>
+      <li><a class="side-nav-item" href="#archive" data-label="再現部">récapitulation</a></li>
+      <li><a class="side-nav-item" href="#museum" data-label="華彩段">cadenza</a></li>
+      <li><a class="side-nav-item" href="#about" data-label="尾聲">coda</a></li>
     </ul>
   </nav>
 
+  <!-- 翻页模式（Pager）：整站改为「一屏一页横着翻」。
+       下面六个既有版块（首屏 / daily / latest / archive / museum / footer）
+       原样包进 .pager-page、横向排开；平移、滚轮 / 键盘 / 触摸左右滑动、
+       与右下角 nav 的跳页联动都由 /js/pager.js 负责。
+       版块内部排版不动；所需的少量接缝适配集中在 site.css 末尾的 Pager 段 -->
+  <div class="pager" data-pager aria-live="off">
+    <div class="pager-track" data-pager-track>
+
+  <!-- 第一页：首屏 -->
+  <div class="pager-page" data-pager-page="top">
   <!-- Hero -->
   <section class="hero">
     <div class="hero-crop">
@@ -200,6 +243,10 @@ function renderHome({ articles, archive, notes, submitMail }) {
       <p class="hero-cn">上帝<a class="hero-cn-hl" href="/admin" aria-label="进入管理台">之</a>國</p>
     </div>
   </section>
+  </div><!-- /第一页：首屏 -->
+
+  <!-- 第二页：每日推荐（呈示部） -->
+  <div class="pager-page" data-pager-page="daily">
 
   <!-- Daily：每日推荐。夹在「首屏」与「文章」之间——首屏之后的第一块内容。
        左侧是一台 iPod nano 4th gen，屏幕改成白底框 + 三栏标签；
@@ -291,6 +338,10 @@ function renderHome({ articles, archive, notes, submitMail }) {
       <button class="daily-toggle" type="button" data-daily-toggle aria-expanded="false" hidden>↓</button>
     </div>
   </section>
+  </div><!-- /第二页：每日推荐 -->
+
+  <!-- 第三页：本期文章（展開部） -->
+  <div class="pager-page" data-pager-page="latest">
 
   <!-- Développement（展開部）：这一栏原先没有标题，现在与其它版块一样补上小标与大标，
        结构对齐 daily 版块（label + title 直接放在 section 下） -->
@@ -330,6 +381,10 @@ function renderHome({ articles, archive, notes, submitMail }) {
   out += `
     </div>
   </section>
+  </div><!-- /第三页：本期文章 -->
+
+  <!-- 第四页：档案馆（再現部） -->
+  <div class="pager-page" data-pager-page="archive">
 
   <!-- Archive -->
   <section class="section archive" id="archive">
@@ -349,6 +404,10 @@ function renderHome({ articles, archive, notes, submitMail }) {
   out += `
     </div>
   </section>
+  </div><!-- /第四页：档案馆 -->
+
+  <!-- 第五页：華彩段 -->
+  <div class="pager-page" data-pager-page="museum">
 
   <!-- Cadenza：華彩段——一屏高的横向胶片（视觉参考浦东美术馆官网：无衬线、极简）。
        图片取自仓库根的 museum/ 目录（已复制进 public/img/museum-N.jpg）；卡片暂不可点，只有横滑。
@@ -428,6 +487,10 @@ function renderHome({ articles, archive, notes, submitMail }) {
       <p class="museum-credit-line">Introductory Chapter of <a class="museum-credit-link" href="#">SylvApple<img class="museum-credit-cursor" src="/img/cursor-handpointing.svg" width="64" height="64" alt="" aria-hidden="true"></a>.</p>
     </div>
   </section>
+  </div><!-- /第五页：華彩段 -->
+
+  <!-- 第六页：页脚（coda） -->
+  <div class="pager-page" data-pager-page="about">
 
   <!-- Footer -->
   <footer class="footer" id="about">
@@ -457,17 +520,19 @@ function renderHome({ articles, archive, notes, submitMail }) {
               <button class="guest-submit" type="submit">Es mus sein!</button>
             </form>
 
-            <div class="guest-wall">
+            <aside class="guest-drawer" aria-label="留言">
+              <button class="guest-drawer-handle" type="button" aria-label="留言" aria-expanded="false" aria-controls="guest-drawer-panel"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5 3L11 8L5 13" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <div class="guest-drawer-panel" id="guest-drawer-panel" inert>
+                <div class="guest-wall">
 `;
-  if (notes.length) { notes.forEach((note) => {
+  notes.forEach((note) => {
   out += guestNote({ note });
-  }); } else {
+  });
   out += `
-              <p class="guest-wall-empty">还没有留言</p>
-`;
-  }
-  out += `
-            </div>
+                </div>
+                <nav class="guest-drawer-pages" aria-label="留言分页"></nav>
+              </div>
+            </aside>
 
             <!-- 照片流：向左缓慢滚动、悬停暂停、两端淡出到黑。
                  每帧的 --aspect 是这张照片的宽高比（宽÷高），用来分配帧宽：
@@ -493,12 +558,29 @@ function renderHome({ articles, archive, notes, submitMail }) {
       <div class="footer-links">
         <a href="mailto:`;
   out += esc(submitMail);
-  out += `" class="footer-submit" id="submit">
-          <span class="jitter-char">投</span><span class="jitter-char">稿</span> <span class="footer-submit-arrow">→</span>
-        </a>
+  out += `" class="footer-submit" id="submit">投稿</a>
       </div>
 
-      <div class="footer-bottom">
+      <div class="footer-bottom">        <div class="footer-signature">
+          <span class="footer-name" style="letter-spacing: 0px;"><span class="jitter-char" style="margin-right: 0.5px;">E</span><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">n</span><span class="jitter-char" style="margin-right: 0.5px;">m</span><span class="jitter-char" style="margin-right: 0.5px;">a</span><span class="jitter-char" style="margin-right: 0.5px;">l</span> <span class="footer-name-ist"><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">s</span><span class="jitter-char" style="margin-right: 0.5px;">t</span></span> <span class="jitter-char" style="margin-right: 0.5px;">k</span><span class="jitter-char" style="margin-right: 0.5px;">e</span><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">n</span><span class="jitter-char" style="margin-right: 0.5px;">m</span><span class="jitter-char" style="margin-right: 0.5px;">a</span><span class="jitter-char" style="margin-right: 0.5px;">l</span><span class="jitter-char" style="margin-right: 0.5px;">.</span></span>
+        <!-- 版权行由文字换成反色图片（见 site.css 的 .footer-bottom-img）。
+             原字面「© 2026 · 上帝之国」退到 alt：读屏、SEO、归档都还拿得到这句话，
+             但页面上不再有可拆字的文本节点。class 里保留 footer-credit，
+             是为了与 CSS / JS 里那份抖动选择器清单继续对齐（图片无字，自然不抖）。 -->
+          <img class="footer-credit footer-bottom-img" src="/img/bottom-inv.webp" alt="© 2026 上帝之国">
+        </div>
+      </div>
+    </div>
+  </footer>
+  </div><!-- /第六页：页脚 -->
+
+    </div><!-- /.pager-track -->
+  </div><!-- /.pager：翻页容器到此收口 -->
+
+  <!-- 左缘社交抽屉：挪出页脚、挂在 body 下——长页模式里它仍是
+       绝对定位（site.js 按文档坐标从 museum 顶贯穿到文档底，几何不变）；
+       翻页模式里改成 position:fixed、整视口高，六个页面共享同一条抽屉。
+       不能留在 .pager 里：翻页轨道带 transform，fixed 会被它劫持成相对轨道定位 -->
           <!-- 4 枚社交标识固定在页脚左下角，横排一行。href 先统一留 "#"，等给真实地址再逐条替换。
                每枚图标是 Simple Icons 的官方品牌字形（单条 path、实心，24×24 viewBox），
                颜色由 .footer-social-item 的 color 经 fill: currentColor 统一控制。
@@ -507,6 +589,8 @@ function renderHome({ articles, archive, notes, submitMail }) {
                ②页脚那段"逐字抖动"脚本遇到带 aria-hidden 的元素就不再往下拆——
                否则它会把 SVG 内部的 <path>/<circle> 逐个包进 <span>，图标会直接散掉 -->
         <div class="cadenza-rail" aria-label="社交链接" tabindex="0">
+          <div class="cadenza-rail-social">
+            <span class="cadenza-rail-handle" aria-hidden="true">&lt;</span>
           <ul class="footer-social">
             <li>
               <a class="footer-social-item" href="#" target="_blank" rel="noopener" aria-label="QQ">
@@ -529,23 +613,19 @@ function renderHome({ articles, archive, notes, submitMail }) {
               </a>
             </li>
           </ul>
+          </div>
         </div>
-        <div class="footer-signature">
-          <span class="footer-name" style="letter-spacing: 0px;"><span class="jitter-char" style="margin-right: 0.5px;">E</span><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">n</span><span class="jitter-char" style="margin-right: 0.5px;">m</span><span class="jitter-char" style="margin-right: 0.5px;">a</span><span class="jitter-char" style="margin-right: 0.5px;">l</span> <span class="footer-name-ist"><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">s</span><span class="jitter-char" style="margin-right: 0.5px;">t</span></span> <span class="jitter-char" style="margin-right: 0.5px;">k</span><span class="jitter-char" style="margin-right: 0.5px;">e</span><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">n</span><span class="jitter-char" style="margin-right: 0.5px;">m</span><span class="jitter-char" style="margin-right: 0.5px;">a</span><span class="jitter-char" style="margin-right: 0.5px;">l</span><span class="jitter-char" style="margin-right: 0.5px;">.</span></span>
-        <!-- 版权行由文字换成反色图片（见 site.css 的 .footer-bottom-img）。
-             原字面「© 2026 · 上帝之国」退到 alt：读屏、SEO、归档都还拿得到这句话，
-             但页面上不再有可拆字的文本节点。class 里保留 footer-credit，
-             是为了与 CSS / JS 里那份抖动选择器清单继续对齐（图片无字，自然不抖）。 -->
-          <img class="footer-credit footer-bottom-img" src="/img/bottom-inv.webp" alt="© 2026 上帝之国">
-        </div>
-      </div>
-    </div>
-  </footer>
+
 
   <div class="cursor-invert" aria-hidden="true" style="transform: translate3d(792px, 1px, 0px) translate(-50%, -50%);"></div>
 
   <!-- 同步加载、不加 defer：拆字脚本必须在首屏绘制前跑完，否则字距会跳一次 -->
-  <script src="/js/site.js"></script>
+  <script src="/js/site.js?v=20261023-mobile"></script>
+  <!-- 翻页驱动（滚轮 / 键盘 / 触摸左右滑动 / nav 跳页）。必须排在 site.js 之后：
+       它要取 site.js 挂出来的 __sideNavSetActive 来点导航高亮 -->
+  <script src="/js/pager.js?v=20261023-mobile"></script>
+  <script src="/js/archive-background.js?v=20261022-archive-alignment"></script>
+  <script src="/js/guest-drawer.js?v=20261022-coda-circle"></script>
 </body></html>
 `;
   return out;
@@ -564,8 +644,8 @@ function renderArticle({ article, archived, readable, echoes }) {
   out += esc(article.excerpt);
   out += `">
   <!-- 先挂主站样式：配色变量与字体族沿用同一套，文章页不另起视觉语言 -->
-  <link rel="stylesheet" href="/css/site.css">
-  <link rel="stylesheet" href="/css/article.css">
+  <link rel="stylesheet" href="/css/site.css?v=20261023-mobile">
+  <link rel="stylesheet" href="/css/article.css?v=20261022-all-echoes">
 </head>
 <body class="page-article">
 `;
@@ -574,24 +654,27 @@ function renderArticle({ article, archived, readable, echoes }) {
 
   <main class="sheet">
     <p class="sheet-top">
-      <a class="sheet-home" href="/">上帝之国</a>
+      <a class="sheet-home" href="/#archive">上帝之国 · 再现部</a>
       <a class="sheet-random" href="/random">next →</a>
     </p>
 
-    <h1 class="sheet-title">`;
+    <header class="sheet-heading">
+      <p class="sheet-kicker">过刊 / ARTICLE</p>
+      <h1 class="sheet-title">`;
   out += esc(article.title);
   out += `</h1>
-    <p class="sheet-author">— `;
+      <p class="sheet-author">`;
   out += esc(article.author);
   out += `</p>
-    <p class="sheet-meta">`;
+      <p class="sheet-meta">`;
   out += esc(article.meta);
   out += `</p>
+    </header>
 
 `;
   if (readable) {
   out += `
-    <div class="sheet-body">`;
+    <div class="sheet-body is-prose">`;
   out += article.content;
   out += `</div>
 `;
@@ -604,7 +687,6 @@ function renderArticle({ article, archived, readable, echoes }) {
       <p class="sheet-archived-line">这篇已于 `;
   out += esc(arch.toISOString().slice(0, 7).replace('-', '.'));
   out += ` 沉入档案馆。</p>
-      <p class="sheet-archived-note">过刊不摆在架子外面。想读它，只能等随机翻到。</p>
       <a class="sheet-archived-btn" href="/random">next</a>
     </div>
 `;
@@ -649,7 +731,7 @@ function renderArticle({ article, archived, readable, echoes }) {
     </section>
   </main>
 
-  <script src="/js/article.js"></script>
+  <script src="/js/article.js?v=20261022-all-echoes"></script>
 </body></html>
 `;
   return out;
@@ -663,7 +745,7 @@ function renderAdmin({ authed, loginError, adminPath, articles, archiveEntries, 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>管理 · 上帝之国</title>
   <!-- 先挂主站样式：配色变量、字体族、基础重置全部沿用，管理页不再另起一套视觉语言 -->
-  <link rel="stylesheet" href="/css/site.css">
+  <link rel="stylesheet" href="/css/site.css?v=20261023-mobile">
   <link rel="stylesheet" href="/css/admin.css">
 </head>
 <body class="admin-body">
@@ -853,7 +935,6 @@ function renderAdmin({ authed, loginError, adminPath, articles, archiveEntries, 
     <!-- ---------- 本日 Daily ---------- -->
     <section class="admin-section">
       <h2 class="admin-section-title">本日 Daily</h2>
-      <p class="admin-row-meta">首页「每日」右栏显示的就是这一条。一天一条，按日期覆盖：改了日期就是改那一天的。</p>
 
       <form class="admin-form" id="daily-form">
         <div class="admin-grid">

@@ -10,6 +10,7 @@ import pages from './routes/pages.js';
 import content from './routes/content.js';
 import guestbook from './routes/guestbook.js';
 import echoes from './routes/echoes.js';
+import presence from './routes/presence.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -77,6 +78,7 @@ app.use(pages);
 app.use(content);
 app.use(guestbook);
 app.use(echoes);
+app.use(presence);
 
 app.use((_req, res) => {
   res.status(404).type('text/plain; charset=utf-8').send('404 页面不存在');

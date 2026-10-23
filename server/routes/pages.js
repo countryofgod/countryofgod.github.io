@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { config } from '../config.js';
+import { coordsFromHeaders, isRaining } from '../rain.js';
 import { isAdmin, verifyPassword, issueCookie, clearCookie } from '../auth.js';
 import {
   listArticles,
@@ -11,6 +12,7 @@ import {
   randomArticle,
   isArchived,
   listEchoes,
+  hasEchoTarget,
   getDailyByDate,
   todayIso,
 } from '../queries.js';
@@ -38,19 +40,22 @@ router.get('/', (req, res, next) => {
  * GET /p/:slug —— 文章永久页。
  * 发布后半年内可以直接打开全文；半年之后这篇沉入档案馆，只剩「已入档」视图，
  * 正文要等随机翻到它（?r=1）才展开。
+ * 唯一的例外是雨：读者所在地正在下雨时可以直接读（见 rain.js）。
+ * 页面上不做任何提示——与半年内的可读视图完全一样。
  */
-router.get('/p/:slug', (req, res, next) => {
+router.get('/p/:slug', async (req, res, next) => {
   try {
     const article = getArticleBySlug(req.params.slug);
     if (!article) return res.status(404).type('text/plain; charset=utf-8').send('404 没有这篇');
 
     const archived = isArchived(article);
     const viaRandom = req.query.r === '1';
+    const raining = archived && !viaRandom ? await isRaining(coordsFromHeaders(req.headers)) : false;
     res.render('article', {
       article,
       archived,
-      // 随机是唯一能翻到旧文的门，不受半年窗口限制
-      readable: !archived || viaRandom,
+      // 随机是门，雨也是门；都关着才只剩「已入档」
+      readable: !archived || viaRandom || raining,
       echoes: listEchoes(article.id),
       submitMail: process.env.SUBMIT_MAIL || 'afterrainnn@outlook.com',
     });
@@ -63,10 +68,12 @@ router.get('/p/:slug', (req, res, next) => {
 router.get('/d/:date/:category', (req, res, next) => {
   try {
     const { date, category } = req.params;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !['article', 'poem', 'music'].includes(category)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !['article', 'poem', 'music', 'pub'].includes(category)) {
       return res.status(404).type('text/plain; charset=utf-8').send('404 没有这一天');
     }
-    res.render('daily');
+    const articleId = `daily:${date}:${category}`;
+    if (!hasEchoTarget(articleId)) return res.status(404).type('text/plain').send('404 没有这一天');
+    res.render('daily', { articleId, echoes: listEchoes(articleId) });
   } catch (err) {
     next(err);
   }

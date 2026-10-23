@@ -289,10 +289,18 @@ if (dailyGrid) {
       const expanded = dailyGrid.classList.toggle('expanded');
       dailyToggle.setAttribute('aria-expanded', String(expanded));
       // 收起时把视口拉回「每日」区块顶部：展开后下滑读过，直接收起会停留在下方内容，
-      // 看起来像"没回到每日"。grid 顶部在展开/收起时位置不变，直接滚回去即可
+      // 看起来像"没回到每日"。grid 顶部在展开/收起时位置不变，直接滚回去即可。
+      // 翻页模式下"视口"是这一页自己（.pager-page），滚它而不是滚文档
       if (!expanded) {
-        const top = dailyGrid.getBoundingClientRect().top + window.scrollY;
-        window.scrollTo({ top, behavior: 'smooth' });
+        const pageEl = dailyGrid.closest('.pager-page');
+        if (pageEl) {
+          const top = dailyGrid.getBoundingClientRect().top
+            - pageEl.getBoundingClientRect().top + pageEl.scrollTop;
+          pageEl.scrollTo({ top, behavior: 'smooth' });
+        } else {
+          const top = dailyGrid.getBoundingClientRect().top + window.scrollY;
+          window.scrollTo({ top, behavior: 'smooth' });
+        }
       }
     });
   }
@@ -600,7 +608,7 @@ if (dailyGrid) {
    文件名不补前导零（2026_10_9.txt），从 ISO 日期用 Number() 拆零还原。 */
 const dailyPageEl = document.getElementById('daily-page');
 if (dailyPageEl) {
-  const m = location.pathname.match(/^\/d\/(\d{4}-\d{2}-\d{2})\/(article|poem|music)\/?$/);
+  const m = location.pathname.match(/^\/d\/(\d{4}-\d{2}-\d{2})\/(article|poem|music|pub)\/?$/);
   const body = dailyPageEl.querySelector('.daily-page-body');
   if (!m || !body) {
     if (body) body.innerHTML = '<p class="daily-page-err">地址不对。</p>';
@@ -614,7 +622,7 @@ if (dailyPageEl) {
         const res = await fetch(DAILY_BASE + category + '/' + file, { cache: 'no-store' });
         if (!res.ok) { body.innerHTML = '<p class="daily-page-err">这一天还没有内容。</p>'; return; }
         const text = (await res.text()).replace(/^\uFEFF/, '');
-        if (category === 'music') renderDailyMusicPage(body, text);
+        if (category === 'music') renderDailyMusicPage(body, text, DAILY_BASE + 'music/' + file.replace(/\.txt$/, '.jpg'));
         else renderDailyTextPage(body, text, category);
       } catch {
         body.innerHTML = '<p class="daily-page-err">读取失败，刷新重试。</p>';
@@ -626,15 +634,18 @@ if (dailyPageEl) {
 /** 文/诗单独页：标题 + 正文；诗按空行分节，复用首页的 stanza / line 拆法 */
 function renderDailyTextPage(container, text, category) {
   container.textContent = '';
-  const { title, body: bodyText } = splitDaily(text);
-  const h = document.createElement('h1');
-  h.className = 'sheet-title';
-  h.textContent = title;
-  container.appendChild(h);
+  const entry = category === 'pub' ? splitPub(text) : splitDaily(text);
+  const { title, body: entryBody } = entry;
+  const lines = entryBody.split(/\r?\n/);
+  const hasAuthor = category !== 'pub' && /^\s*(?:\[[^\]]+\]|【[^】]+】|作者[：:]|[—–])/.test(lines[0] || '');
+  const author = category === 'pub' ? entry.author
+    : hasAuthor ? lines.shift().trim().replace(/^(?:作者[：:]\s*|[—–]\s*)/, '') : '';
+  const bodyText = lines.join('\n').trim();
+  renderDailyPageHeading(container, title, author, category === 'pub' ? 'article' : category);
   if (bodyText) {
     const isPoem = category === 'poem';
     const b = document.createElement('div');
-    b.className = isPoem ? 'sheet-body is-poem' : 'sheet-body';
+    b.className = isPoem ? 'sheet-body is-poem' : 'sheet-body is-prose';
     if (isPoem) {
       const lines = bodyText.split(/\r?\n/);
       const groups = [];
@@ -653,24 +664,55 @@ function renderDailyTextPage(container, text, category) {
         b.appendChild(p);
       });
     } else {
-      b.textContent = bodyText;
+      bodyText.split(/\n\s*\n/).filter((paragraph) => paragraph.trim()).forEach((paragraph) => {
+        const paragraphEl = document.createElement('p');
+        paragraphEl.textContent = paragraph;
+        b.appendChild(paragraphEl);
+      });
     }
     container.appendChild(b);
   }
   if (title) document.title = title + ' · 上帝之国';
 }
 
+function splitPub(text) {
+  const [title = '', author = '', excerpt = '', ...bodyLines] = text.replace(/^\uFEFF/, '').trimStart().split(/\r?\n/);
+  return { title: title.trim(), author: author.trim(), excerpt: excerpt.trim(), body: bodyLines.join('\n').trim() };
+}
+
+function renderDailyPageHeading(container, title, author, category) {
+  const heading = document.createElement('header');
+  heading.className = 'sheet-heading';
+  const kicker = document.createElement('p');
+  kicker.className = 'sheet-kicker';
+  kicker.textContent = { article: '文 / ARTICLE', poem: '诗 / POETRY', music: '乐 / MUSIC' }[category];
+  const titleEl = document.createElement('h1');
+  titleEl.className = 'sheet-title';
+  titleEl.textContent = title;
+  heading.append(kicker, titleEl);
+  if (author) {
+    const authorEl = document.createElement('p');
+    authorEl.className = 'sheet-author';
+    authorEl.textContent = author;
+    heading.appendChild(authorEl);
+  }
+  const date = location.pathname.match(/\/d\/(\d{4}-\d{2}-\d{2})\//)?.[1];
+  if (date) {
+    const meta = document.createElement('p');
+    meta.className = 'sheet-meta';
+    meta.textContent = date.replace(/-/g, '.') + ' · 再现部';
+    heading.appendChild(meta);
+  }
+  container.appendChild(heading);
+}
+
 /** 音乐单独页：歌单名 + 逐曲（点开即播、歌词原样），不依赖首页 iPod 播放器 */
-function renderDailyMusicPage(container, text) {
+function renderDailyMusicPage(container, text, imageSrc = '') {
   container.textContent = '';
   const tracks = parseMusic(text);
   const title = tracks.map((t) => t.name).join('、');
-  if (title) {
-    const h = document.createElement('h1');
-    h.className = 'sheet-title';
-    h.textContent = title;
-    container.appendChild(h);
-  }
+  const singleCredit = tracks.length === 1 ? tracks[0].lyrics.split(/\r?\n/)[0] : '';
+  renderDailyPageHeading(container, title || '每日歌单', singleCredit, 'music');
   if (!tracks.length) {
     const p = document.createElement('p');
     p.className = 'daily-page-err';
@@ -678,26 +720,113 @@ function renderDailyMusicPage(container, text) {
     container.appendChild(p);
     return;
   }
+  if (imageSrc) {
+    const artwork = document.createElement('figure');
+    artwork.className = 'daily-music-art';
+    const image = document.createElement('img');
+    image.src = imageSrc;
+    image.alt = title;
+    image.decoding = 'async';
+    image.addEventListener('error', () => { artwork.hidden = true; });
+    artwork.appendChild(image);
+    container.appendChild(artwork);
+  }
   const list = document.createElement('ol');
   list.className = 'daily-tracklist';
   tracks.forEach((t, idx) => {
     const li = document.createElement('li');
     li.className = 'daily-track';
+    const trackHeading = document.createElement('h2');
+    trackHeading.className = 'daily-track-title';
+    trackHeading.textContent = String(idx + 1).padStart(2, '0') + ' / ' + t.name;
+    const credit = document.createElement('p');
+    credit.className = 'sheet-author';
+    const lyricLines = t.lyrics.split(/\r?\n/);
+    credit.textContent = lyricLines.shift() || '';
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'daily-track-play';
-    btn.textContent = (idx + 1) + '. ' + t.name;
+    btn.setAttribute('aria-label', '播放：' + t.name);
+    btn.setAttribute('aria-pressed', 'false');
     const audio = document.createElement('audio');
     audio.src = t.src;
-    audio.preload = 'none';
+    audio.controls = false;
+    audio.hidden = true;
+    audio.preload = 'metadata';
+    const controls = document.createElement('div');
+    controls.className = 'daily-player';
+    controls.setAttribute('role', 'group');
+    controls.setAttribute('aria-label', t.name + ' 播放器');
+    const seek = document.createElement('input');
+    seek.type = 'range';
+    seek.className = 'daily-player-seek';
+    seek.min = '0';
+    seek.max = '1000';
+    seek.step = '1';
+    seek.value = '0';
+    seek.disabled = true;
+    seek.setAttribute('aria-label', t.name + ' 播放进度');
+    const time = document.createElement('span');
+    time.className = 'daily-player-time';
+    const formatTime = (seconds) => {
+      const total = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+      return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+    };
+    const syncProgress = () => {
+      const duration = audio.duration;
+      const current = audio.currentTime || 0;
+      const available = Number.isFinite(duration) && duration > 0;
+      seek.disabled = !available;
+      seek.value = available ? String(Math.round(Math.min(1, current / duration) * 1000)) : '0';
+      seek.style.setProperty('--progress', (Number(seek.value) / 10) + '%');
+      seek.setAttribute('aria-valuetext', formatTime(current) + ' / ' + formatTime(duration));
+      time.textContent = formatTime(current) + ' / ' + formatTime(duration);
+    };
+    seek.addEventListener('input', () => {
+      if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+      audio.currentTime = Number(seek.value) / 1000 * audio.duration;
+      syncProgress();
+    });
+    ['loadedmetadata', 'durationchange', 'timeupdate', 'emptied'].forEach((event) => {
+      audio.addEventListener(event, syncProgress);
+    });
+    controls.append(btn, seek, time);
+    syncProgress();
     const lyrics = document.createElement('div');
     lyrics.className = 'daily-track-lyrics';
-    if (t.lyrics) lyrics.textContent = t.lyrics;
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.daily-track audio').forEach((a) => { if (a !== audio) a.pause(); });
-      audio.play().catch(() => {});
+    lyrics.textContent = lyricLines.join('\n');
+    const showPlaybackError = () => {
+      btn.setAttribute('data-state', 'error');
+      btn.setAttribute('aria-label', '重试播放：' + t.name);
+      btn.setAttribute('aria-pressed', 'false');
+    };
+    audio.addEventListener('play', () => {
+      document.querySelectorAll('.daily-track audio').forEach((other) => { if (other !== audio) other.pause(); });
+      btn.setAttribute('data-state', 'playing');
+      btn.setAttribute('aria-label', '暂停：' + t.name);
+      btn.setAttribute('aria-pressed', 'true');
     });
-    li.append(btn, audio, lyrics);
+    audio.addEventListener('pause', () => {
+      btn.setAttribute('data-state', 'paused');
+      btn.setAttribute('aria-label', '播放：' + t.name);
+      btn.setAttribute('aria-pressed', 'false');
+    });
+    audio.addEventListener('error', showPlaybackError);
+    audio.addEventListener('ended', () => {
+      btn.setAttribute('data-state', 'paused');
+      btn.setAttribute('aria-label', '播放：' + t.name);
+      btn.setAttribute('aria-pressed', 'false');
+      syncProgress();
+    });
+    btn.addEventListener('click', () => {
+      if (!audio.paused) { audio.pause(); return; }
+      if (audio.error) audio.load();
+      audio.play().catch((error) => {
+        if (error.name !== 'AbortError') showPlaybackError();
+      });
+    });
+    if (tracks.length > 1) li.append(trackHeading, credit);
+    li.append(controls, audio, lyrics);
     list.appendChild(li);
   });
   container.appendChild(list);
@@ -719,6 +848,24 @@ if (sideNav) {
     .map((t) => ({ ...t, el: document.getElementById(t.id) }))
     .filter((t) => t.el);
 
+  // 点亮/熄灭某一项。两种模式（长页滚动 / 翻页）共用这一个出口
+  const setActiveNav = (activeId) => {
+    navLinks.forEach((a) => {
+      a.classList.toggle('is-active', a.getAttribute('href').slice(1) === activeId);
+    });
+    if (activeId && window.matchMedia('(max-width: 768px), (max-height: 500px) and (pointer: coarse)').matches) {
+      navLinks.find((a) => a.classList.contains('is-active'))?.scrollIntoView({
+        behavior: 'smooth', block: 'nearest', inline: 'center',
+      });
+    }
+  };
+
+  // 翻页模式（pager.js）：没有"滚到哪"的概念，高亮由当前页驱动——
+  // 把点亮函数挂到 window 上，pager.js 每翻一页调一次；这里不再监听 scroll
+  if (document.querySelector('[data-pager]')) {
+    window.__sideNavSetActive = setActiveNav;
+    setActiveNav(null);
+  } else {
   let navTick = false;
   const syncSideNav = () => {
     navTick = false;
@@ -734,9 +881,7 @@ if (sideNav) {
     const atBottom =
       window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
     if (atBottom && navTargets.length) activeId = navTargets[navTargets.length - 1].id;
-    navLinks.forEach((a) => {
-      a.classList.toggle('is-active', a.getAttribute('href').slice(1) === activeId);
-    });
+    setActiveNav(activeId);
   };
   const onNavScroll = () => {
     if (navTick) return;
@@ -746,13 +891,20 @@ if (sideNav) {
   window.addEventListener('scroll', onNavScroll, { passive: true });
   window.addEventListener('resize', onNavScroll);
   syncSideNav();
+  }
 }
 
-// 華彩段左侧反色条：元素放在页脚里，但视觉上从 #museum 顶部贯穿到文档底部。
-// 用真实坐标计算，留言数量、图片加载和响应式换行改变页面高度时仍然贴齐两端。
+// 華彩段左侧反色条：长页模式下元素放在页脚里，但视觉上从 #museum 顶部贯穿到文档底部，
+// 用真实坐标计算（留言数量、图片加载和响应式换行改变页面高度时仍然贴齐两端）。
+// 翻页模式下抽屉已挪出页脚、挂在 body 下（见 index.ejs），由 CSS 改成
+// position:fixed、整视口高、六页共享——这里只把 top/height 钉成 0/100%，跳过文档坐标计算
 const cadenzaRail = document.querySelector('.cadenza-rail');
 const cadenzaSection = document.getElementById('museum');
-if (cadenzaRail && cadenzaSection) {
+if (cadenzaRail && cadenzaSection && document.querySelector('[data-pager]')) {
+  cadenzaRail.style.top = '0px';
+  cadenzaRail.style.height = '100%';
+}
+if (cadenzaRail && cadenzaSection && !document.querySelector('[data-pager]')) {
   let railTick = false;
   const syncCadenzaRail = () => {
     railTick = false;
@@ -783,7 +935,7 @@ const INVERT_SHOW = '.hero, .footer';
 // 只把留言板的表单与留言墙排除在外：输入框要看清、要光标，让一个硕大的反色圆
 // 在光标旁把白底黑字反复翻转，是干扰而不是效果。底部的照片流则保留反色圆——
 // 在那块区域让光标变成反色圆、反相底色，刚好贴合"照片从黑里流出来"的感觉
-const INVERT_MUTE = '.guest-form, .guest-wall, .cadenza-rail';
+const INVERT_MUTE = '.guest-form, .guest-wall, .guest-drawer, .cadenza-rail';
 // 触屏设备没有鼠标可跟：手指点一下会合成一次 mousemove，若照旧监听，
 // 反色圆会突然出现在手指位置，并且因为再也收不到"离开"事件而一直挂在屏幕上。
 // 所以整套跟随逻辑只在"能悬停且指针精确"的设备上注册（CSS 里 .cursor-invert
@@ -812,6 +964,7 @@ const guestForm = document.querySelector('.guest-form');
 const guestWall = document.querySelector('.guest-wall');
 const guestFile = document.querySelector('.guest-file');
 const guestPreview = document.querySelector('.guest-upload-preview');
+const guestOwnedIds = new Set();
 
 if (guestFile && guestPreview) {
   guestFile.addEventListener('change', () => {
@@ -902,7 +1055,8 @@ if (guestForm && guestWall) {
 
       const emptyHint = guestWall.querySelector('.guest-wall-empty');
       if (emptyHint) emptyHint.remove();
-      guestWall.prepend(renderNote(data));
+      if (window.__guestDrawer) await window.__guestDrawer.refresh(1);
+      else guestWall.prepend(renderNote(data));
       // 刚留的这条立刻变成"我的"，可以撤回
       markMyNotes([data.id]);
 
@@ -927,9 +1081,9 @@ if (guestForm && guestWall) {
 // 把自己的留言标出来并给一个撤回入口。走独立接口而不是写进 SSR，
 // 是为了让首页与设备无关 —— 页面可缓存，也不会把一个人的名字串给另一个人看
 function markMyNotes(ids) {
-  const mine = new Set((ids || []).map(String));
+  (ids || []).forEach((id) => guestOwnedIds.add(String(id)));
   guestWall.querySelectorAll('.guest-note').forEach((note) => {
-    if (!mine.has(note.dataset.id)) return;
+    if (!guestOwnedIds.has(String(note.dataset.id))) return;
     if (note.querySelector('.guest-note-mine')) return;
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -940,7 +1094,9 @@ function markMyNotes(ids) {
       const res = await fetch(API_BASE + '/api/guestbook/' + note.dataset.id, { method: 'DELETE', credentials: 'include' });
       if (!res.ok) return;
       note.remove();
-      if (!guestWall.querySelector('.guest-note')) {
+      guestOwnedIds.delete(String(note.dataset.id));
+      if (window.__guestDrawer) await window.__guestDrawer.refresh();
+      else if (!guestWall.querySelector('.guest-note')) {
         const empty = document.createElement('p');
         empty.className = 'guest-wall-empty';
         empty.textContent = '还没有留言';
@@ -1017,13 +1173,7 @@ articleItems.forEach((item) => {
 const ASSET_BASE = (window.__DAILY_BASE__ || '/daily/').replace(/daily\/?$/, '');
 
 function buildPubCard(text, name) {
-  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/);
-  let i = 0;
-  while (i < lines.length && !lines[i].trim()) i += 1;            // 跳过前导空行
-  const title = (lines[i] || '').trim(); i += 1;                  // 第一行：标题
-  const author = (lines[i] || '').trim(); i += 1;                 // 第二行：作者
-  const excerpt = (lines[i] || '').trim(); i += 1;                // 第三行：摘要
-  const body = lines.slice(i).join('\n').trim();                  // 其余：正文
+  const { title, author, excerpt, body } = splitPub(text);
 
   const parts = name.replace(/\.txt$/, '').split('_').map(Number);
   const date = parts.length === 3 && !parts.some((n) => !Number.isFinite(n))
@@ -1103,10 +1253,11 @@ const pubCardsReady = (async () => {
 // 点目录项只在当前页「淡出当前文章 → 淡入目标」（不跳新页面）。
 // 目录在投稿卡片到齐之后才建（见下方 pubCardsReady.then）
 function initPubToc() {
-  const pubToc = document.querySelector('#latest .pub-toc');
+  const pubToc = document.querySelector('.pub-toc');
+  const nextBtn = document.querySelector('.pub-next');
   const list = document.querySelector('#latest .article-list');
-  const tocList = document.querySelector('#latest .pub-toc-list');
-  const handle = document.querySelector('#latest .pub-toc-handle');
+  const tocList = pubToc?.querySelector('.pub-toc-list');
+  const handle = pubToc?.querySelector('.pub-toc-handle');
   if (!pubToc || !list || !tocList || !handle) return;
 
   const items = Array.from(list.querySelectorAll('.article-item'));
@@ -1164,6 +1315,18 @@ function initPubToc() {
       if (wasHidden) it.classList.add('is-hidden');
     });
     if (max) list.style.setProperty('--pub-collapsed-h', max + 'px');
+    const page = list.closest('.pager-page');
+    if (page && max) {
+      const listStyle = getComputedStyle(list);
+      const collapsedHeight = max + (parseFloat(listStyle.paddingTop) || 0)
+        + (parseFloat(listStyle.paddingBottom) || 0);
+      const top = list.getBoundingClientRect().top - page.getBoundingClientRect().top + page.scrollTop;
+      [pubToc, nextBtn].filter(Boolean).forEach((control) => {
+        control.style.setProperty('--pub-toc-top', top + 'px');
+        control.style.setProperty('--pub-toc-height', collapsedHeight + 'px');
+        control.classList.add('is-positioned');
+      });
+    }
   }
   syncCollapsedHeight();
 
@@ -1233,7 +1396,6 @@ function initPubToc() {
   // 走的是同一个 switchArticle，所以过渡与点目录完全一致。
   // 末篇之后绕回第一篇（循环），与「下一页」箭头的常规行为一致；
   // 只有一篇时目标就是自己，switchArticle 内部会直接 return，点了没反应
-  const nextBtn = document.querySelector('#latest .pub-next');
   if (nextBtn) {
     nextBtn.addEventListener('click', () => {
       const idx = items.findIndex((it) => it.classList.contains('is-active'));
@@ -1245,6 +1407,67 @@ function initPubToc() {
 
 // 等投稿卡片到齐再建目录；清单缺失时 pubCardsReady 直接就 resolve 了
 pubCardsReady.then(initPubToc);
+
+function initPubProgress() {
+  const list = document.querySelector('#latest .article-list');
+  const page = list?.closest('.pager-page');
+  const toc = document.querySelector('.pub-toc');
+  if (!page || !toc) return;
+
+  const indicator = document.createElement('div');
+  indicator.className = 'pub-progress';
+  indicator.setAttribute('aria-hidden', 'true');
+  const bars = Array.from({ length: 9 }, () => {
+    const bar = document.createElement('span');
+    bar.className = 'pub-progress-bar';
+    indicator.appendChild(bar);
+    return bar;
+  });
+  toc.appendChild(indicator);
+
+  let frame = 0;
+
+  function update() {
+    frame = 0;
+    const article = list.querySelector('.article-item.is-active');
+    const visible = Boolean(article && !article.classList.contains('is-leaving'));
+    const expanded = visible && article.classList.contains('expanded');
+    indicator.classList.toggle('is-visible', visible);
+    indicator.classList.toggle('is-expanded', expanded);
+    let progress = 0;
+    if (expanded) {
+      const pageEnd = Math.max(0, page.scrollHeight - page.clientHeight);
+      const articleEnd = article.getBoundingClientRect().bottom
+        - page.getBoundingClientRect().top + page.scrollTop - page.clientHeight;
+      const end = Math.min(pageEnd, articleEnd > 0 ? articleEnd : pageEnd);
+      if (end > 0) progress = Math.max(0, Math.min(1, page.scrollTop / end));
+    }
+    const position = progress * (bars.length - 1);
+    const current = Math.round(position);
+    bars.forEach((bar, index) => {
+      const influence = Math.max(0, 1 - Math.abs(index - position) / 4);
+      bar.style.setProperty('--pub-progress-width', (8 + 24 * influence * influence) + 'px');
+      bar.classList.toggle('is-current', index === current);
+    });
+  }
+
+  function scheduleUpdate() {
+    if (!frame) frame = requestAnimationFrame(update);
+  }
+
+  page.addEventListener('scroll', scheduleUpdate, { passive: true });
+  window.addEventListener('resize', scheduleUpdate);
+  const articleObserver = new MutationObserver(scheduleUpdate);
+  list.querySelectorAll('.article-item').forEach((article) => {
+    articleObserver.observe(article, { attributes: true, attributeFilter: ['class'] });
+  });
+  const sizeObserver = new ResizeObserver(scheduleUpdate);
+  sizeObserver.observe(list);
+  sizeObserver.observe(page);
+  update();
+}
+
+pubCardsReady.then(initPubProgress);
 
 
 // 把可点击文字拆成单字 span，供悬停时逐字错相位抖动（见 CSS 的 .jitter-char）。
@@ -1264,7 +1487,7 @@ pubCardsReady.then(initPubToc);
 // a:not(.pub-toc-link)：展開部左侧目录里的文章项，要"类似 nav 导航栏"——
 //   导航项本身就被排除，且悬停只该出下划线渐现（见 .pub-toc-link::after），
 //   拆字会把单行标题变成多个 inline-block，下划线的起止也会跟着散，故排除。
-document.querySelectorAll('a:not(.month-post):not(.hero-cn-hl):not(.side-nav-item):not(.archive-random-link):not(.museum-credit-link):not(.pub-toc-link), .footer-about-label, .footer-name, .footer-credit').forEach((el) => {
+document.querySelectorAll('a:not(.month-post):not(.hero-cn-hl):not(.side-nav-item):not(.archive-random-link):not(.museum-credit-link):not(.pub-toc-link):not(.footer-submit), .footer-about-label, .footer-name, .footer-credit').forEach((el) => {
   const ls = parseFloat(getComputedStyle(el).letterSpacing) || 0;
   if (ls) el.style.letterSpacing = '0px';
 
@@ -1285,8 +1508,7 @@ document.querySelectorAll('a:not(.month-post):not(.hero-cn-hl):not(.side-nav-ite
         });
         child.replaceWith(frag);
       } else if (child.nodeType === Node.ELEMENT_NODE &&
-                 !child.hasAttribute('aria-hidden') &&
-                 !child.classList.contains('footer-submit-arrow')) {
+                 !child.hasAttribute('aria-hidden')) {
         split(child);
       }
     });
@@ -1294,44 +1516,41 @@ document.querySelectorAll('a:not(.month-post):not(.hero-cn-hl):not(.side-nav-ite
   split(el);
 });
 
-// 档案馆年份组：悬停停留一小会才展开（鼠标提前离开则取消，这才是真正的悬停意图）；
-// 展开后不因鼠标离开而收起；同一时刻最多展开一年，且先收旧再开新，两者前后进行不重叠
-const ARCHIVE_HOVER_INTENT = 900; // 悬停停留多久才算想展开
-const ARCHIVE_COLLAPSE_MS = 600;  // 收起动画时长，须与 .archive-items 的 max-height 过渡一致
+const ARCHIVE_HOVER_INTENT = 220;
+const ARCHIVE_REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const archiveIntentTimers = new WeakMap();
 
 // 收回一个年份：收起月份区，并清空该年里点开的月份选择
 // 面板 DOM 内容留着无妨：它是隐藏的，下一次点月份会被整体覆盖，避免清空与重开之间的竞态
 function closeArchiveGroup(group) {
+  clearTimeout(archiveIntentTimers.get(group));
   group.classList.remove('open');
   const panel = group.querySelector('.month-posts-panel');
-  if (!panel) return;
-  panel.classList.remove('open');
-  panel.dataset.month = '';
+  closeMonthPanel(panel);
 }
 
 document.querySelectorAll('.archive-group').forEach(group => {
-  let intentTimer = null;
-  let openTimer = null;
+  const items = group.querySelector('.archive-items');
+  if (items && !items.dataset.animated) {
+    const inner = document.createElement('div');
+    inner.className = 'archive-items-inner';
+    while (items.firstChild) inner.appendChild(items.firstChild);
+    items.appendChild(inner);
+    items.dataset.animated = '1';
+  }
 
   if (HOVER_CAPABLE) {
     group.addEventListener('mouseenter', () => {
-      clearTimeout(intentTimer);
-      clearTimeout(openTimer);
-      intentTimer = setTimeout(() => {
+      clearTimeout(archiveIntentTimers.get(group));
+      archiveIntentTimers.set(group, setTimeout(() => {
         const others = Array.from(document.querySelectorAll('.archive-group.open')).filter(g => g !== group);
-        if (others.length === 0) {
-          group.classList.add('open');
-          return;
-        }
-        // 先让上一个年份收完，再展开本年——错开进行，避免两者同帧动画互相掩盖
         others.forEach(closeArchiveGroup);
-        openTimer = setTimeout(() => group.classList.add('open'), ARCHIVE_COLLAPSE_MS);
-      }, ARCHIVE_HOVER_INTENT);
+        group.classList.add('open');
+      }, ARCHIVE_HOVER_INTENT));
     });
 
-    // 只取消"还没下定决心"的悬停；一旦过了意图时长就视为已确认，让整套收起→展开走完
     group.addEventListener('mouseleave', () => {
-      clearTimeout(intentTimer);
+      clearTimeout(archiveIntentTimers.get(group));
     });
   } else {
     // 触屏没有"悬停停留"这回事，改成点一下年份行立刻展开 / 收起。
@@ -1363,7 +1582,7 @@ document.addEventListener('click', (e) => {
   const t = e.target;
   if (!t.closest) return;
   if (t.closest('.archive-year') || t.closest('.archive-months') || t.closest('.month-posts-panel')) return;
-  document.querySelectorAll('.archive-group.open').forEach(closeArchiveGroup);
+  document.querySelectorAll('.archive-group').forEach(closeArchiveGroup);
 });
 
 // 月份方块：点一下把该月文章列表按页搬进下方面板展开，再点一下收起。
@@ -1372,7 +1591,7 @@ document.addEventListener('click', (e) => {
 // 现在每页只放 MONTH_PAGE_SIZE 条，面板底部一枚翻页器（← 1 / 3 →）翻着看，
 // 一个月文章再多，列表也条条都看得见
 const MONTH_PAGE_SIZE = 8;
-const PAGE_FADE_MS = 250; // 翻页渐显渐隐时长，须与 .month-posts-page 的过渡时长一致
+const PAGE_FADE_MS = ARCHIVE_REDUCED_MOTION ? 0 : 140;
 
 // 每个面板的翻页状态：{ posts: Element[], page: number }。记在 WeakMap 里，
 // 不占用 DOM 属性，面板被整页换掉时状态自然跟着回收
@@ -1381,6 +1600,15 @@ const monthPanelPages = new WeakMap();
 // 不会出现"两轮淡出抢着换内容"的闪跳
 const monthPanelTimers = new WeakMap();
 const monthPanelGen = new WeakMap();
+
+function closeMonthPanel(panel) {
+  if (!panel) return;
+  window.clearTimeout(monthPanelTimers.get(panel));
+  monthPanelGen.set(panel, (monthPanelGen.get(panel) || 0) + 1);
+  panel.querySelector('.month-posts-page')?.classList.remove('is-fading');
+  panel.classList.remove('open');
+  panel.dataset.month = '';
+}
 
 // 第一次用某个面板前，把服务端直渲染在里面的文章行清掉，重建出
 // 「文章行容器 + 翻页器」两层结构。之后再翻页只替换文章行容器的内容，
@@ -1404,7 +1632,13 @@ function buildMonthPanel(panel) {
     // 翻的还是当前这个月：换月份时下方统一重置回第 1 页
     renderMonthPage(panel, state.posts, state.page + (btn.dataset.pager === 'prev' ? -1 : 1));
   });
-  panel.append(pageBox, pager);
+  const inner = document.createElement('div');
+  inner.className = 'month-posts-panel-inner';
+  const content = document.createElement('div');
+  content.className = 'month-posts-panel-content';
+  content.append(pageBox, pager);
+  inner.appendChild(content);
+  panel.appendChild(inner);
   panel.dataset.paged = '1';
 }
 
@@ -1433,7 +1667,7 @@ function renderMonthPage(panel, posts, page) {
   };
 
   // 展开中的面板换内容才先淡出；收起→首次打开由面板的 max-height/opacity 负责入场
-  if (panel.classList.contains('open') && pageBox.children.length > 0) {
+  if (!ARCHIVE_REDUCED_MOTION && panel.classList.contains('open') && pageBox.children.length > 0) {
     const gen = (monthPanelGen.get(panel) || 0) + 1;
     monthPanelGen.set(panel, gen);
     pageBox.classList.add('is-fading');
@@ -1455,8 +1689,7 @@ document.querySelectorAll('.archive-month').forEach(month => {
     const panel = month.closest('.archive-items').querySelector('.month-posts-panel');
     const key = month.querySelector('.month-num').textContent;
     if (panel.classList.contains('open') && panel.dataset.month === key) {
-      panel.classList.remove('open');
-      panel.dataset.month = '';
+      closeMonthPanel(panel);
       return;
     }
     buildMonthPanel(panel);
@@ -1659,9 +1892,30 @@ document.querySelectorAll('[data-museum-strip]').forEach((strip) => {
 
   // 键盘：聚焦胶片后 ←→ 翻页
   strip.addEventListener('keydown', (e) => {
+    if (e.defaultPrevented || e.target.closest('input, textarea, select, [contenteditable]')) return;
     if (e.key === 'ArrowLeft') { step(-1); e.preventDefault(); }
     else if (e.key === 'ArrowRight') { step(1); e.preventDefault(); }
   });
+
+  let wheelDistance = 0;
+  let wheelLastTime = -Infinity;
+  let wheelStepped = false;
+  strip.addEventListener('wheel', (e) => {
+    if (e.defaultPrevented || Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+    e.preventDefault();
+    const now = performance.now();
+    if (now - wheelLastTime > 180) {
+      wheelDistance = 0;
+      wheelStepped = false;
+    }
+    wheelLastTime = now;
+    if (wheelStepped) return;
+    const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? viewport.clientWidth : 1;
+    wheelDistance += e.deltaX * unit;
+    if (Math.abs(wheelDistance) < 40) return;
+    step(wheelDistance > 0 ? 1 : -1);
+    wheelStepped = true;
+  }, { passive: false });
 
   // 拖拽换页。拖拽中关掉 CSS 过渡让轨道跟手，松手再交还给 CSS 做缓动。
   let startX = 0;

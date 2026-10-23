@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">上帝之国</string>
+    <string name="error_offline">网络不可用</string>
+    <string name="error_offline_hint">请检查网络连接后重试</string>
+    <string name="error_failed">页面加载失败</string>
+    <string name="error_timeout">加载超时</string>
+    <string name="error_timeout_hint">网络长时间没有响应，请稍后重试</string>
+    <string name="error_detail">错误码 %1$d</string>
+    <string name="error_http">站点返回 %1$d</string>
+    <string name="error_retry">重试</string>
+</resources>

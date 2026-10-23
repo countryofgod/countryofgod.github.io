@@ -3,6 +3,7 @@ import { uploadToImgbb } from './imgbb.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveEchoTarget } from './validators.js';
 
 const projectRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -266,12 +267,13 @@ function shapeNote(row) {
   };
 }
 
-export function listGuestbook({ limit = 50, before = null } = {}) {
+export function listGuestbook({ limit = 50, before = null, page = 1 } = {}) {
   const n = Math.min(Math.max(Number(limit) || 50, 1), 200);
   const sql = before
     ? `SELECT ${GUEST_COLS} FROM guestbook WHERE id < ? ORDER BY id DESC LIMIT ?`
-    : `SELECT ${GUEST_COLS} FROM guestbook ORDER BY id DESC LIMIT ?`;
-  const stmt = before ? db.prepare(sql).all(Number(before), n) : db.prepare(sql).all(n);
+    : `SELECT ${GUEST_COLS} FROM guestbook ORDER BY id DESC LIMIT ? OFFSET ?`;
+  const offset = (Math.max(1, Math.floor(Number(page) || 1)) - 1) * n;
+  const stmt = before ? db.prepare(sql).all(Number(before), n) : db.prepare(sql).all(n, offset);
   return stmt.map(shapeNote);
 }
 
@@ -333,7 +335,15 @@ export function guestbookStats() {
 
 /* ---------------- 回声：一台设备对一篇只留一次 ---------------- */
 
-const ECHO_COLS = 'id, article_id, device_id, name, body, created_at';
+const echoColumns = (target) => `id, ${target.column} AS article_id, device_id, name, body, created_at`;
+
+export function hasEchoTarget(articleId) {
+  const target = resolveEchoTarget(articleId);
+  if (typeof target.value === 'number') return !!getArticleById(target.value);
+  const manifestPath = join(projectRoot, 'public', 'daily-manifest.json');
+  if (!existsSync(manifestPath)) return false;
+  return JSON.parse(readFileSync(manifestPath, 'utf8')).some((entry) => target.value === `daily:${entry.date}:${entry.category}`);
+}
 
 const shapeEcho = (r) => ({
   id: r.id,
@@ -345,33 +355,40 @@ const shapeEcho = (r) => ({
 });
 
 export function listEchoes(articleId) {
+  const target = resolveEchoTarget(articleId);
   return db
-    .prepare(`SELECT ${ECHO_COLS} FROM echoes WHERE article_id = ? ORDER BY id ASC`)
-    .all(articleId)
+    .prepare(`SELECT ${echoColumns(target)} FROM ${target.table} WHERE ${target.column} = ? ORDER BY id ASC`)
+    .all(target.value)
     .map(shapeEcho);
 }
 
 export function myEcho(articleId, deviceId) {
   if (!deviceId) return null;
+  const target = resolveEchoTarget(articleId);
   const row = db
-    .prepare(`SELECT ${ECHO_COLS} FROM echoes WHERE article_id = ? AND device_id = ?`)
-    .get(articleId, deviceId);
+    .prepare(`SELECT ${echoColumns(target)} FROM ${target.table} WHERE ${target.column} = ? AND device_id = ?`)
+    .get(target.value, deviceId);
   return row ? shapeEcho(row) : null;
 }
 
 export function createEcho(articleId, deviceId, { name, body }) {
+  const target = resolveEchoTarget(articleId);
   const info = db
-    .prepare('INSERT INTO echoes (article_id, device_id, name, body, created_at) VALUES (?, ?, ?, ?, ?)')
-    .run(articleId, deviceId, name, body, new Date().toISOString());
-  return shapeEcho(db.prepare(`SELECT ${ECHO_COLS} FROM echoes WHERE id = ?`).get(Number(info.lastInsertRowid)));
+    .prepare(`INSERT INTO ${target.table} (${target.column}, device_id, name, body, created_at) VALUES (?, ?, ?, ?, ?)`)
+    .run(target.value, deviceId, name, body, new Date().toISOString());
+  return shapeEcho(db.prepare(`SELECT ${echoColumns(target)} FROM ${target.table} WHERE id = ?`).get(Number(info.lastInsertRowid)));
 }
 
 /** 本人撤回自己的那条；管理员撤任意一条 */
-export function deleteEchoAs(id, { deviceId, isAdmin }) {
-  const row = db.prepare('SELECT device_id FROM echoes WHERE id = ?').get(id);
+export function deleteEchoAs(id, { deviceId, isAdmin, articleId }) {
+  const target = articleId == null ? null : resolveEchoTarget(articleId);
+  const table = target?.table || 'echoes';
+  const filter = target ? ` AND ${target.column} = ?` : '';
+  const bindings = target ? [id, target.value] : [id];
+  const row = db.prepare(`SELECT device_id FROM ${table} WHERE id = ?${filter}`).get(...bindings);
   if (!row) return { ok: false, reason: 'not-found' };
   if (!isAdmin && (!deviceId || row.device_id !== deviceId)) return { ok: false, reason: 'forbidden' };
-  return db.prepare('DELETE FROM echoes WHERE id = ?').run(id).changes > 0
+  return db.prepare(`DELETE FROM ${table} WHERE id = ?${filter}`).run(...bindings).changes > 0
     ? { ok: true }
     : { ok: false, reason: 'not-found' };
 }
@@ -433,4 +450,31 @@ export function upsertDaily({ date, category, title, body }) {
      ON CONFLICT (slot_date) DO UPDATE SET category = ?, title = ?, body = ?, updated_at = ?`
   ).run(date, category, title, body, now, now, category, title, body, now);
   return getDailyByDate(date);
+}
+
+/* ---------------- 此刻在读 ---------------- */
+
+// 心跳窗口：90 秒内见过 = 还在这篇上；心跳 30 秒一次（前端 article.js）
+const PRESENCE_WINDOW_MS = 90_000;
+// 超过 15 分钟没心跳的行随手清掉，表里只留"正在读"的痕迹
+const PRESENCE_STALE_MS = 15 * 60_000;
+
+/**
+ * 记一次心跳，并回答：此刻有没有另一位读者在同一篇上。
+ * 只答有/没有，不报人数——人数是指标，这里不给指标。
+ */
+export function touchPresence(articleId, deviceId) {
+  const now = new Date();
+  db.prepare(
+    `INSERT INTO presence (device_id, article_id, seen_at) VALUES (?, ?, ?)
+     ON CONFLICT (device_id, article_id) DO UPDATE SET seen_at = excluded.seen_at`
+  ).run(deviceId, articleId, now.toISOString());
+  db.prepare('DELETE FROM presence WHERE seen_at < ?').run(new Date(now - PRESENCE_STALE_MS).toISOString());
+  const other = db
+    .prepare(
+      `SELECT 1 FROM presence
+       WHERE article_id = ? AND device_id <> ? AND seen_at >= ? LIMIT 1`
+    )
+    .get(articleId, deviceId, new Date(now - PRESENCE_WINDOW_MS).toISOString());
+  return { another: !!other };
 }

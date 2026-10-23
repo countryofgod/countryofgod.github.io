@@ -1,16 +1,19 @@
 /* 文章永久页：不引入新的视觉语言 —— 配色、字体族全部取自 site.css 的 :root。
    这里只定义"一页纸"自己的排版，以及回声区。 */
 
-.page-article {
+.page-article,
+.page-daily {
+  --font-title: 'KeBenSong', serif;
+  --font-body: 'KeBenSong', serif;
   background: var(--white);
   color: var(--black);
   line-height: 1.9;
 }
 
 .sheet {
-  max-width: 680px;
+  max-width: 1040px;
   margin: 0 auto;
-  padding: 96px 24px 140px;
+  padding: 56px 40px 120px;
 }
 
 /* 顶行：回刊物 / 随机一篇。两端对齐，与页脚入口行同一排法 */
@@ -22,12 +25,14 @@
   font-size: 11px;
   letter-spacing: 2px;
   color: var(--gray-4);
-  margin-bottom: 72px;
+  margin-bottom: 40px;
+  padding-bottom: 18px;
+  border-bottom: 3px double var(--black);
 }
 
 .sheet-home {
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 14px;
   letter-spacing: 2px;
   color: var(--gray-4);
   text-decoration: none;
@@ -48,23 +53,35 @@
   color: var(--black);
 }
 
-/* 标题三层的排法与首页卡片一致：标题居中、作者与日期居中 */
+.sheet-heading {
+  padding-bottom: 28px;
+  margin-bottom: 36px;
+  border-bottom: 1px solid var(--black);
+}
+
+.sheet-kicker {
+  font-family: var(--font-nav);
+  font-size: 11px;
+  letter-spacing: 3px;
+  margin-bottom: 20px;
+}
+
 .sheet-title {
   font-family: var(--font-title);
-  font-size: 32px;
+  font-size: clamp(30px, 4vw, 48px);
   font-weight: normal;
   line-height: 1.4;
   letter-spacing: 2px;
-  text-align: center;
+  text-align: left;
   margin-bottom: 14px;
 }
 
 .sheet-author {
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 2px;
   color: var(--gray-5);
-  text-align: center;
+  text-align: left;
   margin-bottom: 8px;
 }
 
@@ -73,15 +90,35 @@
   font-size: 11px;
   letter-spacing: 2px;
   color: var(--gray-4);
-  text-align: center;
+  text-align: left;
   text-transform: uppercase;
-  margin-bottom: 56px;
+  margin-bottom: 0;
 }
 
 .sheet-body {
+  font-family: serif;
   font-size: 18px;
   line-height: 1.9;
   color: var(--gray-6);
+  overflow-wrap: anywhere;
+}
+
+.sheet-body.is-prose {
+  column-count: 2;
+  column-gap: 48px;
+  column-rule: 1px solid var(--gray-2);
+  text-align: justify;
+  orphans: 3;
+  widows: 3;
+}
+
+.sheet-body.is-prose p {
+  margin-bottom: 1em;
+  text-indent: 2em;
+}
+
+.sheet-body.is-poem {
+  max-width: 680px;
 }
 
 /* 每日单独页（/d/<日期>/<分类>）的正文来自扁平 txt，分段就是文件里的空行/换行，
@@ -205,6 +242,10 @@
   margin-top: 28px;
 }
 
+.echo-form[hidden] {
+  display: none;
+}
+
 .echo-input,
 .echo-textarea {
   width: 100%;
@@ -278,6 +319,9 @@
   .sheet-title {
     font-size: 26px;
   }
+  .sheet-body.is-prose {
+    column-count: 1;
+  }
   .sheet-body {
     font-size: 17px;
   }
@@ -291,7 +335,7 @@
 }
 
 .sheet-daily {
-  max-width: 680px;
+  max-width: 1040px;
 }
 
 .daily-page-loading,
@@ -321,21 +365,157 @@
   gap: 28px;
 }
 
-.daily-track-play {
+.daily-music-art,
+.daily-music-art + .daily-tracklist {
+  width: 100%;
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.daily-music-art {
+  margin: 0 auto 36px;
+}
+
+.daily-music-art img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.daily-track {
+  padding-bottom: 12px;
+}
+
+.daily-track-title {
   font-family: var(--font-title);
-  font-size: 18px;
-  letter-spacing: 1px;
+  font-size: 22px;
+  font-weight: normal;
+  line-height: 1.5;
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+
+.daily-track audio {
+  display: none;
+}
+
+.daily-player {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 0;
+  border-top: 1px solid var(--black);
+  border-bottom: 1px solid var(--gray-3);
+}
+
+.daily-track-play {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
   color: var(--black);
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
-  text-align: left;
-  transition: color 0.35s ease;
+  transition: opacity 0.2s ease;
+}
+
+.daily-track-play::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 11px solid currentColor;
+}
+
+.daily-track-play[aria-pressed="true"]::before {
+  width: 11px;
+  height: 14px;
+  border: none;
+  background: linear-gradient(to right, currentColor 0 3px, transparent 3px 8px, currentColor 8px);
 }
 
 .daily-track-play:hover {
+  opacity: 0.55;
+}
+
+.daily-track-play:focus-visible,
+.daily-player-seek:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 5px;
+}
+
+.daily-player-seek {
+  --progress: 0%;
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--black);
+  cursor: pointer;
+}
+
+.daily-player-seek::-webkit-slider-runnable-track {
+  height: 1px;
+  background: linear-gradient(to right, var(--black) var(--progress), var(--gray-3) var(--progress));
+}
+
+.daily-player-seek::-moz-range-track {
+  height: 1px;
+  background: linear-gradient(to right, var(--black) var(--progress), var(--gray-3) var(--progress));
+}
+
+.daily-player-seek::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 6px;
+  height: 6px;
+  margin-top: -2.5px;
+  border: none;
+  border-radius: 0;
+  background: var(--black);
+}
+
+.daily-player-seek::-moz-range-thumb {
+  width: 6px;
+  height: 6px;
+  border: none;
+  border-radius: 0;
+  background: var(--black);
+}
+
+.daily-player-seek:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.daily-player-time {
+  font-family: var(--font-nav);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+  white-space: nowrap;
   color: var(--gray-5);
+}
+
+@media (max-width: 480px) {
+  .daily-player {
+    gap: 12px;
+  }
+  .daily-player-time {
+    font-size: 10px;
+    letter-spacing: 0;
+  }
 }
 
 .daily-track-lyrics {
@@ -344,4 +524,40 @@
   line-height: 1.9;
   color: var(--gray-6);
   white-space: pre-line;
+}
+
+/* ---------- 此刻还有一个人在读这篇 ---------- */
+/* 页面右下角一行小字：只有此刻真有另一位读者时淡入。没有说明、没有计数；
+   元素常在（JS 注入），靠 is-on 控制显隐 */
+.reading-with {
+  position: fixed;
+  right: 20px;
+  bottom: 16px;
+  margin: 0;
+  font-family: var(--font-nav);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--gray-5);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+
+/* 那一点微光：一枚小灰点带着很轻的光晕 */
+.reading-with::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: 1px;
+  background: var(--gray-5);
+  box-shadow: 0 0 6px 1px rgba(17, 17, 15, 0.35);
+}
+
+.reading-with.is-on {
+  opacity: 1;
+  visibility: visible;
 }

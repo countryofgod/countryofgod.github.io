@@ -1,0 +1,204 @@
+html.android-app {
+  --vp-h: 100%;
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+.android-app body { height: 100%; }
+.android-app .pager { height: 100%; }
+.android-app .hero,
+.android-app .hero-inner { height: 100%; min-height: 100%; }
+.android-app .hero { aspect-ratio: auto; }
+.android-app .hero-image {
+  -webkit-mask-image: linear-gradient(#000 0, #000 calc(100% - 180px), transparent 100%);
+  mask-image: linear-gradient(#000 0, #000 calc(100% - 180px), transparent 100%);
+}
+.android-app .hero-blur { display: none; }
+.android-app .pager-page { overscroll-behavior-y: contain; }
+.android-app .pager-page:not([data-pager-page="top"]) {
+  scroll-padding-top: calc(var(--android-top, 24px) + 16px);
+  scroll-padding-bottom: 88px;
+}
+.android-app .pager-page > .section {
+  padding-top: calc(var(--android-top, 24px) + 56px);
+  padding-bottom: 100px;
+}
+.android-app .side-nav {
+  display: block;
+  top: auto;
+  left: auto;
+  right: 20px;
+  bottom: 20px;
+  width: auto;
+  transform: none;
+  z-index: 101;
+}
+.android-app .side-nav-list {
+  position: absolute;
+  right: 0;
+  bottom: 60px;
+  display: flex;
+  flex-direction: column;
+  writing-mode: horizontal-tb;
+  gap: 0;
+  width: 228px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - var(--android-top, 24px) - 116px);
+  overflow-y: auto;
+  padding: 10px 16px;
+  border: 1px solid var(--gray-3);
+  background: var(--white);
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.android-app .side-nav-item {
+  padding: 13px 12px 13px 20px;
+  color: var(--gray-5);
+}
+.android-app .side-nav-item.is-active { color: var(--black); }
+.android-app .side-nav-item::after { display: none; }
+.android-app .side-nav-item.is-active::before {
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+.android-app .android-nav-toggle {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  background: var(--white);
+  color: var(--black);
+  border: 1px solid var(--gray-3);
+  border-radius: 50%;
+}
+.android-nav-toggle span,
+.android-nav-toggle span::before,
+.android-nav-toggle span::after {
+  display: block;
+  position: relative;
+  width: 20px;
+  height: 1px;
+  background: currentColor;
+}
+.android-nav-toggle span::before,
+.android-nav-toggle span::after { content: ''; position: absolute; left: 0; }
+.android-nav-toggle span::before { top: -6px; }
+.android-nav-toggle span::after { top: 6px; }
+.android-nav-open .android-nav-toggle span { background: transparent; }
+.android-nav-open .android-nav-toggle span::before { top: 0; transform: rotate(45deg); }
+.android-nav-open .android-nav-toggle span::after { top: 0; transform: rotate(-45deg); }
+.android-app .android-nav-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, .08);
+  touch-action: none;
+}
+.android-nav-open > .pager,
+.android-nav-open > .cadenza-rail,
+.android-nav-open > .guest-drawer { filter: blur(10px); pointer-events: none; }
+.android-app .android-nav-open .side-nav-list {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+.android-app .pager-pub-controls { display: block; }
+.android-app body.has-pager .pub-toc,
+.android-app body.has-pager .pub-next {
+  display: block;
+  visibility: visible;
+  top: calc(var(--android-top, 24px) + 12px);
+  height: 44px;
+  width: 44px;
+}
+.android-app body.has-pager .pub-toc { left: 16px; }
+.android-app body.has-pager .pub-next { right: 16px; transform: none; display: flex; }
+.android-app .pub-toc-handle { width: 44px; height: 44px; top: 0; transform: none; }
+.android-app .pub-toc::before { display: none; }
+.android-app body.has-pager .pub-toc-panel {
+  top: 48px;
+  left: 0;
+  width: min(280px, calc(100vw - 32px));
+  max-height: calc(100vh - var(--android-top, 24px) - 160px);
+  background: var(--white);
+  border: 1px solid var(--gray-3);
+  padding: 16px;
+  transform: none;
+}
+.android-app body.has-pager .pub-toc:hover .pub-toc-panel { opacity: 0; visibility: hidden; pointer-events: none; }
+.android-app body.has-pager .pub-toc.is-open .pub-toc-panel {
+  transform: none;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+.android-app .pub-toc-link { padding-block: 10px; }
+.android-app .pager-page[data-pager-page="about"] { overflow-y: auto; overflow-x: hidden; }
+.android-app .pager #about {
+  height: auto;
+  min-height: 100%;
+  padding-top: calc(var(--android-top, 24px) + 24px);
+  padding-bottom: 32px;
+}
+.android-app .pager #about .footer-inner { height: auto; }
+.android-app .pager #about .footer-guestbook { overflow: visible; flex: none; }
+.android-app .pager #about .footer-guestbook-inner { width: calc(100% - 44px); }
+.android-app .footer-guestbook-label { max-width: 100%; }
+.android-app body.has-pager .pager-page[data-pager-page="about"] > .footer-bottom {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  width: auto;
+  max-width: none;
+  padding: 0 88px 100px 24px;
+}
+.android-app .guest-drawer {
+  left: 16px;
+  top: calc(var(--android-top, 24px) + 88px);
+  width: calc(100% - 80px);
+  height: max(80px, calc(100% - var(--android-top, 24px) - 188px));
+}
+.android-app .guest-drawer-handle { left: calc(100% + 4px); top: 20px; width: 44px; height: 44px; }
+.android-app .guest-drawer.is-open .guest-drawer-handle { color: var(--white); }
+.android-app .guest-drawer::before,
+.android-app .guest-drawer::after { display: none; }
+@media (max-width: 768px) {
+  .android-app .hero-cn { bottom: 92px; }
+  .android-app .daily-ipod {
+    width: clamp(144px, calc((100vh - var(--android-top, 24px) - 240px) * .453), 230px);
+    max-width: 100%;
+  }
+  .android-app .daily-body { overflow-wrap: anywhere; }
+  .android-app .pager .museum { height: auto; min-height: 100%; }
+  .android-app .archive-head,
+  .android-app .archive-inner,
+  .android-app .museum-inner,
+  .android-app .museum-strip-foot { padding-inline: 24px; }
+  .android-app .museum-intro-batch {
+    position: static;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    writing-mode: horizontal-tb;
+    transform: none;
+  }
+  .android-app .museum-credit { position: relative; left: auto; bottom: auto; transform: none; margin: 40px 24px 0; }
+}
+@media (min-width: 769px) and (max-height: 500px) {
+  .android-app .pager .museum {
+    height: auto;
+    min-height: 100%;
+    --museum-card-h: 46vh;
+  }
+  .android-app .museum-credit {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    width: 75%;
+    margin-top: 40px;
+  }
+}

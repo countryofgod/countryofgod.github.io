@@ -12,6 +12,7 @@ import {
   errorStatus,
 } from '../../server/validators.js';
 import { isAdmin, verifyPassword, cookieHeader, clearedCookieHeader, ensureDevice } from './auth.js';
+import { coordsFromCf, isRaining } from '../../server/rain.js';
 import * as db from './db.js';
 
 const DEFAULT_MAIL = 'afterrainnn@outlook.com';
@@ -129,8 +130,10 @@ on('GET', '/', async (req, env) => {
 
 /**
  * GET /p/:slug —— 文章永久页。
- * 发布后半年内可以直接打开全文；半年之后沉入档案馆，只剩「已入档」视图，
+ * 发布后半年内可以直接打开全文；半年之后这篇沉入档案馆，只剩「已入档」视图，
  * 正文要等随机翻到它（?r=1）才展开。
+ * 唯一的例外是雨：读者所在地（request.cf 的城市级坐标）正在下雨时可以直接读。
+ * 页面上不做任何提示——与半年内的可读视图完全一样（见 server/rain.js）。
  */
 on('GET', '/p/:slug', async (req, env, params) => {
   await db.bootstrap(env);
@@ -139,12 +142,13 @@ on('GET', '/p/:slug', async (req, env, params) => {
 
   const archived = db.isArchived(article);
   const viaRandom = new URL(req.url).searchParams.get('r') === '1';
+  const raining = archived && !viaRandom ? await isRaining(coordsFromCf(req.cf)) : false;
   return page(
     renderArticle({
       article,
       archived,
-      // 随机是唯一能翻到旧文的门，不受半年窗口限制
-      readable: !archived || viaRandom,
+      // 随机是门，雨也是门；都关着才只剩「已入档」
+      readable: !archived || viaRandom || raining,
       echoes: await db.listEchoes(env, article.id),
     })
   );
@@ -158,11 +162,13 @@ on('GET', '/p/:slug', async (req, env, params) => {
 on('GET', '/d/:date/:category', async (req, env, params) => {
   await db.bootstrap(env);
   const okDate = /^\d{4}-\d{2}-\d{2}$/.test(params.date);
-  const okCat = ['article', 'poem', 'music'].includes(params.category);
+  const okCat = ['article', 'poem', 'music', 'pub'].includes(params.category);
   if (!okDate || !okCat) {
     return new Response('404 没有这一天', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
   }
-  return page(renderDaily());
+  const articleId = `daily:${params.date}:${params.category}`;
+  if (!(await db.hasEchoTarget(env, articleId))) return new Response('404 没有这一天', { status: 404 });
+  return page(renderDaily({ articleId, echoes: await db.listEchoes(env, articleId) }));
 });
 
 /** GET /random —— 随便一篇。不分时间，任何一年的都可能被翻出来 */
@@ -259,6 +265,13 @@ on('GET', '/api/guestbook', async (req, env) => {
   await db.bootstrap(env);
   const url = new URL(req.url);
   const before = url.searchParams.get('before');
+  if (url.searchParams.has('page')) {
+    const limit = Math.min(Math.max(Number(url.searchParams.get('limit')) || 50, 1), 200);
+    const total = (await db.guestbookStats(env)).count;
+    const pages = Math.max(1, Math.ceil(total / limit));
+    const page = Math.min(pages, Math.max(1, Math.floor(Number(url.searchParams.get('page')) || 1)));
+    return json({ items: await db.listGuestbook(env, { limit, page }), total, pages, page }, 200, { 'Cache-Control': 'no-store' });
+  }
   return json({ items: await db.listGuestbook(env, { limit: url.searchParams.get('limit'), before }) });
 });
 
@@ -391,22 +404,22 @@ on('DELETE', '/api/guestbook/:id', async (req, env, params, ctx) => {
 /** GET /api/echoes?article=:id —— 按时间正序。不给条数、不排序、不分页 */
 on('GET', '/api/echoes', async (req, env, params, ctx) => {
   await db.bootstrap(env);
-  return json({ items: await db.listEchoes(env, Number(new URL(req.url).searchParams.get('article'))) }, 200, {
+  return json({ items: await db.listEchoes(env, new URL(req.url).searchParams.get('article')) }, 200, {
     'Cache-Control': 'no-store',
   });
 });
 
 /** GET /api/echoes/mine?article=:id —— 这篇我留过吗（一台设备一篇一次） */
 on('GET', '/api/echoes/mine', async (req, env, params, ctx) => {
-  const articleId = Number(new URL(req.url).searchParams.get('article'));
+  const articleId = new URL(req.url).searchParams.get('article');
   return json({ echo: await db.myEcho(env, articleId, ctx.deviceId) }, 200, { 'Cache-Control': 'no-store' });
 });
 
 /** POST /api/echoes —— 一篇一次；留过了就 409，先撤回才能重留 */
 on('POST', '/api/echoes', async (req, env, params, ctx) => {
   const body = await req.json();
-  const articleId = Number(body.articleId);
-  if (!(await db.getArticleById(env, articleId))) return json({ error: '文章不存在' }, 404);
+  const articleId = body.articleId;
+  if (!(await db.hasEchoTarget(env, articleId))) return json({ error: '文章不存在' }, 404);
   if (!ctx.deviceId) return json({ error: '这台设备还没有身份' }, 403);
   if (await db.myEcho(env, articleId, ctx.deviceId)) {
     throw new Conflict('这篇你已经留过回声了，先撤回才能重留', 'body');
@@ -419,6 +432,7 @@ on('DELETE', '/api/echoes/:id', async (req, env, params, ctx) => {
   const result = await db.deleteEchoAs(env, Number(params.id), {
     deviceId: ctx.deviceId,
     isAdmin: await isAdmin(env, req),
+    articleId: new URL(req.url).searchParams.get('article'),
   });
   if (result.ok) return json({ ok: true });
   if (result.reason === 'forbidden') return json({ error: '这条不是你留的' }, 403);
@@ -439,6 +453,17 @@ on('PUT', '/api/drafts', async (req, env, params, ctx) => {
 on('DELETE', '/api/drafts', async (req, env, params, ctx) => {
   await db.clearDraft(env, ctx.deviceId, new URL(req.url).searchParams.get('slot') || 'guestbook');
   return json({ ok: true });
+});
+
+/**
+ * POST /api/presence —— 阅读页的心跳：此刻还有一个人在读这篇吗。
+ * body {articleId}，回答 {another: true|false}——只答有/没有，不报人数。
+ * 阅读页每 30 秒打一次（public/js/article.js），90 秒内的心跳算"此刻"。
+ */
+on('POST', '/api/presence', async (req, env, params, ctx) => {
+  const articleId = (await req.json()).articleId;
+  if (!(await db.hasEchoTarget(env, articleId))) return json({ error: 'not found' }, 404);
+  return json(await db.touchPresence(env, articleId, ctx.deviceId), 200, { 'Cache-Control': 'no-store' });
 });
 
 /* ---------------- 入口 ---------------- */

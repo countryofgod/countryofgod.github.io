@@ -9,6 +9,7 @@ import {
   getGuestbookImage,
   deleteGuestbookAs,
   myGuestbook,
+  guestbookStats,
 } from '../queries.js';
 import { isAdmin } from '../auth.js';
 
@@ -29,6 +30,13 @@ const upload = multer({
 router.get('/api/guestbook', (req, res, next) => {
   try {
     const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+    res.set('Cache-Control', 'no-store');
+    if (req.query.page != null) {
+      const total = guestbookStats().count;
+      const pages = Math.max(1, Math.ceil(total / limit));
+      const page = Math.min(pages, Math.max(1, Math.floor(Number(req.query.page) || 1)));
+      return res.json({ items: listGuestbook({ limit, page }), total, pages, page });
+    }
     const before = req.query.before ? Number(req.query.before) : null;
     res.json({ items: listGuestbook({ limit, before: Number.isFinite(before) ? before : null }) });
   } catch (err) {

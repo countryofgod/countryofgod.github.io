@@ -4,7 +4,7 @@
  *   node worker/dev-check.mjs
  */
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync, existsSync, rmSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, rmSync } from 'node:fs';
 
 // 测试口令：不硬编码真实口令，默认用假值占位；需要指定时用环境变量覆盖
 //   PowerShell:  $env:ADMIN_PASSWORD='你的口令'; node worker/dev-check.mjs
@@ -143,8 +143,10 @@ check(
     footerHtml.indexOf('footer-guestbook') < footerHtml.indexOf('footer-links')
 );
 check(
-  '投稿居中，華彩段反色条贯穿到底并承载四枚图标',
+  '投稿回到底部居中，留言入口改圆形，原社交抽屉保留四枚图标',
   !footerHtml.includes('footer-about-label') &&
+    !footerHtml.includes('submit-drawer') &&
+    footerHtml.includes('d="M5 3L11 8L5 13"') &&
     footerHtml.indexOf('footer-submit') < footerHtml.indexOf('footer-bottom') &&
     footerHtml.includes('cadenza-rail') &&
     !footerHtml.includes('footer-social-handle') &&
@@ -183,6 +185,20 @@ for (const p of ['/api/articles', '/api/articles/chuangkanhao', '/api/archive', 
   check(`GET ${p}`, r.status === 200);
 }
 check('404 走静态兜底', (await call('/nope')).status === 404);
+
+const archivePosts = (await (await call('/api/archive')).json()).flatMap((group) => group.months.flatMap((month) => month.posts));
+for (const filename of readdirSync('daily/pub').filter((name) => name.endsWith('.txt'))) {
+  const [year, month, day] = filename.replace(/\.txt$/, '').split('_');
+  const date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  const href = `/d/${date}/pub`;
+  const title = readFileSync(`daily/pub/${filename}`, 'utf8').replace(/^\uFEFF/, '').trimStart().split(/\r?\n/)[0];
+  check(`投稿进入再现部：${title}`, archivePosts.filter((post) => post.href === href && post.title === title).length === 1);
+  check(`Node 与 Worker 首页均包含投稿入口：${title}`, homeHtml.includes(`href="${href}"`) && nodeHome.includes(`href="${href}"`));
+  const pubPage = await call(href);
+  check(`Worker 投稿阅读页：${title}`, pubPage.status === 200 && (await pubPage.text()).includes(`data-article="daily:${date}:pub"`));
+  const nodePubPage = await fetch(`http://localhost:3114${href}`);
+  check(`Node 投稿阅读页：${title}`, nodePubPage.status === 200 && (await nodePubPage.text()).includes(`data-article="daily:${date}:pub"`));
+}
 
 /* ---------- 鉴权 ---------- */
 const bad = await call('/admin/login', {
@@ -292,6 +308,51 @@ check('撤回后可以重留', (await postEcho(devCookie)).status === 201);
 const echoList = await (await call(`/api/echoes?article=${seedId}`)).json();
 await call(`/api/echoes/${echoList.items[0].id}`, { method: 'DELETE', headers: { Cookie: devCookie } });
 
+for (const category of ['article', 'poem', 'music']) {
+  const target = `daily:2026-10-15:${category}`;
+  const encoded = encodeURIComponent(target);
+  const response = await call(`/d/2026-10-15/${category}`);
+  const html = await response.text();
+  check(`${category} 独立页带回声`, response.status === 200 && html.includes(`data-article="${target}"`) && html.includes('/js/article.js?v=20261022-all-echoes'));
+  const post = () => call('/api/echoes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: devCookie },
+    body: JSON.stringify({ articleId: target, name: '读者', body: category + ' 回声' }),
+  });
+  const created = await post();
+  const echo = await created.json();
+  check(`${category} 留回声 201`, created.status === 201 && echo.articleId === target);
+  check(`${category} 重复回声 409`, (await post()).status === 409);
+  const mine = await (await call(`/api/echoes/mine?article=${encoded}`, { headers: { Cookie: devCookie } })).json();
+  check(`${category} 认领回声`, mine.echo?.id === echo.id);
+  check(`${category} 不串设备`, (await (await call(`/api/echoes/mine?article=${encoded}`, { headers: { Cookie: otherCookie } })).json()).echo === null);
+  const listing = await (await call(`/api/echoes?article=${encoded}`)).json();
+  check(`${category} 回声列表`, listing.items.length === 1 && listing.items[0].body === category + ' 回声');
+  const refreshed = await (await call(`/d/2026-10-15/${category}`)).text();
+  check(`${category} 刷新保留回声`, refreshed.includes(category + ' 回声'));
+  check(`${category} 他人撤回 403`, (await call(`/api/echoes/${echo.id}?article=${encoded}`, { method: 'DELETE', headers: { Cookie: otherCookie } })).status === 403);
+  check(`${category} 错页撤回 404`, (await call(`/api/echoes/${echo.id}?article=${encodeURIComponent('daily:2026-10-09:' + category)}`, { method: 'DELETE', headers: { Cookie: devCookie } })).status === 404);
+  check(`${category} 本人撤回`, (await call(`/api/echoes/${echo.id}?article=${encoded}`, { method: 'DELETE', headers: { Cookie: devCookie } })).status === 200);
+  check(`${category} 撤回后可重留`, (await post()).status === 201);
+  const draftSlot = encodeURIComponent('echo:' + target);
+  await call('/api/drafts', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Cookie: devCookie },
+    body: JSON.stringify({ slot: 'echo:' + target, name: '读者', body: category + ' 草稿' }),
+  });
+  const draft = await (await call(`/api/drafts?slot=${draftSlot}`, { headers: { Cookie: devCookie } })).json();
+  check(`${category} 独立草稿`, draft.draft?.body === category + ' 草稿');
+}
+check('原文章回声不串入每日', (await (await call(`/api/echoes?article=${seedId}`)).json()).items.length === 0);
+check('每日分类之间不串回声', (await (await call('/api/echoes?article=daily:2026-10-09:music')).json()).items.length === 0);
+check('不存在的每日页 404', (await call('/d/2026-01-01/music')).status === 404);
+check('不存在内容不接受回声', (await call('/api/echoes', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', Cookie: devCookie },
+  body: JSON.stringify({ articleId: 'daily:2026-01-01:music', body: 'no' }),
+})).status === 404);
+check('无效回声目标 400', (await call('/api/echoes?article=daily:invalid:music')).status === 400);
+
 /* ---------- 写到一半 ---------- */
 const putDraft = await call('/api/drafts', {
   method: 'PUT',
@@ -330,6 +391,25 @@ check(
 );
 
 const empty = new FormData();
+const pagingIds = [];
+for (let entry = 0; entry < 7; entry += 1) {
+  const payload = new FormData();
+  payload.append('name', '访客甲');
+  payload.append('body', 'pagination-' + entry);
+  const created = await (await call('/api/guestbook', { method: 'POST', body: payload, headers: { Cookie: devCookie } })).json();
+  pagingIds.push(created.id);
+}
+const guestPage = async (page) => (await call('/api/guestbook?limit=3&page=' + page)).json();
+const firstGuestPage = await guestPage(1);
+const secondGuestPage = await guestPage(2);
+const finalGuestPage = await guestPage(999);
+check('留言分页总数', firstGuestPage.total === 8 && firstGuestPage.pages === 3);
+check('留言分页不重叠', firstGuestPage.items.every((item) => !secondGuestPage.items.some((other) => other.id === item.id)));
+check('留言倒序', firstGuestPage.items[0].id === pagingIds[6] && firstGuestPage.items[2].id === pagingIds[4]);
+check('留言尾页夹紧', finalGuestPage.page === 3 && finalGuestPage.items.length === 2);
+check('留言负页回第一页', (await guestPage(-2)).page === 1);
+for (const id of pagingIds) await call('/api/guestbook/' + id, { method: 'DELETE', headers: { Cookie: devCookie } });
+check('留言删除后页数更新', (await guestPage(3)).pages === 1 && (await guestPage(3)).page === 1);
 empty.append('name', '');
 empty.append('body', '');
 check('空内容 400', (await call('/api/guestbook', { method: 'POST', body: empty })).status === 400);
