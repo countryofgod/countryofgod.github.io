@@ -192,7 +192,7 @@ function renderHome({ articles, archive, notes, submitMail }) {
   <title>Einmal ist keinmal — 上帝之国</title>
   <meta name="description" content="上帝之国（Einmal ist keinmal）——一个反抗媚俗的写作刊物。">
   <!-- 外置样式放在 head 里同步阻塞渲染，避免首屏先出无样式内容再跳一次 -->
-  <link rel="stylesheet" href="/css/site.css?v=20261023-mobile">
+  <link rel="stylesheet" href="/css/site.css?v=20261024-ticket2">
 </head>
 <body class="has-pager">
 
@@ -391,9 +391,6 @@ function renderHome({ articles, archive, notes, submitMail }) {
     <div class="archive-head">
       <p class="section-label">Récapitulation</p>
       <h2 class="section-title">再現部</h2>
-      <!-- 唯一的发现入口：不看时间、不看热度，随机翻一篇。
-           旧文过了半年就不再摆在架子外面，这里是能碰到它们的门 -->
-      <p class="archive-random"><a class="archive-random-link" href="/random">random →</a></p>
     </div>
 
     <div class="archive-inner">
@@ -403,7 +400,11 @@ function renderHome({ articles, archive, notes, submitMail }) {
   });
   out += `
     </div>
+      <!-- 唯一的发现入口：不看时间、不看热度，随机翻一篇。
+         旧文过了半年就不再摆在架子外面，这里是能碰到它们的门。大字压在区块右下角 -->
   </section>
+    <a class="archive-random archive-random-link" href="/random">random</a>
+  
   </div><!-- /第四页：档案馆 -->
 
   <!-- 第五页：華彩段 -->
@@ -522,7 +523,7 @@ function renderHome({ articles, archive, notes, submitMail }) {
 
             <aside class="guest-drawer" aria-label="留言">
               <button class="guest-drawer-handle" type="button" aria-label="留言" aria-expanded="false" aria-controls="guest-drawer-panel"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5 3L11 8L5 13" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-              <div class="guest-drawer-panel" id="guest-drawer-panel" inert>
+              <div class="guest-drawer-panel" id="guest-drawer-panel" inert">
                 <div class="guest-wall">
 `;
   notes.forEach((note) => {
@@ -555,11 +556,6 @@ function renderHome({ articles, archive, notes, submitMail }) {
         </div>
       </div>
 
-      <div class="footer-links">
-        <a href="mailto:`;
-  out += esc(submitMail);
-  out += `" class="footer-submit" id="submit">投稿</a>
-      </div>
 
       <div class="footer-bottom">        <div class="footer-signature">
           <span class="footer-name" style="letter-spacing: 0px;"><span class="jitter-char" style="margin-right: 0.5px;">E</span><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">n</span><span class="jitter-char" style="margin-right: 0.5px;">m</span><span class="jitter-char" style="margin-right: 0.5px;">a</span><span class="jitter-char" style="margin-right: 0.5px;">l</span> <span class="footer-name-ist"><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">s</span><span class="jitter-char" style="margin-right: 0.5px;">t</span></span> <span class="jitter-char" style="margin-right: 0.5px;">k</span><span class="jitter-char" style="margin-right: 0.5px;">e</span><span class="jitter-char" style="margin-right: 0.5px;">i</span><span class="jitter-char" style="margin-right: 0.5px;">n</span><span class="jitter-char" style="margin-right: 0.5px;">m</span><span class="jitter-char" style="margin-right: 0.5px;">a</span><span class="jitter-char" style="margin-right: 0.5px;">l</span><span class="jitter-char" style="margin-right: 0.5px;">.</span></span>
@@ -567,7 +563,7 @@ function renderHome({ articles, archive, notes, submitMail }) {
              原字面「© 2026 · 上帝之国」退到 alt：读屏、SEO、归档都还拿得到这句话，
              但页面上不再有可拆字的文本节点。class 里保留 footer-credit，
              是为了与 CSS / JS 里那份抖动选择器清单继续对齐（图片无字，自然不抖）。 -->
-          <img class="footer-credit footer-bottom-img" src="/img/bottom-inv.webp" alt="© 2026 上帝之国">
+          <img class="footer-credit footer-bottom-img" src="/img/bottom-inv.png" alt="© 2026 上帝之国">
         </div>
       </div>
     </div>
@@ -589,6 +585,9 @@ function renderHome({ articles, archive, notes, submitMail }) {
                ②页脚那段"逐字抖动"脚本遇到带 aria-hidden 的元素就不再往下拆——
                否则它会把 SVG 内部的 <path>/<circle> 逐个包进 <span>，图标会直接散掉 -->
         <div class="cadenza-rail" aria-label="社交链接" tabindex="0">
+          <a href="mailto:`;
+  out += esc(submitMail);
+  out += `" class="footer-submit" id="submit">投稿</a>
           <div class="cadenza-rail-social">
             <span class="cadenza-rail-handle" aria-hidden="true">&lt;</span>
           <ul class="footer-social">
@@ -620,12 +619,12 @@ function renderHome({ articles, archive, notes, submitMail }) {
   <div class="cursor-invert" aria-hidden="true" style="transform: translate3d(792px, 1px, 0px) translate(-50%, -50%);"></div>
 
   <!-- 同步加载、不加 defer：拆字脚本必须在首屏绘制前跑完，否则字距会跳一次 -->
-  <script src="/js/site.js?v=20261023-mobile"></script>
+  <script src="/js/site.js?v=20261024-voices"></script>
   <!-- 翻页驱动（滚轮 / 键盘 / 触摸左右滑动 / nav 跳页）。必须排在 site.js 之后：
        它要取 site.js 挂出来的 __sideNavSetActive 来点导航高亮 -->
   <script src="/js/pager.js?v=20261023-mobile"></script>
   <script src="/js/archive-background.js?v=20261022-archive-alignment"></script>
-  <script src="/js/guest-drawer.js?v=20261022-coda-circle"></script>
+  <script src="/js/guest-drawer.js?v=20261024-norain"></script>
 </body></html>
 `;
   return out;

@@ -488,13 +488,16 @@ body {
 .side-nav-item {
   position: relative;
   display: block;
-  /* 与 iPod 屏内那排滚动菜单（.daily-tag）同款字体：Podium Sans → Adobe Caslon Pro →
-     近似衬线兜底。两款都是商用字体，没放授权 woff2 时浏览器会回退到 Caslon/Georgia 一系，
-     导航与 iPod 走同一条回退链，所以观感一致 */
-  font-family: var(--font-nav);
-  /* 默认字号 13px → 15px（调大两号，按 1px 一档） */
+  /* 按用户指定：nav 英文用站内自带的 Heldane Text（仓库根 6 款字面，
+     public/fonts/HeldaneText/，Regular/Medium/Bold × 正体/斜体，均已 @font-face）。
+     400 字重命中 HeldaneTextRegular.otf——自托管字体，不依赖访客系统装什么，
+     所有端看到的字形一致。末尾 serif 是 @font-face 失效时的兜底 */
+  font-family: 'Heldane Text', serif;
+  /* 默认字号 13px → 15px（调大两号，按 1px 一档）。
+     字距 1px → 2px（用户要求"稍微大一丢丢"）：Heldane 的拉丁本身偏紧，
+     竖排时词与词之间再松半档更好认 */
   font-size: 15px;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   color: var(--gray-4);
   text-decoration: none;
   transition: color 0.35s ease;
@@ -1220,6 +1223,23 @@ body {
   overflow: hidden;
 }
 
+/* 换台静电：切栏目的一瞬屏内闪雪花（site.js 注入 canvas），像 CRT 换台 */
+.ipod-static {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  width: 100%;
+  height: 100%;
+  display: none;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+.ipod-static.is-on {
+  display: block;
+}
+
+
 /* .daily-ipod-view 是"屏内的一个视图"：music 之类内容不是独立页面，
    而是在这块屏幕里换一屏。所以每个视图都占满屏幕、居中，非当前的那个直接 display:none */
 .daily-ipod-view {
@@ -1705,10 +1725,66 @@ body {
   /* 常态透明，不是没有边框 —— 边框的宽度仍然占 1px，卡片盒子尺寸与原先完全一致，
      所以"框消失"不会让文字位置挪动半像素；变的只有颜色：静止时看不见，
      悬停/展开时才由 border-color 过渡把它染成黑（过渡已在下面那条里）。
-     若写成 border: none 或 0，盒子会比现在小 2px，展开前后会跳一下 */
-  border: 1px solid transparent;
-  padding: 32px 36px;
+     若写成 border: none 或 0，盒子会比现在小 2px，展开前后会跳一下。
+     2026-10-25 票根化：描边改为常态可见的浅灰（设计稿「己」的 1px 边），
+     悬停/展开仍染黑——纯白卡 + 灰咬口需要这道边才读得出"卡片" */
+  border: 1px solid var(--gray-2);
+  /* 下内边距 32 → 40（设计稿同值）：咬口从底边咬进 15px，正文与咬口之间
+     要留出一段，展开态长文才不会贴到半圆上 */
+  padding: 32px 36px 40px;
   cursor: pointer;
+  /* 票根咬口（::after）的定位锚点 */
+  position: relative;
+}
+
+/* ============================================================
+   展开部文章框 · 票根化（ticket-drafts.html 第四版「壬 · 实线连口」）
+   ============================================================
+   设计稿参数原样搬过来：底边一排向内咬口（半径 10 / 间距 68，
+   圆心落在底边上），咬口之间画一条明确的 1px 实线——像撕票的
+    perforation。两色都取设计稿的值：咬口 = 页面底色（--gray-1，
+   即设计稿里的 currentColor = --bg），线 = #c9c9c9。
+   页面是白的、卡也是白的，咬口只有取灰才咬得出来（设计稿靠灰底白卡，
+   这里反过来：白底白卡 + 灰咬口，视觉关系一致）。
+   挂在 ::after 上：不碰 DOM（article-item 由 ejs 局部与静态页两处渲染），
+   绝对定位也不参与高度计算——JS 量的 --pub-collapsed-h 不受影响。
+   bottom: -1px 盖住底边框：咬口从边框线上咬进去，悬停描边染黑时
+   咬口照样压在黑线之上，才是"撕开"而不是"画上去的半圆」。 */
+/* 咬口与撕票线登记成可过渡的自定义属性：悬停反色时它们要跟黑场、
+   文字一起在 0.35s 里同步过去。不登记的话 background-image 里的颜色
+   只能硬切——之前"反色不同步"就是咬口瞬间黑、黑场还在渐入。
+   注意 inherits 必须是 true：::after 是 .article-item 的伪元素，
+   inherits:false 的注册属性不会往下继承，咬口会被钉死在 initial-value
+   的灰色上，悬停时整页黑了底边还留一排灰半圆（就是"不是纯黑"的成因） */
+@property --ticket-bite {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #f5f5f5;
+}
+@property --ticket-tear {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #c9c9c9;
+}
+.article-item {
+  --ticket-bite: var(--gray-1);
+  --ticket-tear: #c9c9c9;
+}
+.article-item::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 12px;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle 10px at 34px 12px,
+        var(--ticket-bite) 9.6px, rgba(0, 0, 0, 0) 10px),
+    linear-gradient(rgba(0, 0, 0, 0) 10px,
+        var(--ticket-tear) 10px, var(--ticket-tear) 11px, rgba(0, 0, 0, 0) 11px);
+  background-size: 68px 12px, 1px 12px;
+  background-repeat: repeat-x, repeat-x;
 }
 
 /* 反色渐显渐隐：底色、描边、文字同步过渡。opacity 一并在这里过渡，
@@ -1756,10 +1832,13 @@ body {
 }
 
 /* 卡片自身的位移：切文章时新卡片升入、旧卡片上退，与淡入淡出同一条时长。
-   写在上面那条共享规则之后，一并接管 .article-item 的过渡（位移不该落到子元素上） */
+   写在上面那条共享规则之后，一并接管 .article-item 的过渡（位移不该落到子元素上）。
+   --ticket-bite / --ticket-tear 两条自定义属性也在这里过渡：悬停反色时
+   咬口与撕票线跟着黑场同步渐入，不硬切（@property 已登记为颜色类型） */
 .article-item {
   transition: background-color 0.35s ease, border-color 0.35s ease, opacity 0.4s ease,
-              transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+              transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1),
+              --ticket-bite 0.35s ease, --ticket-tear 0.35s ease;
 }
 
 /* 切文章那一瞬：容器高度由脚本从旧卡片的高度写到新卡片的高度，
@@ -1783,41 +1862,75 @@ body {
   }
 }
 
-/* 悬停反色：与档案馆年份行同一套交互语言 */
-.article-item:hover:not(.expanded) {
-  background: var(--black);
-  border-color: var(--black);
-}
+@media (hover: hover) {
+  /* :not(.is-leaving) 是必须的：本规则带 #latest，特异性 (1,1,0) 高于
+     .article-item.is-leaving 的 (0,2,0)。少了这个排除，切换文章时旧卡片
+     脱不了流，新旧两张连同 gap:20px 一起把容器撑成近两倍高——新卡片被挤到
+     旧卡片下面（偏下），容器高度动画跑完那一拍才归位（卡一下），
+     510ms 后旧卡片 display:none 离流，新卡片又猛地跳回顶（移上来）。
+     所以这里只给「留在流里」的卡片补定位上下文，脱流的那张交给 is-leaving */
+  #latest .article-item:not(.is-leaving) {
+    position: relative;
+    z-index: 1;
+  }
 
-.article-item:hover:not(.expanded) .article-meta {
-  color: rgba(255, 255, 255, 0.55);
-}
+  #latest .article-item::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    z-index: -1;
+    background: var(--black);
+    box-shadow: 0 0 0 100vmax var(--black);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+  }
 
-.article-item:hover:not(.expanded) .article-author {
-  color: rgba(255, 255, 255, 0.75);
-}
+  #latest .article-item:hover:not(.expanded):not(.is-leaving):not(.is-entering)::before {
+    opacity: 1;
+  }
 
-.article-item:hover:not(.expanded) .article-title {
-  color: var(--white);
-}
+  /* 票根两色跟着一起反色：悬停时整页连卡面一起黑（::before 的黑场），
+     咬口与撕票线若是灰色，就会在黑场底边留一排灰半圆一段灰线。
+     两色从来都是"页面底色"——反色后页面是黑的，它们也取黑。
+     走自定义属性过渡（见上面 .article-item 的 transition），
+     与黑场、文字同一条 0.35s，不再硬切 */
+  #latest .article-item:hover:not(.expanded):not(.is-leaving):not(.is-entering) {
+    --ticket-bite: var(--black);
+    --ticket-tear: var(--black);
+  }
 
-.article-item:hover:not(.expanded) .article-excerpt {
-  color: rgba(255, 255, 255, 0.8);
-}
+  #latest .article-item:hover:not(.expanded) .article-meta {
+    color: rgba(255, 255, 255, 0.55);
+  }
 
-.article-item:hover:not(.expanded) .article-toggle {
-  color: rgba(255, 255, 255, 0.7);
-}
+  #latest .article-item:hover:not(.expanded) .article-author {
+    color: rgba(255, 255, 255, 0.75);
+  }
 
-/* 悬停时刊徽一并反相：灰度图在黑底上仍保持原样的话，深色笔画会糊掉，
-   与文字同翻才维持得住"整块反色"的观感。
-   这里不写 filter，只对调两张同源图的透明度——理由见下方 .article-logo 的注释 */
-.article-item:hover:not(.expanded) .article-logo .logo-base {
-  opacity: 0;
-}
+  #latest .article-item:hover:not(.expanded) .article-title {
+    color: var(--white);
+  }
 
-.article-item:hover:not(.expanded) .article-logo .logo-inv {
-  opacity: 1;
+  #latest .article-item:hover:not(.expanded) .article-excerpt {
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  #latest .article-item:hover:not(.expanded) .article-toggle {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  #latest .article-item:hover:not(.expanded) .article-logo .logo-base {
+    opacity: 0;
+  }
+
+  #latest .article-item:hover:not(.expanded) .article-logo .logo-inv {
+    opacity: 1;
+  }
+
+  body.has-pager[data-pager-active="latest"]:has(#latest .article-item:hover:not(.expanded):not(.is-leaving):not(.is-entering)) :is(.side-nav, .pager-pub-controls, .cursor-invert) {
+    opacity: 0;
+  }
 }
 
 /* 展开后回到白底，保证长文可读 */
@@ -1984,18 +2097,35 @@ body {
   display: block;
 }
 
+/* 展开箭头：右下角一枚左右拉长的【实心倒三角】（nabla ▽ 的样子：
+   52×12 的实心块，clip-path 削成上边满宽、尖点朝下的三角形），
+   与票根语言一致——像撕票根时露出来的那一截。
+   绝对定位钉在卡片右下角，不占流：JS 量的 --pub-collapsed-h 不受影响。
+   字符本体用 font-size: 0 收掉（读屏仍读得到原文），
+   形状由 ::before 用 currentColor 画——悬停反色时跟着文字一起变白。
+   展开态翻 180°：倒三角变正三角（▽→△），提示"再点收起" */
 .article-toggle {
-  display: block;
-  margin-top: 24px;
-  text-align: center;
-  font-family: var(--font-body);
-  font-size: 18px;
-  line-height: 1;
+  position: absolute;
+  right: 24px;
+  /* 抬离票根咬口条（12px）再留一段，尖点不压在半圆上 */
+  bottom: 28px;
+  width: 52px;
+  height: 12px;
+  font-size: 0;
+  line-height: 0;
   color: var(--gray-4);
-  transition: color 0.35s ease, transform 0.3s ease;
+  cursor: pointer;
+  transition: color 0.35s ease;
 }
-
-.article-item.expanded .article-toggle {
+.article-toggle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transition: transform 0.3s ease;
+}
+.article-item.expanded .article-toggle::before {
   transform: rotate(180deg);
 }
 
@@ -2078,23 +2208,25 @@ body {
   mix-blend-mode: difference;
 }
 
-/* 「随便一篇」：档案馆里唯一的发现入口。样式刻意压到最轻——
-   它是个门，不是个功能入口，不该跟标题抢注意力 */
+/* 「随便一篇」：档案馆里唯一的发现入口。挂在再现部这一页的末尾：
+   sticky 钉在可视底边向上 48px——页内竖向滚动时始终停在屏幕角上；
+   而它属于页面本身，翻页时跟着左右滑动进出（fixed 做不到这个）。
+   字体与字号同「再現部」标题（--font-title / 42px）；白字压在整页虚化的
+   暗色照片上，z-index 90 盖过背景层与展开面板。
+   右侧让出 48px，避开竖排章节导航（它占 right 24px 一条） */
 .archive-random {
-  margin: -40px 0 40px;
-}
-
-.archive-random a {
-  font-family: var(--font-nav); /* 与右侧导航同一套拉丁字体 */
-  font-size: 11px;
-  letter-spacing: 2px;
-  color: rgba(255, 255, 255, 0.62);
-  text-decoration: none;
-  transition: color 0.35s ease;
-}
-
-.archive-random a:hover {
+  position: sticky;
+  bottom: 48px;
+  z-index: 90;
+  display: block;
+  width: max-content;
+  margin-left: auto;
+  margin-right: 48px;
+  font-family: var(--font-title);
+  font-size: 42px;
+  letter-spacing: 4px;
   color: var(--white);
+  text-decoration: none;
 }
 
 .archive-inner {
@@ -2446,19 +2578,6 @@ body {
   margin: 0 auto;
 }
 
-/* 页脚入口行：关于 / 投稿，两项居中并排（与上方「留言」同一个中轴）。
-   这一行紧跟在常驻展开的留言板下面、刊名「Einmal ist keinmal」的上一行。
-   justify-content: center：留出「留言」之后，这一行不再做左右分居——
-   三项各自贴边会让页脚的重心散掉，居中才与刊名那一行上下对齐。
-   baseline 对齐让两项文字压在同一条基线上（「投稿」自带 20px 上下内边距，
-   若用 flex-start 会让「关于」比它高出 20px） */
-.footer-links {
-  display: flex;
-  justify-content: center;
-  align-items: baseline;
-  margin-bottom: 32px;
-}
-
 /* 从華彩段顶部贯穿到页面底部的反色条。元素留在页脚 DOM 内，脚本按
    #museum 与页面底部的实际坐标写入 top / height，因此留言数量变化后也能贴合。 */
 .cadenza-rail {
@@ -2554,29 +2673,21 @@ body.has-pager:has(.side-nav [href="#latest"].is-active) {
   color: var(--black);
 }
 
-/* 官方标识是"实心字形"（单条 path、靠 fill 上色），不是线条：
-   fill: currentColor 让它跟着链接的 color 走，stroke 显式关掉——
-   否则会继承外层的描边设置，字形边缘糊一圈。
-   尺寸由 26px 提到 30px：小红书那枚是官方完整字形，笔画极密（path 数据约 3.5KB），
-   26px 下细节被压到亚像素、看着糊成一团；网格单格约 138px 宽，放到 30px 也放得下 */
-.footer-social-item svg {
-  width: 22px;
-  height: 22px;
-  flex: none;
-  fill: currentColor;
-  stroke: none;
-}
-
-/* 页脚入口「投稿」的样式与手势。flex: none 让它不参与挤压，免得文字被折成两行 */
+/* 投稿：原样迁自页脚（竖排宋体 + 悬停左划线），改动仅三处——颜色白→黑、
+   line-height 收到 1（行距会把竖字框撑宽，划线离字远）、绝对定位钉在
+   竖轨最顶上（页面右上角）。不进 flex 排布，图标列不受影响 */
 .footer-submit {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
   display: inline-block;
-  flex: none;
   writing-mode: vertical-rl;
   text-orientation: upright;
   font-family: serif;
   font-size: 22px;
-  color: var(--white);
+  line-height: 1;
+  color: var(--black);
   text-decoration: none;
   padding: 20px 0;
 }
@@ -2599,6 +2710,20 @@ body.has-pager:has(.side-nav [href="#latest"].is-active) {
   opacity: 1;
 }
 
+/* 官方标识是"实心字形"（单条 path、靠 fill 上色），不是线条：
+   fill: currentColor 让它跟着链接的 color 走，stroke 显式关掉——
+   否则会继承外层的描边设置，字形边缘糊一圈。
+   尺寸由 26px 提到 30px：小红书那枚是官方完整字形，笔画极密（path 数据约 3.5KB），
+   26px 下细节被压到亚像素、看着糊成一团；网格单格约 138px 宽，放到 30px 也放得下 */
+.footer-social-item svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  fill: currentColor;
+  stroke: none;
+}
+
+/* 页脚入口「投稿」的样式与手势。flex: none 让它不参与挤压，免得文字被折成两行 */
 /* ---------- Footer / 留言板 ---------- */
 /* 留言板常驻展开：不再是"点一下才长出来"的折叠区，max-height 那一套
    （高度上限 / overflow 裁切 / 0.6s 过渡）整段撤除——内容多长就占多高，
@@ -3277,6 +3402,10 @@ body.has-pager {
   margin-top: 0;
 }
 
+.pager #latest {
+  padding-bottom: 24px;
+}
+
 .pager .archive.has-aligned-background::before,
 .pager .archive.has-aligned-background .archive-year,
 .pager .archive.has-aligned-background .archive-months {
@@ -3450,6 +3579,33 @@ body.has-pager:not([data-pager-active="about"]) .guest-drawer-handle {
   transition: clip-path 360ms cubic-bezier(.22, .61, .36, 1), transform 360ms ease, opacity 180ms ease, visibility 0s 360ms;
 }
 
+/* 留言发送成功的白闪：闪电般乱序多击（site.js 用 rAF 驱动 opacity），
+   白屏上左对齐打出一句话；字用站点默认无衬线栈（--font-sans） */
+.guest-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: var(--white);
+  color: var(--black);
+  opacity: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  font-family: var(--font-sans);
+  font-size: min(15.5vw, 26vh);
+  line-height: 1.22;
+  letter-spacing: 0.01em;
+  white-space: pre-line;
+  text-align: left;
+  padding-left: 4vw;
+}
+
+/* 闪电文案的衬线段：「才能停？」用正文字体（LoveLetter 衬线栈），
+   前半句「雨，何时」留默认无衬线（.guest-flash 自身的 --font-sans） */
+.guest-flash-serif {
+  font-family: var(--font-body);
+}
+
 .guest-drawer.is-open .guest-drawer-panel {
   clip-path: inset(0);
   transform: translateX(0);
@@ -3583,12 +3739,6 @@ body.has-pager:not([data-pager-active="about"]) .guest-drawer-handle {
 
 .pager #about .footer-guestbook::-webkit-scrollbar {
   display: none;
-}
-
-.pager #about .footer-links {
-  flex: none;
-  margin: 12px 0 0;
-  padding: 0;
 }
 
 body.has-pager .pager-page[data-pager-page="about"] > .footer-bottom {

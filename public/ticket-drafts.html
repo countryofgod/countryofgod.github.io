@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>票根设计稿 · 圆周向内 × 横线相连</title>
+<style>
+  :root { --bg: #f5f5f5; --ink: #111; --sub: #6b6b6b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: Georgia, 'Songti SC', 'SimSun', serif; padding: 56px 24px 120px; }
+  .wrap { max-width: 864px; margin: 0 auto; }
+  h1 { font-size: 22px; letter-spacing: 6px; font-weight: normal; text-align: center; margin: 0 0 6px; }
+  .note { text-align: center; color: var(--sub); font-size: 13px; letter-spacing: 2px; margin-bottom: 56px; }
+  .label { font-size: 13px; letter-spacing: 3px; color: var(--sub); margin: 48px 0 10px; }
+  .label b { color: var(--ink); font-weight: normal; }
+  .label span { color: #999; letter-spacing: 1px; margin-left: 10px; }
+  .card { position: relative; background: #fff; border: 1px solid #dcdcdc; padding: 32px 36px 40px; }
+  .card h3 { font-size: 25px; margin: 0 0 10px; font-weight: normal; }
+  .meta { font-size: 11px; letter-spacing: 2px; color: var(--sub); margin-bottom: 18px; }
+  .card p { font-size: 18px; line-height: 1.9; color: #3a3a3a; margin: 0; }
+  .patch { position: absolute; left: 0; right: 0; bottom: -1px; pointer-events: none; color: var(--bg); }
+
+  /* 己：大而稀的向内咬口（半径14 / 间距96） */
+  .v-ji { height: 15px;
+    background-image: radial-gradient(circle 14px at 48px 15px, currentColor 13.4px, #0000 14px);
+    background-size: 96px 15px; background-repeat: repeat-x; }
+
+  /* 庚：撕票线——横贯的虚线上咬口向下开（圆心在线上） */
+  .v-geng { height: 30px; bottom: 14px;
+    background-image:
+      radial-gradient(circle 9px at 40px 0px, var(--bg) 8.6px, #0000 9px),
+      linear-gradient(#0000 13px, #b9b9b9 13px, #b9b9b9 14px, #0000 14px);
+    background-size: 80px 30px, 8px 15px;
+    background-repeat: repeat-x, repeat-x;
+    background-position: 0 0, 9px 0; }
+
+  /* 辛：密排小咬口（半径5 / 间距24） */
+  .v-xin { height: 6px;
+    background-image: radial-gradient(circle 5px at 12px 6px, currentColor 4.7px, #0000 5px);
+    background-size: 24px 6px; background-repeat: repeat-x; }
+
+  /* 壬：咬口之间画明确的 1px 实线横线 */
+  .v-ren { height: 12px;
+    background-image:
+      radial-gradient(circle 10px at 34px 12px, currentColor 9.6px, #0000 10px),
+      linear-gradient(#0000 10px, #c9c9c9 10px, #c9c9c9 11px, #0000 11px);
+    background-size: 68px 12px, 1px 12px;
+    background-repeat: repeat-x, repeat-x; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>票根设计稿 · 二轮</h1>
+  <p class="note">方向：圆周向内咬口 × 横线相连 —— 四版参数，报编号</p>
+
+  <div class="label"><b>己 · 大口疏排</b><span>半径 14 · 间距 96 · 直边相连</span></div>
+  <div class="card">
+    <h3>创刊号</h3>
+    <div class="meta">— 编辑部 &nbsp;·&nbsp; 2026.10.05 &nbsp;·&nbsp; 发刊词</div>
+    <p>"他要尘世间的上帝之国。"这是《不能承受的生命之轻》主人公托马斯的墓志铭。所谓上帝之国，就是一个反抗媚俗的世界。</p>
+    <div class="patch v-ji"></div>
+  </div>
+
+  <div class="label"><b>庚 · 撕票线</b><span>横贯虚线 + 咬口开在线上，半圆向下</span></div>
+  <div class="card">
+    <h3>创刊号</h3>
+    <div class="meta">— 编辑部 &nbsp;·&nbsp; 2026.10.05 &nbsp;·&nbsp; 发刊词</div>
+    <p>"他要尘世间的上帝之国。"这是《不能承受的生命之轻》主人公托马斯的墓志铭。所谓上帝之国，就是一个反抗媚俗的世界。</p>
+    <div class="patch v-geng"></div>
+  </div>
+
+  <div class="label"><b>辛 · 小口密排</b><span>半径 5 · 间距 24 · 细碎规则</span></div>
+  <div class="card">
+    <h3>创刊号</h3>
+    <div class="meta">— 编辑部 &nbsp;·&nbsp; 2026.10.05 &nbsp;·&nbsp; 发刊词</div>
+    <p>"他要尘世间的上帝之国。"这是《不能承受的生命之轻》主人公托马斯的墓志铭。所谓上帝之国，就是一个反抗媚俗的世界。</p>
+    <div class="patch v-xin"></div>
+  </div>
+
+  <div class="label"><b>壬 · 实线连口</b><span>半径 10 · 咬口之间明确画 1px 实线</span></div>
+  <div class="card">
+    <h3>创刊号</h3>
+    <div class="meta">— 编辑部 &nbsp;·&nbsp; 2026.10.05 &nbsp;·&nbsp; 发刊词</div>
+    <p>"他要尘世间的上帝之国。"这是《不能承受的生命之轻》主人公托马斯的墓志铭。所谓上帝之国，就是一个反抗媚俗的世界。</p>
+    <div class="patch v-ren"></div>
+  </div>
+</div>
+</body>
+</html>

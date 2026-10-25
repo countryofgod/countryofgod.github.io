@@ -61,6 +61,14 @@ app.use(
   })
 );
 
+// 服务端渲染的页面不进浏览器缓存（与 Workers 版 page() 的 no-store 同口径，
+// 两边行为一致；否则改版后浏览器可能一直端旧 HTML）。静态资源在上面各自管自己的头，
+// 这条中间件挂在静态目录之后，够不到它们
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
 // 健康检查：给外部探活用，连一次库，库挂了就 503
 app.get('/healthz', (_req, res) => {
   try {

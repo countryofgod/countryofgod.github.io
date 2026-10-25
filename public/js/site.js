@@ -99,13 +99,50 @@ if (ipodScreen) {
     ipodActiveEl = el;
   };
 
+  // 换台静电：切栏目的一瞬屏内闪 0.2s 雪花——拟物拟到信号层（CRT 换台）。
+  // 无头验收环境没有 canvas 2d，或系统开了「减少动态效果」时静默跳过
+  const ipodStaticFlash = (() => {
+    let canvas = null;
+    let ctx = null;
+    let rafId = 0;
+    const flash = () => {
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.className = 'ipod-static';
+        canvas.setAttribute('aria-hidden', 'true');
+        if (!canvas.getContext || !(ctx = canvas.getContext('2d'))) { canvas = null; return; }
+        ipodScreen.appendChild(canvas);
+      }
+      const until = performance.now() + 200;
+      const w = (canvas.width = 64);
+      const h = (canvas.height = 78);
+      const frame = () => {
+        const t = performance.now();
+        const img = ctx.createImageData(w, h);
+        const d = img.data;
+        for (let i = 0; i < d.length; i += 4) {
+          const v = (Math.random() * 160) | 0;
+          d[i] = v; d[i + 1] = v; d[i + 2] = v; d[i + 3] = 255;
+        }
+        ctx.putImageData(img, 0, 0);
+        if (t < until) rafId = requestAnimationFrame(frame);
+        else canvas.classList.remove('is-on');
+      };
+      cancelAnimationFrame(rafId);
+      canvas.classList.add('is-on');
+      rafId = requestAnimationFrame(frame);
+    };
+    return flash;
+  })();
+
   const enterIpodView = (target) => {
     if (!target) return;
     // 三个条目都决定"右栏显示什么"：
     //   article / poem → 当天的文章或诗，屏幕不动，只换右栏
     //   music          → 当前这一曲的歌词，同时把屏幕换成播放器
-    if (target === 'article' || target === 'poem') { showDailyCategory(target); return; }
-    if (target === 'music') showDailyCategory('music');
+    if (target === 'article' || target === 'poem') { showDailyCategory(target); ipodStaticFlash(); return; }
+    if (target === 'music') { showDailyCategory('music'); ipodStaticFlash(); }
     if (!ipodViews.some((v) => v.dataset.ipodView === target)) return;
     if (target === currentIpodView()) return;
     history.pushState({ ipod: target }, '', '#ipod-' + target);
@@ -1031,6 +1068,51 @@ function showGuestHint(message) {
 if (guestForm && guestWall) {
   const guestSubmit = guestForm.querySelector('.guest-submit');
 
+  // 留言发出去的一瞬：一道闪电劈开全屏——白屏上左对齐打出一句话。
+  // 闪电不是均匀的闪两下：乱序多击、硬切（亮灭之间不过渡），最后一击带急收的余辉。
+  // 不走 CSS animation（本站在部分内嵌浏览器里 keyframes 不生效），用 rAF 直接驱动
+  // 「雨，何时」保持站点默认无衬线（.guest-flash 的 --font-sans）；
+  // 「才能停？」换成衬线（--font-body）。分行不变：雨，／何时＋才会停？
+  // 必须整体包在【一个】span 里：.guest-flash 是 display:flex，裸的多个 span
+  // 会各自变成 flex item 横排、<br> 也不再换行，整句话被折成一列（"竖拍"）。
+  // 包一层之后它是唯一的 flex item，内部恢复普通行内流，<br> 照常断行。
+  // 文案是常量、不掺任何用户输入，innerHTML 没有注入面
+  const FLASH_HTML =
+    '<span class="guest-flash-text">雨，<br>何时<span class="guest-flash-serif">才能停？</span></span>';
+
+  function flashScreen() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let el = document.querySelector('.guest-flash');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'guest-flash';
+      el.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(el);
+    }
+    el.innerHTML = FLASH_HTML;
+    // 每次闪都带一点随机抖动，没有两道闪电是一样的
+    const jitter = () => Math.random() * 26 - 13;
+    const strikes = [
+      [0, 1], [42 + jitter(), 0], [68 + jitter(), 1], [110 + jitter(), 0],
+      [132 + jitter(), 1], [186 + jitter(), 0], [212 + jitter(), 0.85],
+      [234 + jitter(), 0], [268 + jitter(), 1],
+    ];
+    const afterglow = 330; // 末击之后的余辉时长
+    const start = performance.now();
+    const strike = (now) => {
+      const t = now - start;
+      let o = 0;
+      for (const [at, v] of strikes) {
+        if (t >= at) o = v;
+      }
+      if (t > afterglow) o = Math.max(0, 1 - (t - afterglow) / 110);
+      el.style.opacity = String(o);
+      if (t < afterglow + 110) requestAnimationFrame(strike);
+      else el.style.opacity = '0';
+    };
+    requestAnimationFrame(strike);
+  }
+
   guestForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     showGuestHint('');
@@ -1059,6 +1141,7 @@ if (guestForm && guestWall) {
       else guestWall.prepend(renderNote(data));
       // 刚留的这条立刻变成"我的"，可以撤回
       markMyNotes([data.id]);
+      flashScreen();
 
       guestForm.reset();
       if (guestPreview) {

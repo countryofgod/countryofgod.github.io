@@ -30,9 +30,9 @@ const css = (await mustGet('/css/site.css')).replace(
   'url($1/public/$2/'
 );
 
-// 3) 外置样式改内联
+// 3) 外置样式改内联。链接可能带缓存击破的查询串（?v=…），用正则兜住
 html = html.replace(
-  '<link rel="stylesheet" href="/css/site.css">',
+  /<link rel="stylesheet" href="\/css\/site\.css[^"]*">/,
   '<style>\n' + css + '\n</style>'
 );
 

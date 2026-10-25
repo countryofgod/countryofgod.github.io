@@ -133,21 +133,22 @@ function diffTokens(a, b) {
 const devSetCookie = homeRes.headers.get('set-cookie') || '';
 check('首页给新设备登记身份', devSetCookie.startsWith('gc_dev='), devSetCookie.split(';')[0].slice(0, 24));
 const devCookie = devSetCookie.split(';')[0];
-// 页脚布局：留言板常驻展开；投稿居中；左侧反色条承载四枚社交图标。
+// 页脚布局：留言板常驻展开；投稿（原样式、黑色）钉在右侧反色竖轨最顶上；四枚社交图标在轨底。
 const footerHtml = homeHtml.slice(homeHtml.indexOf('<footer'));
 check(
   '留言板常驻展开、「留言」居中保留、折叠入口已撤',
   footerHtml.includes('footer-guestbook-label') &&
     !homeHtml.includes('footer-guestbook-arrow') &&
     footerHtml.includes('footer-guestbook-body') &&
-    footerHtml.indexOf('footer-guestbook') < footerHtml.indexOf('footer-links')
+    !footerHtml.includes('class="footer-links"')
 );
 check(
-  '投稿回到底部居中，留言入口改圆形，原社交抽屉保留四枚图标',
+  '投稿钉在右侧竖轨最顶上，留言入口改圆形，原社交抽屉保留四枚图标',
   !footerHtml.includes('footer-about-label') &&
     !footerHtml.includes('submit-drawer') &&
     footerHtml.includes('d="M5 3L11 8L5 13"') &&
-    footerHtml.indexOf('footer-submit') < footerHtml.indexOf('footer-bottom') &&
+    footerHtml.indexOf('cadenza-rail') < footerHtml.indexOf('footer-submit') &&
+    footerHtml.indexOf('footer-submit') < footerHtml.indexOf('cadenza-rail-social') &&
     footerHtml.includes('cadenza-rail') &&
     !footerHtml.includes('footer-social-handle') &&
     (footerHtml.match(/class="footer-social-item"/g) || []).length === 4
